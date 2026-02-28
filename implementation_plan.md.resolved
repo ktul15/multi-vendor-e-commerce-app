@@ -1,0 +1,543 @@
+# Multi-Vendor E-Commerce App — Full Project Scope
+
+A production-grade multi-vendor marketplace with a **Flutter** storefront for customers, a **Node.js** backend powering REST APIs, and a vendor/admin dashboard — all integrated with **Stripe** for payments and real-time **order tracking**.
+
+---
+
+## 1. System Architecture
+
+```mermaid
+graph TD
+    subgraph Client
+        A["Flutter Mobile App<br/>(Customer Storefront)"]
+        B["Flutter Web / Mobile<br/>(Vendor Dashboard)"]
+    end
+
+    subgraph Backend
+        C["Node.js + Express<br/>REST API Server"]
+        D["MongoDB Atlas<br/>Database"]
+        E["Redis<br/>Session / Cache"]
+        F["Stripe API<br/>Payments"]
+        G["Firebase Cloud Messaging<br/>Push Notifications"]
+        H["Cloudinary / S3<br/>Image Storage"]
+    end
+
+    A --> C
+    B --> C
+    C --> D
+    C --> E
+    C --> F
+    C --> G
+    C --> H
+```
+
+### Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Mobile App** | Flutter 3.x, Dart, Riverpod (state mgmt), GoRouter, Dio |
+| **Backend** | Node.js 20+, Express.js, TypeScript |
+| **Database** | MongoDB with Mongoose ODM |
+| **Auth** | JWT (access + refresh tokens), bcrypt |
+| **Payments** | Stripe (Checkout, PaymentIntents, Connect for vendors) |
+| **Storage** | Cloudinary (product images, avatars) |
+| **Notifications** | Firebase Cloud Messaging (FCM) |
+| **Cache** | Redis (sessions, OTP, rate-limiting) |
+| **DevOps** | Docker, GitHub Actions CI/CD |
+
+---
+
+## 2. User Roles & Features
+
+### 👤 Customer (Mobile App)
+
+| Module | Features |
+|---|---|
+| **Auth** | Email/password sign-up & login, Google OAuth, forgot-password (OTP), profile management |
+| **Home** | Featured banners, category grid, trending products, recently viewed |
+| **Product Browsing** | Category & sub-category filtering, search with auto-suggest, sort (price, rating, newest), product detail with image carousel, reviews & ratings |
+| **Cart** | Add/remove items, quantity adjustment, multi-vendor cart separation, coupon/promo code |
+| **Checkout** | Address management (add/edit/delete), shipping method selection, Stripe payment (card, Apple Pay, Google Pay), order summary |
+| **Orders** | Order history with status timeline, real-time order tracking (placed → confirmed → shipped → delivered), cancel/return request |
+| **Wishlist** | Save products, move to cart |
+| **Notifications** | Push notifications for order updates, deals, price drops |
+
+### 🏪 Vendor (Dashboard)
+
+| Module | Features |
+|---|---|
+| **Auth** | Vendor registration (with approval flow), login, profile & store setup |
+| **Store** | Store name, logo, banner, description, policies (return, shipping) |
+| **Products** | CRUD products with variants (size, color), image upload (up to 5), inventory tracking, bulk import (CSV) |
+| **Orders** | View incoming orders, update status (confirm → pack → ship with tracking number), handle returns |
+| **Earnings** | Dashboard showing total sales, pending payouts, commission breakdown |
+| **Payouts** | Stripe Connect onboarding, payout history, bank account management |
+| **Analytics** | Sales charts (daily/weekly/monthly), top products, conversion rate |
+
+### 🛡️ Admin (Web Dashboard — optional / future phase)
+
+| Module | Features |
+|---|---|
+| **User Mgmt** | View/ban customers, approve/reject vendor applications |
+| **Product Mgmt** | Approve/flag/remove products, manage categories |
+| **Orders** | View all orders, handle disputes |
+| **Finance** | Platform commission settings, revenue reports |
+| **Config** | Manage banners, featured products, promo codes |
+
+---
+
+## 3. Folder Structure
+
+### Flutter App (`/flutter_app`)
+
+```
+flutter_app/
+├── lib/
+│   ├── main.dart
+│   ├── app.dart
+│   ├── core/
+│   │   ├── constants/          # API URLs, colors, strings
+│   │   ├── theme/              # AppTheme, text styles, dark mode
+│   │   ├── utils/              # Helpers, formatters, validators
+│   │   ├── network/            # Dio client, interceptors, API exceptions
+│   │   └── routing/            # GoRouter config, route names
+│   ├── features/
+│   │   ├── auth/
+│   │   │   ├── data/           # AuthRepository, models
+│   │   │   ├── domain/         # Entities, use cases (optional clean arch)
+│   │   │   └── presentation/   # Screens, widgets, providers
+│   │   ├── home/
+│   │   ├── products/
+│   │   ├── cart/
+│   │   ├── checkout/
+│   │   ├── orders/
+│   │   ├── wishlist/
+│   │   ├── profile/
+│   │   ├── notifications/
+│   │   └── vendor/             # Vendor dashboard screens
+│   │       ├── store_setup/
+│   │       ├── product_mgmt/
+│   │       ├── order_mgmt/
+│   │       └── earnings/
+│   └── shared/
+│       ├── widgets/            # Reusable UI components
+│       ├── models/             # Shared data models
+│       └── providers/          # Global providers (user, cart)
+├── assets/
+│   ├── images/
+│   ├── icons/
+│   └── fonts/
+├── test/
+└── pubspec.yaml
+```
+
+### Node.js Backend (`/backend`)
+
+```
+backend/
+├── src/
+│   ├── server.ts               # Entry point
+│   ├── app.ts                  # Express app config
+│   ├── config/
+│   │   ├── db.ts               # MongoDB connection
+│   │   ├── env.ts              # Environment variables
+│   │   ├── redis.ts            # Redis connection
+│   │   └── stripe.ts           # Stripe init
+│   ├── middleware/
+│   │   ├── auth.ts             # JWT verification
+│   │   ├── role.ts             # Role-based access (customer/vendor/admin)
+│   │   ├── validate.ts         # Request validation (Zod)
+│   │   ├── upload.ts           # Multer + Cloudinary
+│   │   ├── rateLimiter.ts
+│   │   └── errorHandler.ts
+│   ├── modules/
+│   │   ├── auth/
+│   │   │   ├── auth.controller.ts
+│   │   │   ├── auth.service.ts
+│   │   │   ├── auth.routes.ts
+│   │   │   ├── auth.validation.ts
+│   │   │   └── auth.model.ts   # User schema
+│   │   ├── product/
+│   │   ├── category/
+│   │   ├── cart/
+│   │   ├── order/
+│   │   ├── payment/
+│   │   ├── review/
+│   │   ├── vendor/
+│   │   ├── wishlist/
+│   │   ├── notification/
+│   │   └── admin/
+│   ├── utils/
+│   │   ├── apiResponse.ts
+│   │   ├── apiError.ts
+│   │   ├── logger.ts
+│   │   └── email.ts            # Nodemailer
+│   └── types/
+│       └── index.d.ts
+├── tests/
+├── .env.example
+├── tsconfig.json
+├── Dockerfile
+└── package.json
+```
+
+---
+
+## 4. Database Schema (MongoDB)
+
+### Key Collections
+
+```mermaid
+erDiagram
+    USER ||--o{ ORDER : places
+    USER ||--o{ REVIEW : writes
+    USER ||--o{ ADDRESS : has
+    USER ||--|| VENDOR_PROFILE : "may have"
+    VENDOR_PROFILE ||--o{ PRODUCT : sells
+    PRODUCT ||--o{ VARIANT : has
+    PRODUCT }o--|| CATEGORY : "belongs to"
+    ORDER ||--|{ ORDER_ITEM : contains
+    ORDER_ITEM }o--|| PRODUCT : references
+    ORDER ||--|| PAYMENT : "paid via"
+    USER ||--o| CART : has
+    CART ||--o{ CART_ITEM : contains
+
+    USER {
+        ObjectId _id
+        string name
+        string email
+        string password
+        enum role "customer | vendor | admin"
+        string avatar
+        string fcmToken
+        boolean isVerified
+        Date createdAt
+    }
+
+    VENDOR_PROFILE {
+        ObjectId _id
+        ObjectId userId FK
+        string storeName
+        string storeLogo
+        string storeBanner
+        string description
+        enum status "pending | approved | rejected"
+        string stripeAccountId
+        object bankDetails
+    }
+
+    PRODUCT {
+        ObjectId _id
+        ObjectId vendorId FK
+        ObjectId categoryId FK
+        string name
+        string description
+        number basePrice
+        string[] images
+        boolean isActive
+        number avgRating
+        number reviewCount
+        string[] tags
+    }
+
+    VARIANT {
+        ObjectId _id
+        ObjectId productId FK
+        string size
+        string color
+        number price
+        number stock
+        string sku
+    }
+
+    CATEGORY {
+        ObjectId _id
+        string name
+        string slug
+        string image
+        ObjectId parentId FK
+    }
+
+    ORDER {
+        ObjectId _id
+        ObjectId customerId FK
+        ObjectId addressId FK
+        enum status "placed | confirmed | shipped | delivered | cancelled | returned"
+        number totalAmount
+        string trackingNumber
+        Date createdAt
+    }
+
+    ORDER_ITEM {
+        ObjectId _id
+        ObjectId orderId FK
+        ObjectId productId FK
+        ObjectId variantId FK
+        ObjectId vendorId FK
+        number quantity
+        number price
+        enum itemStatus "pending | confirmed | shipped | delivered"
+    }
+
+    PAYMENT {
+        ObjectId _id
+        ObjectId orderId FK
+        string stripePaymentIntentId
+        number amount
+        enum status "pending | succeeded | failed | refunded"
+        string method
+    }
+
+    CART {
+        ObjectId _id
+        ObjectId userId FK
+    }
+
+    CART_ITEM {
+        ObjectId cartId FK
+        ObjectId productId FK
+        ObjectId variantId FK
+        number quantity
+    }
+
+    REVIEW {
+        ObjectId _id
+        ObjectId userId FK
+        ObjectId productId FK
+        number rating
+        string comment
+        Date createdAt
+    }
+
+    ADDRESS {
+        ObjectId _id
+        ObjectId userId FK
+        string label
+        string street
+        string city
+        string state
+        string zip
+        string country
+        string phone
+        boolean isDefault
+    }
+```
+
+---
+
+## 5. API Routes
+
+### Auth (`/api/v1/auth`)
+
+| Method | Endpoint | Description | Access |
+|---|---|---|---|
+| POST | `/register` | Register (customer or vendor) | Public |
+| POST | `/login` | Login, returns JWT | Public |
+| POST | `/refresh-token` | Refresh access token | Public |
+| POST | `/forgot-password` | Send OTP | Public |
+| POST | `/reset-password` | Reset with OTP | Public |
+| GET | `/me` | Get current user profile | Auth |
+| PUT | `/me` | Update profile | Auth |
+| POST | `/logout` | Invalidate refresh token | Auth |
+
+### Products (`/api/v1/products`)
+
+| Method | Endpoint | Description | Access |
+|---|---|---|---|
+| GET | `/` | List products (paginated, filterable) | Public |
+| GET | `/:id` | Product detail | Public |
+| GET | `/search?q=` | Search products | Public |
+| POST | `/` | Create product | Vendor |
+| PUT | `/:id` | Update product | Vendor (owner) |
+| DELETE | `/:id` | Delete product | Vendor (owner) |
+| POST | `/:id/variants` | Add variant | Vendor (owner) |
+| PUT | `/:id/variants/:vid` | Update variant | Vendor (owner) |
+
+### Categories (`/api/v1/categories`)
+
+| Method | Endpoint | Description | Access |
+|---|---|---|---|
+| GET | `/` | List all categories | Public |
+| POST | `/` | Create category | Admin |
+| PUT | `/:id` | Update category | Admin |
+| DELETE | `/:id` | Delete category | Admin |
+
+### Cart (`/api/v1/cart`)
+
+| Method | Endpoint | Description | Access |
+|---|---|---|---|
+| GET | `/` | Get user cart | Customer |
+| POST | `/items` | Add item to cart | Customer |
+| PUT | `/items/:itemId` | Update quantity | Customer |
+| DELETE | `/items/:itemId` | Remove item | Customer |
+| DELETE | `/` | Clear cart | Customer |
+
+### Orders (`/api/v1/orders`)
+
+| Method | Endpoint | Description | Access |
+|---|---|---|---|
+| POST | `/` | Place order (from cart) | Customer |
+| GET | `/` | Get my orders | Customer |
+| GET | `/:id` | Order detail | Auth (owner) |
+| PUT | `/:id/cancel` | Cancel order | Customer |
+| GET | `/vendor` | Get vendor's incoming orders | Vendor |
+| PUT | `/vendor/:id/status` | Update order item status | Vendor |
+
+### Payments (`/api/v1/payments`)
+
+| Method | Endpoint | Description | Access |
+|---|---|---|---|
+| POST | `/create-intent` | Create Stripe PaymentIntent | Customer |
+| POST | `/webhook` | Stripe webhook handler | Stripe |
+| GET | `/history` | Payment history | Auth |
+
+### Reviews (`/api/v1/reviews`)
+
+| Method | Endpoint | Description | Access |
+|---|---|---|---|
+| GET | `/product/:productId` | Get reviews for product | Public |
+| POST | `/product/:productId` | Add review | Customer |
+| PUT | `/:id` | Edit review | Customer (owner) |
+| DELETE | `/:id` | Delete review | Customer (owner) / Admin |
+
+### Vendor (`/api/v1/vendor`)
+
+| Method | Endpoint | Description | Access |
+|---|---|---|---|
+| GET | `/profile` | Get vendor store profile | Vendor |
+| PUT | `/profile` | Update store profile | Vendor |
+| GET | `/earnings` | Earnings summary | Vendor |
+| GET | `/analytics` | Sales analytics | Vendor |
+| POST | `/stripe-onboard` | Start Stripe Connect onboard | Vendor |
+| GET | `/payouts` | Payout history | Vendor |
+
+### Wishlist (`/api/v1/wishlist`)
+
+| Method | Endpoint | Description | Access |
+|---|---|---|---|
+| GET | `/` | Get wishlist | Customer |
+| POST | `/:productId` | Add to wishlist | Customer |
+| DELETE | `/:productId` | Remove from wishlist | Customer |
+
+### Admin (`/api/v1/admin`)
+
+| Method | Endpoint | Description | Access |
+|---|---|---|---|
+| GET | `/users` | List all users | Admin |
+| PUT | `/users/:id/ban` | Ban/unban user | Admin |
+| GET | `/vendors/pending` | Pending vendor applications | Admin |
+| PUT | `/vendors/:id/approve` | Approve/reject vendor | Admin |
+| GET | `/orders` | All orders | Admin |
+| GET | `/dashboard` | Dashboard stats | Admin |
+| POST | `/banners` | Create promotional banner | Admin |
+| POST | `/promo-codes` | Create promo code | Admin |
+
+### Addresses (`/api/v1/addresses`)
+
+| Method | Endpoint | Description | Access |
+|---|---|---|---|
+| GET | `/` | List addresses | Auth |
+| POST | `/` | Add address | Auth |
+| PUT | `/:id` | Update address | Auth |
+| DELETE | `/:id` | Delete address | Auth |
+
+---
+
+## 6. Milestone Plan
+
+### Phase 1 — Foundation (Week 1–2)
+
+> Project setup, auth, and core backend
+
+- **Backend**: Express + TypeScript scaffold, MongoDB connection, JWT auth (register/login/refresh/forgot-password), user model, middleware (auth, roles, validation, error handler)
+- **Flutter**: Project scaffold, theme setup, Dio client with interceptors, Riverpod setup, GoRouter, auth screens (login, signup, forgot password), secure token storage
+
+### Phase 2 — Products & Catalog (Week 3–4)
+
+> Browsable product catalog with categories
+
+- **Backend**: Category CRUD, product CRUD with variants, image upload to Cloudinary, search & filter endpoints, pagination
+- **Flutter**: Home screen (banners, categories, trending), category listing, product list with filters/sort, product detail with image carousel, search with auto-suggest
+
+### Phase 3 — Cart & Checkout (Week 5–6)
+
+> Complete purchase flow
+
+- **Backend**: Cart API, address API, order creation, Stripe PaymentIntent, webhook handling, order status management
+- **Flutter**: Cart screen (multi-vendor separation), address management, checkout flow, Stripe payment sheet integration, order confirmation screen
+
+### Phase 4 — Orders & Tracking (Week 7)
+
+> Post-purchase experience
+
+- **Backend**: Order history, status timeline, cancel/return endpoints, push notification triggers
+- **Flutter**: Order history screen, order detail with status timeline, cancel/return flow, push notification setup (FCM)
+
+### Phase 5 — Reviews, Wishlist & Notifications (Week 8)
+
+> Engagement features
+
+- **Backend**: Review CRUD, wishlist API, notification service, promo code engine
+- **Flutter**: Product reviews UI, write review screen, wishlist screen, notification center, promo code entry at checkout
+
+### Phase 6 — Vendor Dashboard (Week 9–10)
+
+> Vendor-facing features
+
+- **Backend**: Vendor profile setup, Stripe Connect onboarding, vendor order management, earnings & analytics endpoints, CSV product import
+- **Flutter**: Vendor registration flow, store setup screen, product management (CRUD), vendor order list with status controls, earnings dashboard with charts
+
+### Phase 7 — Polish & Launch (Week 11–12)
+
+> Quality, performance, and deployment
+
+- Backend: Rate limiting, logging, API documentation (Swagger), Docker setup, CI/CD pipeline, load testing
+- Flutter: Skeleton loaders, error states, empty states, dark mode, app icon & splash, deep linking, performance profiling
+- **Testing**: Unit tests (backend services), integration tests (API endpoints), widget tests (Flutter), E2E flow testing
+- **Deployment**: Backend to Railway/Render/AWS, MongoDB Atlas production cluster, Stripe live keys
+
+---
+
+## 7. Implementation Strategy
+
+### Proposed Changes
+
+> [!IMPORTANT]
+> This project is **greenfield** — both `/flutter_app` and `/backend` directories will be created from scratch inside the workspace.
+
+---
+
+#### [NEW] `/backend` — Node.js + Express + TypeScript API
+
+Full REST API server with modular architecture. Each domain (auth, product, order, etc.) is self-contained with its own controller, service, routes, and validation.
+
+#### [NEW] `/flutter_app` — Flutter Storefront + Vendor Dashboard
+
+Feature-first Flutter app using Riverpod for state management and GoRouter for navigation. Clean separation between data, domain, and presentation layers.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- **Backend**: `npm test` — Jest-based unit tests for services and integration tests for API routes
+- **Flutter**: `flutter test` — Widget and unit tests per feature
+
+### Manual Verification
+- Run backend locally with `npm run dev`, test API endpoints with Postman/Insomnia
+- Run Flutter app with `flutter run`, verify each user flow end-to-end
+- Test Stripe payment flow in test mode with Stripe CLI for webhooks
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> Please review the following before I begin implementation:
+
+1. **State management**: I've proposed **Riverpod**. Would you prefer Bloc, GetX, or another approach?
+2. **Backend language**: I've proposed **TypeScript**. Would you prefer plain JavaScript?
+3. **Database**: I've proposed **MongoDB**. Would you prefer PostgreSQL?
+4. **Vendor Dashboard**: Should the vendor dashboard be **inside the same Flutter app** (role-based routing) or a **separate Flutter web project**?
+5. **Admin Dashboard**: Should I include the admin dashboard in this scope, or defer it to a later phase?
+6. **Phase priority**: Do you want me to start with **Phase 1 (Foundation)** and iterate, or scaffold everything at once?
