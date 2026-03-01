@@ -1,11 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 
+// JWT token payload — stored inside access & refresh tokens
+export interface JwtPayload {
+    userId: string;
+    email: string;
+    role: 'CUSTOMER' | 'VENDOR' | 'ADMIN';
+}
+
 // Extend Express Request to include user info from JWT
 export interface AuthRequest extends Request {
-    user?: {
-        userId: string;
-        role: 'CUSTOMER' | 'VENDOR' | 'ADMIN';
-    };
+    user?: JwtPayload;
 }
 
 // Standard API response shape
@@ -25,3 +29,4 @@ export type AsyncHandler = (
     res: Response,
     next: NextFunction
 ) => Promise<void>;
+
