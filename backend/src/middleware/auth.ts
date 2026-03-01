@@ -57,3 +57,33 @@ export const authenticate = (
         next(error);
     }
 };
+
+/**
+ * Authorization middleware (role-based access control).
+ * Must be used AFTER `authenticate` middleware.
+ *
+ * Usage:
+ *   router.patch('/ban', authenticate, authorize('ADMIN'), handler)
+ *   router.post('/products', authenticate, authorize('VENDOR', 'ADMIN'), handler)
+ *
+ * @param allowedRoles - Roles that are permitted to access the route
+ */
+export const authorize = (...allowedRoles: Array<'CUSTOMER' | 'VENDOR' | 'ADMIN'>) => {
+    return (req: AuthRequest, _res: Response, next: NextFunction): void => {
+        if (!req.user) {
+            next(ApiError.unauthorized('Authentication required'));
+            return;
+        }
+
+        if (!allowedRoles.includes(req.user.role)) {
+            next(
+                ApiError.forbidden(
+                    `Role '${req.user.role}' is not authorized to access this resource`
+                )
+            );
+            return;
+        }
+
+        next();
+    };
+};
