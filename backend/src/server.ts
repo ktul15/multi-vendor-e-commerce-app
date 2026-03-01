@@ -1,12 +1,13 @@
 import app from './app';
 import { env } from './config/env';
+import { prisma } from './config/prisma';
 import { logger } from './utils/logger';
 
 const startServer = async (): Promise<void> => {
     try {
-        // Database connections will be initialized here
-        // e.g., await prisma.$connect();
-        // e.g., await redis.connect();
+        // Connect to PostgreSQL via Prisma
+        await prisma.$connect();
+        logger.info('🗄️  Database connected (PostgreSQL + Prisma)');
 
         app.listen(env.PORT, () => {
             logger.info(`🚀 Server running on port ${env.PORT}`);
@@ -32,9 +33,11 @@ process.on('uncaughtException', (error: Error) => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
     logger.info('SIGTERM received. Shutting down gracefully...');
+    await prisma.$disconnect();
     process.exit(0);
 });
 
 startServer();
+
