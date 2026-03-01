@@ -45,8 +45,8 @@ app.get('/api/health', (_req, res) => {
 // ---------------------
 // API Routes
 // ---------------------
-// Routes will be registered here as modules are built
-// e.g., app.use('/api/v1/auth', authRoutes);
+import authRoutes from './modules/auth/auth.routes';
+app.use('/api/v1/auth', authRoutes);
 
 // ---------------------
 // Error Handling
