@@ -2,7 +2,7 @@ import 'dotenv/config';
 import pg from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, Role } from '../src/generated/prisma/client';
-import bcrypt from 'bcrypt';
+import { hashPassword } from '../src/utils/password';
 
 const pool = new pg.Pool({
     connectionString: process.env['DATABASE_URL'],
@@ -14,7 +14,7 @@ async function main() {
     console.log('🌱 Seeding database...');
 
     // Create admin user
-    const adminPassword = await bcrypt.hash('admin123', 10);
+    const adminPassword = await hashPassword('admin123');
     const admin = await prisma.user.upsert({
         where: { email: 'admin@ecommerce.com' },
         update: {},
@@ -29,7 +29,7 @@ async function main() {
     console.log(`  ✅ Admin user created: ${admin.email}`);
 
     // Create test vendor
-    const vendorPassword = await bcrypt.hash('vendor123', 10);
+    const vendorPassword = await hashPassword('vendor123');
     const vendor = await prisma.user.upsert({
         where: { email: 'vendor@ecommerce.com' },
         update: {},
@@ -44,7 +44,7 @@ async function main() {
     console.log(`  ✅ Vendor user created: ${vendor.email}`);
 
     // Create test customer
-    const customerPassword = await bcrypt.hash('customer123', 10);
+    const customerPassword = await hashPassword('customer123');
     const customer = await prisma.user.upsert({
         where: { email: 'customer@ecommerce.com' },
         update: {},
