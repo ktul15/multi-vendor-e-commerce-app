@@ -130,7 +130,20 @@ export const refreshAccessToken = async (
     refreshToken: string
 ): Promise<AuthTokens> => {
     // Verify the refresh token
-    const decoded = verifyRefreshToken(refreshToken);
+    let decoded: { userId: string };
+    try {
+        decoded = verifyRefreshToken(refreshToken);
+    } catch (error) {
+        if (error instanceof Error) {
+            if (error.name === 'TokenExpiredError') {
+                throw ApiError.unauthorized('Refresh token has expired');
+            }
+            if (error.name === 'JsonWebTokenError') {
+                throw ApiError.unauthorized('Invalid refresh token');
+            }
+        }
+        throw ApiError.unauthorized('Invalid refresh token');
+    }
 
     // Find the user to ensure they still exist and aren't banned
     const user = await prisma.user.findUnique({
