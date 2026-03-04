@@ -14,11 +14,18 @@ class ApiClient {
   ApiClient._();
 
   static Dio? _dio;
+  static TokenStorage _tokenStorage = TokenStorage();
 
   /// Get or create the Dio singleton.
   static Dio get instance {
     _dio ??= _createDio();
     return _dio!;
+  }
+
+  /// Set the token storage instance (call before accessing `instance`).
+  /// Useful for injecting via GetIt.
+  static set tokenStorage(TokenStorage storage) {
+    _tokenStorage = storage;
   }
 
   static Dio _createDio() {
@@ -56,7 +63,7 @@ class ApiClient {
   static InterceptorsWrapper _authInterceptor() {
     return InterceptorsWrapper(
       onRequest: (options, handler) async {
-        final token = await TokenStorage.getAccessToken();
+        final token = await _tokenStorage.getAccessToken();
         if (token != null && token.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $token';
         }
@@ -86,7 +93,7 @@ class ApiClient {
         }
 
         try {
-          final refreshToken = await TokenStorage.getRefreshToken();
+          final refreshToken = await _tokenStorage.getRefreshToken();
           if (refreshToken == null) {
             return handler.next(error);
           }
@@ -111,7 +118,7 @@ class ApiClient {
             final newAccessToken = response.data['data']['accessToken'];
             final newRefreshToken = response.data['data']['refreshToken'];
 
-            await TokenStorage.saveTokens(
+            await _tokenStorage.saveTokens(
               accessToken: newAccessToken,
               refreshToken: newRefreshToken,
             );
@@ -125,7 +132,7 @@ class ApiClient {
           }
         } catch (_) {
           // Refresh failed — clear tokens (user needs to re-login)
-          await TokenStorage.clearTokens();
+          await _tokenStorage.clearTokens();
         }
 
         handler.next(error);
