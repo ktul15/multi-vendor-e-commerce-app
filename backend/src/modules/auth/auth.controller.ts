@@ -57,15 +57,19 @@ export const refresh = async (
 
 /**
  * POST /api/v1/auth/logout
- * For now, logout is handled client-side by discarding tokens.
- * When Redis is set up (Issue #9), we'll add token blacklisting here.
+ * Blacklists the refresh token in Redis so it can't be reused.
+ * Body is pre-validated by Zod middleware.
  */
 export const logout = async (
-    _req: Request,
+    req: Request,
     res: Response,
     next: NextFunction
 ): Promise<void> => {
     try {
+        const refreshToken = req.body?.refreshToken;
+        if (refreshToken) {
+            await authService.logout(refreshToken);
+        }
         ApiResponse.success(res, null, 'Logged out successfully');
     } catch (error) {
         next(error);

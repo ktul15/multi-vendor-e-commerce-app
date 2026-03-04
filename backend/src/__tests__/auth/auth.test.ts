@@ -237,14 +237,33 @@ describe('Auth API', () => {
     // POST /api/v1/auth/logout
     // ============================
     describe('POST /api/v1/auth/logout', () => {
-        it('should return success on logout', async () => {
+        it('should return success on logout with refresh token', async () => {
+            // Register to get a token
+            const registerRes = await request(app)
+                .post('/api/v1/auth/register')
+                .send({
+                    name: 'Logout User',
+                    email: 'logout@example.com',
+                    password: 'password123',
+                });
+            const refreshToken = registerRes.body.data.tokens.refreshToken;
+
+            const res = await request(app)
+                .post('/api/v1/auth/logout')
+                .send({ refreshToken });
+
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(true);
+            expect(res.body.message).toBe('Logged out successfully');
+        });
+
+        it('should return success on logout without refresh token', async () => {
             const res = await request(app)
                 .post('/api/v1/auth/logout')
                 .send();
 
             expect(res.status).toBe(200);
             expect(res.body.success).toBe(true);
-            expect(res.body.message).toBe('Logged out successfully');
         });
     });
 

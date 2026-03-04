@@ -1,6 +1,7 @@
 import app from './app';
 import { env } from './config/env';
 import { prisma } from './config/prisma';
+import { connectRedis, disconnectRedis } from './config/redis';
 import { logger } from './utils/logger';
 
 const startServer = async (): Promise<void> => {
@@ -8,6 +9,9 @@ const startServer = async (): Promise<void> => {
         // Connect to PostgreSQL via Prisma
         await prisma.$connect();
         logger.info('🗄️  Database connected (PostgreSQL + Prisma)');
+
+        // Connect to Redis
+        await connectRedis();
 
         app.listen(env.PORT, () => {
             logger.info(`🚀 Server running on port ${env.PORT}`);
@@ -35,6 +39,7 @@ process.on('uncaughtException', (error: Error) => {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
     logger.info('SIGTERM received. Shutting down gracefully...');
+    await disconnectRedis();
     await prisma.$disconnect();
     process.exit(0);
 });
