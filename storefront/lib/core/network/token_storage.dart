@@ -1,17 +1,18 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Secure token storage using flutter_secure_storage.
-/// Stores access and refresh tokens in the platform keychain/keystore.
+/// Instance-based for dependency injection and testability.
 class TokenStorage {
-  TokenStorage._();
+  final FlutterSecureStorage _storage;
 
-  static const _storage = FlutterSecureStorage();
+  TokenStorage({FlutterSecureStorage? storage})
+    : _storage = storage ?? const FlutterSecureStorage();
 
   static const _accessTokenKey = 'access_token';
   static const _refreshTokenKey = 'refresh_token';
 
   /// Save tokens after login/register.
-  static Future<void> saveTokens({
+  Future<void> saveTokens({
     required String accessToken,
     required String refreshToken,
   }) async {
@@ -22,17 +23,17 @@ class TokenStorage {
   }
 
   /// Get the stored access token.
-  static Future<String?> getAccessToken() {
+  Future<String?> getAccessToken() {
     return _storage.read(key: _accessTokenKey);
   }
 
   /// Get the stored refresh token.
-  static Future<String?> getRefreshToken() {
+  Future<String?> getRefreshToken() {
     return _storage.read(key: _refreshTokenKey);
   }
 
   /// Clear all tokens (logout).
-  static Future<void> clearTokens() async {
+  Future<void> clearTokens() async {
     await Future.wait([
       _storage.delete(key: _accessTokenKey),
       _storage.delete(key: _refreshTokenKey),
@@ -40,7 +41,7 @@ class TokenStorage {
   }
 
   /// Check if user has stored tokens (potential auto-login).
-  static Future<bool> hasTokens() async {
+  Future<bool> hasTokens() async {
     final token = await _storage.read(key: _accessTokenKey);
     return token != null && token.isNotEmpty;
   }
