@@ -3,6 +3,7 @@ import { hashPassword, comparePassword } from '../../utils/password';
 import { generateTokenPair, verifyRefreshToken } from '../../utils/jwt';
 import { ApiError } from '../../utils/apiError';
 import { JwtPayload } from '../../types';
+import { blacklistToken, isTokenBlacklisted } from '../../utils/tokenBlacklist';
 
 interface RegisterInput {
     name: string;
@@ -129,6 +130,12 @@ export const login = async (
 export const refreshAccessToken = async (
     refreshToken: string
 ): Promise<AuthTokens> => {
+    // Check if the refresh token has been blacklisted (e.g. after logout)
+    const blacklisted = await isTokenBlacklisted(refreshToken);
+    if (blacklisted) {
+        throw ApiError.unauthorized('Refresh token has been revoked');
+    }
+
     // Verify the refresh token
     let decoded: { userId: string };
     try {
@@ -166,6 +173,23 @@ export const refreshAccessToken = async (
     };
 
     return generateTokenPair(payload);
+};
+
+/**
+ * Logout — blacklist the refresh token so it can't be reused.
+ */
+export const logout = async (refreshToken: string): Promise<void> => {
+    // Verify the token to get its expiry, then blacklist for remaining TTL
+    try {
+        const decoded = verifyRefreshToken(refreshToken) as { userId: string; exp: number };
+        const now = Math.floor(Date.now() / 1000);
+        const ttl = decoded.exp - now;
+        if (ttl > 0) {
+            await blacklistToken(refreshToken, ttl);
+        }
+    } catch {
+        // If token is already expired or invalid, no need to blacklist
+    }
 };
 
 /**
