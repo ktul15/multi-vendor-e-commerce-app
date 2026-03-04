@@ -62,13 +62,20 @@ describe('Auth API', () => {
             expect(res.body.message).toBe('Email is already registered');
         });
 
-        it('should return 400 if fields are missing', async () => {
+        it('should return 400 with field errors if fields are missing', async () => {
             const res = await request(app)
                 .post('/api/v1/auth/register')
                 .send({ email: 'john@example.com' });
 
             expect(res.status).toBe(400);
             expect(res.body.success).toBe(false);
+            expect(res.body.message).toBe('Validation failed');
+            expect(res.body.errors).toBeDefined();
+            expect(res.body.errors.length).toBeGreaterThan(0);
+            // Should have field-level errors for name and password
+            const fields = res.body.errors.map((e: { field: string }) => e.field);
+            expect(fields).toContain('name');
+            expect(fields).toContain('password');
         });
 
         it('should return 400 if password is too short', async () => {
@@ -77,7 +84,28 @@ describe('Auth API', () => {
                 .send({ ...validUser, password: '123' });
 
             expect(res.status).toBe(400);
-            expect(res.body.success).toBe(false);
+            expect(res.body.message).toBe('Validation failed');
+            const pwError = res.body.errors.find((e: { field: string }) => e.field === 'password');
+            expect(pwError).toBeDefined();
+        });
+
+        it('should return 400 if email format is invalid', async () => {
+            const res = await request(app)
+                .post('/api/v1/auth/register')
+                .send({ ...validUser, email: 'not-an-email' });
+
+            expect(res.status).toBe(400);
+            const emailError = res.body.errors.find((e: { field: string }) => e.field === 'email');
+            expect(emailError.message).toBe('Invalid email address');
+        });
+
+        it('should normalize email to lowercase', async () => {
+            const res = await request(app)
+                .post('/api/v1/auth/register')
+                .send({ ...validUser, email: 'JOHN@Example.COM' });
+
+            expect(res.status).toBe(201);
+            expect(res.body.data.user.email).toBe('john@example.com');
         });
     });
 
@@ -144,13 +172,16 @@ describe('Auth API', () => {
             expect(res.body.message).toBe('Your account has been suspended');
         });
 
-        it('should return 400 if fields are missing', async () => {
+        it('should return 400 with field errors if fields are missing', async () => {
             const res = await request(app)
                 .post('/api/v1/auth/login')
                 .send({ email: 'jane@example.com' });
 
             expect(res.status).toBe(400);
-            expect(res.body.success).toBe(false);
+            expect(res.body.message).toBe('Validation failed');
+            expect(res.body.errors).toBeDefined();
+            const fields = res.body.errors.map((e: { field: string }) => e.field);
+            expect(fields).toContain('password');
         });
     });
 
