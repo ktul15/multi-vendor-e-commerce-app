@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { env } from './config/env';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
+import { globalLimiter, authLimiter } from './middleware/rateLimiter';
 import { ApiResponse } from './utils/apiResponse';
 
 const app: Application = express();
@@ -20,6 +21,11 @@ app.use(
 );
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// ---------------------
+// Rate Limiting
+// ---------------------
+app.use(globalLimiter);
 
 // ---------------------
 // Logging
@@ -46,7 +52,7 @@ app.get('/api/health', (_req, res) => {
 // API Routes
 // ---------------------
 import authRoutes from './modules/auth/auth.routes';
-app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/auth', authLimiter, authRoutes);
 
 // ---------------------
 // Error Handling
