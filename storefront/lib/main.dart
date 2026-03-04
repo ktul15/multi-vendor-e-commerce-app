@@ -17,6 +17,8 @@ class StorefrontApp extends StatelessWidget {
       title: AppEnv.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.system,
       routerConfig: appRouter,
     );
   }
