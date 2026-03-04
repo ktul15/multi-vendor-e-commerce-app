@@ -6,6 +6,7 @@ import * as authService from './auth.service';
 
 /**
  * POST /api/v1/auth/register
+ * Body is pre-validated by Zod middleware
  */
 export const register = async (
     req: Request,
@@ -13,19 +14,7 @@ export const register = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const { name, email, password } = req.body;
-
-        // Basic validation
-        if (!name || !email || !password) {
-            throw ApiError.badRequest('Name, email, and password are required');
-        }
-
-        if (password.length < 6) {
-            throw ApiError.badRequest('Password must be at least 6 characters');
-        }
-
-        const result = await authService.register({ name, email, password });
-
+        const result = await authService.register(req.body);
         ApiResponse.created(res, result, 'Registration successful');
     } catch (error) {
         next(error);
@@ -34,6 +23,7 @@ export const register = async (
 
 /**
  * POST /api/v1/auth/login
+ * Body is pre-validated by Zod middleware
  */
 export const login = async (
     req: Request,
@@ -41,14 +31,7 @@ export const login = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const { email, password } = req.body;
-
-        if (!email || !password) {
-            throw ApiError.badRequest('Email and password are required');
-        }
-
-        const result = await authService.login({ email, password });
-
+        const result = await authService.login(req.body);
         ApiResponse.success(res, result, 'Login successful');
     } catch (error) {
         next(error);
@@ -57,6 +40,7 @@ export const login = async (
 
 /**
  * POST /api/v1/auth/refresh
+ * Body is pre-validated by Zod middleware
  */
 export const refresh = async (
     req: Request,
@@ -64,14 +48,7 @@ export const refresh = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const { refreshToken } = req.body;
-
-        if (!refreshToken) {
-            throw ApiError.badRequest('Refresh token is required');
-        }
-
-        const tokens = await authService.refreshAccessToken(refreshToken);
-
+        const tokens = await authService.refreshAccessToken(req.body.refreshToken);
         ApiResponse.success(res, tokens, 'Token refreshed successfully');
     } catch (error) {
         next(error);
@@ -89,7 +66,6 @@ export const logout = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        // TODO: Invalidate refresh token in Redis (Issue #9)
         ApiResponse.success(res, null, 'Logged out successfully');
     } catch (error) {
         next(error);
@@ -111,7 +87,6 @@ export const getProfile = async (
         }
 
         const profile = await authService.getProfile(req.user.userId);
-
         ApiResponse.success(res, profile, 'Profile fetched successfully');
     } catch (error) {
         next(error);
