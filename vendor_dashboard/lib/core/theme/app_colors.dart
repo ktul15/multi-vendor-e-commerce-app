@@ -14,6 +14,7 @@ class AppColors {
   // Neutral
   static const Color background = Color(0xFFF8FAFC);
   static const Color surface = Color(0xFFFFFFFF);
+  static const Color neutral500 = Color(0xFF64748B);
   static const Color textPrimary = Color(0xFF0F172A);
   static const Color textSecondary = Color(0xFF64748B);
   static const Color border = Color(0xFFE2E8F0);
