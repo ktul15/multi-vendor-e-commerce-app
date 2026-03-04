@@ -8,30 +8,36 @@ import '../domain/auth_bloc.dart';
 import '../domain/auth_event.dart';
 import '../domain/auth_state.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
   void _onSubmit() {
     if (_formKey.currentState?.validate() ?? false) {
       context.read<AuthBloc>().add(
-        AuthLoginRequested(
+        AuthRegisterRequested(
+          name: _nameController.text.trim(),
           email: _emailController.text.trim(),
           password: _passwordController.text,
         ),
@@ -67,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Logo / Header
+                    // Header
                     Icon(
                       Icons.storefront_rounded,
                       size: 64,
@@ -75,19 +81,42 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: AppSpacing.base),
                     Text(
-                      'Welcome back',
+                      'Create account',
                       style: AppTextStyles.h2,
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      'Sign in to your account',
+                      'Start shopping today',
                       style: AppTextStyles.body.copyWith(
                         color: AppColors.textSecondary,
                       ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: AppSpacing.xxxl),
+
+                    // Name field
+                    Text('Full Name', style: AppTextStyles.label),
+                    const SizedBox(height: AppSpacing.sm),
+                    TextFormField(
+                      controller: _nameController,
+                      textInputAction: TextInputAction.next,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: const InputDecoration(
+                        hintText: 'John Doe',
+                        prefixIcon: Icon(Icons.person_outlined),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Name is required';
+                        }
+                        if (value.trim().length < 2) {
+                          return 'Name must be at least 2 characters';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
 
                     // Email field
                     Text('Email', style: AppTextStyles.label),
@@ -121,8 +150,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
-                      textInputAction: TextInputAction.done,
-                      onFieldSubmitted: (_) => _onSubmit(),
+                      textInputAction: TextInputAction.next,
                       decoration: InputDecoration(
                         hintText: '••••••••',
                         prefixIcon: const Icon(Icons.lock_outlined),
@@ -143,24 +171,52 @@ class _LoginScreenState extends State<LoginScreen> {
                         if (value == null || value.isEmpty) {
                           return 'Password is required';
                         }
+                        if (value.length < 8) {
+                          return 'Password must be at least 8 characters';
+                        }
                         return null;
                       },
                     ),
-                    const SizedBox(height: AppSpacing.md),
-
-                    // Forgot password
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {
-                          context.push('/forgot-password');
-                        },
-                        child: const Text('Forgot password?'),
-                      ),
-                    ),
                     const SizedBox(height: AppSpacing.lg),
 
-                    // Login button
+                    // Confirm password field
+                    Text('Confirm Password', style: AppTextStyles.label),
+                    const SizedBox(height: AppSpacing.sm),
+                    TextFormField(
+                      controller: _confirmPasswordController,
+                      obscureText: _obscureConfirmPassword,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _onSubmit(),
+                      decoration: InputDecoration(
+                        hintText: '••••••••',
+                        prefixIcon: const Icon(Icons.lock_outlined),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureConfirmPassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscureConfirmPassword =
+                                  !_obscureConfirmPassword;
+                            });
+                          },
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please confirm your password';
+                        }
+                        if (value != _passwordController.text) {
+                          return 'Passwords do not match';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+
+                    // Register button
                     BlocBuilder<AuthBloc, AuthState>(
                       builder: (context, state) {
                         final isLoading = state is AuthLoading;
@@ -175,27 +231,27 @@ class _LoginScreenState extends State<LoginScreen> {
                                     color: Colors.white,
                                   ),
                                 )
-                              : const Text('Sign In'),
+                              : const Text('Create Account'),
                         );
                       },
                     ),
                     const SizedBox(height: AppSpacing.xl),
 
-                    // Register link
+                    // Login link
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          "Don't have an account? ",
+                          'Already have an account? ',
                           style: AppTextStyles.body.copyWith(
                             color: AppColors.textSecondary,
                           ),
                         ),
                         TextButton(
                           onPressed: () {
-                            context.go('/register');
+                            context.go('/login');
                           },
-                          child: const Text('Sign Up'),
+                          child: const Text('Sign In'),
                         ),
                       ],
                     ),
