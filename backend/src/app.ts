@@ -52,7 +52,10 @@ app.get('/api/health', (_req, res) => {
 // API Routes
 // ---------------------
 import authRoutes from './modules/auth/auth.routes';
+import categoryRoutes from './modules/category/category.routes';
+
 app.use('/api/v1/auth', authLimiter, authRoutes);
+app.use('/api/v1/categories', categoryRoutes);
 
 // ---------------------
 // Error Handling
