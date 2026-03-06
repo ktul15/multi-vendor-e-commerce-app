@@ -37,5 +37,74 @@ model User {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  // Relationships
+  products Product[]
+
   @@map("users")
+}
+
+// ========================
+// E-Commerce Models
+// ========================
+
+model Category {
+  id       String     @id @default(uuid())
+  name     String
+  slug     String     @unique
+  image    String?
+  parentId String?
+  parent   Category?  @relation("Subcategories", fields: [parentId], references: [id])
+  children Category[] @relation("Subcategories")
+
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("categories")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  vendorId    String
+  categoryId  String
+  name        String
+  description String
+  basePrice   Float
+  images      String[]
+  isActive    Boolean  @default(true)
+  avgRating   Float    @default(0.0)
+  reviewCount Int      @default(0)
+  tags        String[]
+
+  // Relationships
+  vendor   User      @relation(fields: [vendorId], references: [id])
+  category Category  @relation(fields: [categoryId], references: [id])
+  variants Variant[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([vendorId])
+  @@index([name])
+  @@map("products")
+}
+
+model Variant {
+  id        String  @id @default(uuid())
+  productId String
+  size      String?
+  color     String?
+  price     Float
+  stock     Int     @default(0)
+  sku       String  @unique
+
+  // Relationships
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("variants")
 }
