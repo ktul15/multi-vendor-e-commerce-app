@@ -1,25 +1,74 @@
 import { prisma } from '../../config/prisma';
 import { ApiError } from '../../utils/apiError';
-import { CreateProductInput, UpdateProductInput, AddVariantInput, UpdateVariantInput } from './product.validation';
+import { CreateProductInput, UpdateProductInput, AddVariantInput, UpdateVariantInput, GetProductQueryInput } from './product.validation';
+import { Prisma } from '../../generated/prisma/client';
 
 export class ProductService {
     /**
-     * Get products with optional vendor/category filtering.
-     * Can be easily extended for pagination/sorting (Issue #21).
+     * Get products with pagination, sorting, search and filtering.
      */
-    async getProducts(filters: { vendorId?: string; categoryId?: string } = {}) {
-        return prisma.product.findMany({
-            where: {
-                ...filters,
-                isActive: true, // Typically customers only see active products
+    async getProducts(query: GetProductQueryInput) {
+        const { page, limit, sort, search, categoryId, vendorId, minPrice, maxPrice, rating, inStock } = query;
+        const skip = (page - 1) * limit;
+
+        // Build Where Clause
+        const where: Prisma.ProductWhereInput = {
+            isActive: true, // Only show active items to public
+            ...(categoryId && { categoryId }),
+            ...(vendorId && { vendorId }),
+            ...(search && {
+                OR: [
+                    { name: { contains: search, mode: 'insensitive' } },
+                    { description: { contains: search, mode: 'insensitive' } },
+                    { tags: { has: search } },
+                ],
+            }),
+            ...((minPrice !== undefined || maxPrice !== undefined) && {
+                basePrice: {
+                    ...(minPrice !== undefined && { gte: minPrice }),
+                    ...(maxPrice !== undefined && { lte: maxPrice }),
+                },
+            }),
+            ...(rating !== undefined && { avgRating: { gte: rating } }),
+            ...(inStock !== undefined && {
+            variants: inStock
+                ? { some: { stock: { gt: 0 } } }
+                : { every: { stock: { lte: 0 } } },
+        }),
+        };
+
+        // Build Order By
+        let orderBy: Prisma.ProductOrderByWithRelationInput = { createdAt: 'desc' };
+        if (sort === 'price_asc') orderBy = { basePrice: 'asc' };
+        if (sort === 'price_desc') orderBy = { basePrice: 'desc' };
+        if (sort === 'rating') orderBy = { avgRating: 'desc' };
+        if (sort === 'popular') orderBy = { reviewCount: 'desc' };
+
+        // Run count and data fetch concurrently
+        const [total, products] = await Promise.all([
+            prisma.product.count({ where }),
+            prisma.product.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy,
+                include: {
+                    variants: true,
+                    vendor: { select: { id: true, name: true } },
+                    category: { select: { id: true, name: true } },
+                },
+            }),
+        ]);
+
+        return {
+            items: products,
+            meta: {
+                total,
+                page,
+                limit,
+                totalPages: Math.max(1, Math.ceil(total / limit)),
             },
-            include: {
-                variants: true,
-                vendor: { select: { id: true, name: true } },
-                category: { select: { id: true, name: true } },
-            },
-            orderBy: { createdAt: 'desc' },
-        });
+        };
     }
 
     /**
@@ -35,7 +84,7 @@ export class ProductService {
             },
         });
 
-        if (!product) {
+        if (!product || !product.isActive) {
             throw new ApiError(404, 'Product not found');
         }
 

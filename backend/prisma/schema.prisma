@@ -88,6 +88,8 @@ model Product {
   @@index([categoryId])
   @@index([vendorId])
   @@index([name])
+  @@index([avgRating])
+  @@index([reviewCount])
   @@map("products")
 }
 
