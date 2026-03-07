@@ -3,15 +3,30 @@ import { AuthRequest } from '../../types';
 import { ProductService } from './product.service';
 import catchAsync from '../../utils/catchAsync';
 import { ApiResponse } from '../../utils/apiResponse';
+import { GetProductQueryInput, SearchProductQueryInput } from './product.validation';
 
 const productService = new ProductService();
 
 export class ProductController {
-    getProducts = catchAsync(async (req: Request, res: Response) => {
-        // Will expand with query pagination/filters in Issue 21
-        const { vendorId, categoryId } = req.query as { vendorId?: string; categoryId?: string };
-        const products = await productService.getProducts({ vendorId, categoryId });
-        ApiResponse.success(res, products, 'Products fetched successfully');
+    getProducts = catchAsync(async (req: AuthRequest, res: Response) => {
+        // validateQuery middleware has already coerced and validated req.query;
+        // the double cast is required because Express types req.query as ParsedQs
+        const queryParams = req.query as unknown as GetProductQueryInput;
+        const productsPaginated = await productService.getProducts(queryParams);
+        ApiResponse.success(res, productsPaginated, 'Products fetched successfully');
+    });
+
+    searchProducts = catchAsync(async (req: AuthRequest, res: Response) => {
+        // Dedicated search endpoint: supports keyword + pagination + sort only.
+        // For full filter support (price, category, vendor, rating, inStock) use GET /
+        const queryParams = req.query as unknown as SearchProductQueryInput;
+        const productsPaginated = await productService.getProducts({
+            search: queryParams.q,
+            page: queryParams.page,
+            limit: queryParams.limit,
+            sort: queryParams.sort,
+        });
+        ApiResponse.success(res, productsPaginated, 'Products searched successfully');
     });
 
     getProductById = catchAsync(async (req: Request, res: Response) => {
