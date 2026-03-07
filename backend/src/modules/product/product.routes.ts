@@ -9,6 +9,11 @@ const router = Router();
 const productController = new ProductController();
 
 // Public routes (Customers + Guests viewing the storefront)
+// NOTE: Literal routes (/search) must be registered before parameterised routes (/:id)
+// so Express matches them first and does not treat "search" as a product ID.
+// GET /         — general listing with all filters (search, price, category, vendor, rating, inStock, sort)
+// GET /search   — search-first endpoint: keyword + pagination + sort only (simpler interface for search UX)
+// GET /:id      — single product by ID
 router.get('/', validateQuery(getProductQuerySchema), productController.getProducts);
 router.get('/search', validateQuery(searchProductQuerySchema), productController.searchProducts);
 router.get('/:id', productController.getProductById);

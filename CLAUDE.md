@@ -8,6 +8,36 @@ Flutter storefront with product listings, cart, payments (Stripe), and order tra
 
 Currently only the **backend** is implemented. The `backend/` directory is the active workspace.
 
+## Git Flow
+
+Branch hierarchy: `feature/*` → `dev` → `main`
+
+**Rules (must follow for every issue):**
+1. Always cut new feature branches from `dev`, never from `main`
+2. Branch naming: `feature/<issue-number>-<short-description>` (e.g., `feature/21-product-filters`)
+3. Commit messages follow Conventional Commits: `feat(scope): description`, `fix(scope): description`, etc.
+4. Merge feature branch into `dev` when the feature is complete and tests pass
+5. `main` is only updated by merging `dev` — never commit directly to `main` or `dev`
+
+**Starting a new feature:**
+```bash
+git checkout dev
+git pull origin dev
+git checkout -b feature/<issue-number>-<short-description>
+```
+
+**Finishing a feature:**
+```bash
+git checkout dev
+git merge --no-ff feature/<issue-number>-<short-description>
+git push origin dev
+```
+
+**Before committing — mandatory code review:**
+1. Run the `senior-code-reviewer` agent on all changed files
+2. List every issue/suggestion found (short description of each)
+3. Ask the user which fixes to implement before proceeding with the commit
+
 ## Commands
 
 All commands run from the `backend/` directory.

@@ -1,5 +1,19 @@
 import { z } from 'zod';
 
+// Coerce string query params to numbers safely, ignoring empty strings and NaN
+const coerceNumber = (val: unknown) => {
+    if (val === undefined || val === '') return undefined;
+    const n = Number(val);
+    return Number.isNaN(n) ? undefined : n;
+};
+
+// Coerce 'true'/'false' string query params to booleans
+const coerceBoolean = (val: unknown) => {
+    if (val === 'true') return true;
+    if (val === 'false') return false;
+    return undefined;
+};
+
 export const variantSchema = z.object({
     size: z.string().optional(),
     color: z.string().optional(),
@@ -41,26 +55,31 @@ export const updateVariantSchema = z.object({
 });
 
 export const getProductQuerySchema = z.object({
-    page: z.preprocess((val) => (val === undefined ? undefined : Number(val)), z.number().min(1).optional().default(1)),
-    limit: z.preprocess((val) => (val === undefined ? undefined : Number(val)), z.number().min(1).max(100).optional().default(10)),
+    page: z.preprocess(coerceNumber, z.number().min(1).optional().default(1)),
+    limit: z.preprocess(coerceNumber, z.number().min(1).max(100).optional().default(10)),
     sort: z.enum(['newest', 'price_asc', 'price_desc', 'rating', 'popular']).optional().default('newest'),
     search: z.string().optional(),
     categoryId: z.string().uuid().optional(),
     vendorId: z.string().uuid().optional(),
-    minPrice: z.preprocess((val) => (val === undefined ? undefined : Number(val)), z.number().nonnegative().optional()),
-    maxPrice: z.preprocess((val) => (val === undefined ? undefined : Number(val)), z.number().nonnegative().optional()),
-    rating: z.preprocess((val) => (val === undefined ? undefined : Number(val)), z.number().min(0).max(5).optional()),
-    inStock: z.preprocess((val) => {
-        if (val === 'true') return true;
-        if (val === 'false') return false;
-        return val;
-    }, z.boolean().optional()),
-});
+    minPrice: z.preprocess(coerceNumber, z.number().nonnegative().optional()),
+    maxPrice: z.preprocess(coerceNumber, z.number().nonnegative().optional()),
+    rating: z.preprocess(coerceNumber, z.number().min(0).max(5).optional()),
+    inStock: z.preprocess(coerceBoolean, z.boolean().optional()),
+}).refine(
+    (data) => {
+        if (data.minPrice !== undefined && data.maxPrice !== undefined) {
+            return data.minPrice <= data.maxPrice;
+        }
+        return true;
+    },
+    { message: 'minPrice must not exceed maxPrice', path: ['minPrice'] }
+);
 
 export const searchProductQuerySchema = z.object({
     q: z.string().min(1, 'Search query is required'),
-    page: z.preprocess((val) => (val === undefined ? undefined : Number(val)), z.number().min(1).optional().default(1)),
-    limit: z.preprocess((val) => (val === undefined ? undefined : Number(val)), z.number().min(1).max(100).optional().default(10)),
+    page: z.preprocess(coerceNumber, z.number().min(1).optional().default(1)),
+    limit: z.preprocess(coerceNumber, z.number().min(1).max(100).optional().default(10)),
+    sort: z.enum(['newest', 'price_asc', 'price_desc', 'rating', 'popular']).optional().default('newest'),
 });
 
 export type CreateProductInput = z.infer<typeof createProductSchema>;

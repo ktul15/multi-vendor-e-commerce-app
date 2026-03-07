@@ -30,7 +30,11 @@ export class ProductService {
                 },
             }),
             ...(rating !== undefined && { avgRating: { gte: rating } }),
-            ...(inStock && { variants: { some: { stock: { gt: 0 } } } }),
+            ...(inStock !== undefined && {
+            variants: inStock
+                ? { some: { stock: { gt: 0 } } }
+                : { every: { stock: { lte: 0 } } },
+        }),
         };
 
         // Build Order By
@@ -40,8 +44,8 @@ export class ProductService {
         if (sort === 'rating') orderBy = { avgRating: 'desc' };
         if (sort === 'popular') orderBy = { reviewCount: 'desc' };
 
-        // Execute transactions in parallel for count + records
-        const [total, products] = await prisma.$transaction([
+        // Run count and data fetch concurrently
+        const [total, products] = await Promise.all([
             prisma.product.count({ where }),
             prisma.product.findMany({
                 where,
@@ -62,7 +66,7 @@ export class ProductService {
                 total,
                 page,
                 limit,
-                totalPages: Math.ceil(total / limit),
+                totalPages: Math.max(1, Math.ceil(total / limit)),
             },
         };
     }
@@ -80,7 +84,7 @@ export class ProductService {
             },
         });
 
-        if (!product) {
+        if (!product || !product.isActive) {
             throw new ApiError(404, 'Product not found');
         }
 

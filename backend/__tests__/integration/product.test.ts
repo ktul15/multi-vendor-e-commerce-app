@@ -110,10 +110,10 @@ describe('Product API (Issue #20)', () => {
             const res = await request(app).get('/api/v1/products');
             expect(res.status).toBe(200);
             expect(res.body.success).toBe(true);
-            expect(res.body.data.length).toBeGreaterThanOrEqual(1);
-            expect(res.body.data[0].name).toBe('The Great Gatsby');
-            expect(res.body.data[0].vendor).toBeDefined();
-            expect(res.body.data[0].category).toBeDefined();
+            expect(res.body.data.items.length).toBeGreaterThanOrEqual(1);
+            expect(res.body.data.items[0].name).toBe('The Great Gatsby');
+            expect(res.body.data.items[0].vendor).toBeDefined();
+            expect(res.body.data.items[0].category).toBeDefined();
         });
 
         it('should get a single product by ID', async () => {

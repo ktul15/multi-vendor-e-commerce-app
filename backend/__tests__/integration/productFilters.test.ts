@@ -166,10 +166,45 @@ describe('Product API - Filters, Sort, Pagination (Issue #21)', () => {
         expect(resRating.status).toBe(200);
         expect(resRating.body.data.items.length).toBe(2);
 
-        // Only in-stock products (Budget phone is out of stock)
-        const resStock = await request(app).get('/api/v1/products?inStock=true');
-        expect(resStock.status).toBe(200);
-        expect(resStock.body.data.items.length).toBe(2); // Out of 3 active products, 1 is out of stock
+        // Only in-stock products (Budget Phone has stock: 0)
+        const resInStock = await request(app).get('/api/v1/products?inStock=true');
+        expect(resInStock.status).toBe(200);
+        expect(resInStock.body.data.items.length).toBe(2);
+
+        // Only out-of-stock products (only Budget Phone has stock: 0)
+        const resOutOfStock = await request(app).get('/api/v1/products?inStock=false');
+        expect(resOutOfStock.status).toBe(200);
+        expect(resOutOfStock.body.data.items.length).toBe(1);
+        expect(resOutOfStock.body.data.items[0].name).toBe('Budget Phone');
+    });
+
+    it('should filter by categoryId and vendorId', async () => {
+        // All active products belong to the same category and vendor in this suite
+        const resCat = await request(app).get(`/api/v1/products?categoryId=${categoryId}`);
+        expect(resCat.status).toBe(200);
+        expect(resCat.body.data.meta.total).toBe(3);
+        resCat.body.data.items.forEach((p: { category: { id: string } }) => {
+            expect(p.category.id).toBe(categoryId);
+        });
+
+        const resVendor = await request(app).get(`/api/v1/products?vendorId=${vendorId}`);
+        expect(resVendor.status).toBe(200);
+        expect(resVendor.body.data.meta.total).toBe(3);
+        resVendor.body.data.items.forEach((p: { vendor: { id: string } }) => {
+            expect(p.vendor.id).toBe(vendorId);
+        });
+
+        // Non-existent UUID should return 0 results
+        const resNone = await request(app).get('/api/v1/products?categoryId=00000000-0000-0000-0000-000000000000');
+        expect(resNone.status).toBe(200);
+        expect(resNone.body.data.meta.total).toBe(0);
+    });
+
+    it('should reject invalid minPrice/maxPrice combinations', async () => {
+        const res = await request(app).get('/api/v1/products?minPrice=500&maxPrice=100');
+        expect(res.status).toBe(400);
+        expect(res.body.success).toBe(false);
+        expect(res.body.message).toBe('Query validation failed');
     });
 
     it('should validate and execute search on dedicated /search endpoint', async () => {
@@ -177,9 +212,14 @@ describe('Product API - Filters, Sort, Pagination (Issue #21)', () => {
         const resErr = await request(app).get('/api/v1/products/search');
         expect(resErr.status).toBe(400);
 
-        // Success
+        // Success — matches Midrange and Flagship by description
         const resSuccess = await request(app).get('/api/v1/products/search?q=camera');
         expect(resSuccess.status).toBe(200);
-        expect(resSuccess.body.data.items.length).toBe(2); // Midrange and Flagship match 'camera'
+        expect(resSuccess.body.data.items.length).toBe(2);
+
+        // Sort on /search endpoint
+        const resSorted = await request(app).get('/api/v1/products/search?q=camera&sort=price_asc');
+        expect(resSorted.status).toBe(200);
+        expect(resSorted.body.data.items[0].basePrice).toBe(399.99); // Midrange cheaper than Flagship
     });
 });
