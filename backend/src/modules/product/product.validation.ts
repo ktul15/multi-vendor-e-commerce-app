@@ -40,7 +40,32 @@ export const updateVariantSchema = z.object({
     sku: z.string().min(1, 'SKU is required').optional(),
 });
 
+export const getProductQuerySchema = z.object({
+    page: z.preprocess((val) => (val === undefined ? undefined : Number(val)), z.number().min(1).optional().default(1)),
+    limit: z.preprocess((val) => (val === undefined ? undefined : Number(val)), z.number().min(1).max(100).optional().default(10)),
+    sort: z.enum(['newest', 'price_asc', 'price_desc', 'rating', 'popular']).optional().default('newest'),
+    search: z.string().optional(),
+    categoryId: z.string().uuid().optional(),
+    vendorId: z.string().uuid().optional(),
+    minPrice: z.preprocess((val) => (val === undefined ? undefined : Number(val)), z.number().nonnegative().optional()),
+    maxPrice: z.preprocess((val) => (val === undefined ? undefined : Number(val)), z.number().nonnegative().optional()),
+    rating: z.preprocess((val) => (val === undefined ? undefined : Number(val)), z.number().min(0).max(5).optional()),
+    inStock: z.preprocess((val) => {
+        if (val === 'true') return true;
+        if (val === 'false') return false;
+        return val;
+    }, z.boolean().optional()),
+});
+
+export const searchProductQuerySchema = z.object({
+    q: z.string().min(1, 'Search query is required'),
+    page: z.preprocess((val) => (val === undefined ? undefined : Number(val)), z.number().min(1).optional().default(1)),
+    limit: z.preprocess((val) => (val === undefined ? undefined : Number(val)), z.number().min(1).max(100).optional().default(10)),
+});
+
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export type AddVariantInput = z.infer<typeof addVariantSchema>;
 export type UpdateVariantInput = z.infer<typeof updateVariantSchema>;
+export type GetProductQueryInput = z.infer<typeof getProductQuerySchema>;
+export type SearchProductQueryInput = z.infer<typeof searchProductQuerySchema>;

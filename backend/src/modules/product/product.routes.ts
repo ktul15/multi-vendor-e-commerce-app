@@ -1,15 +1,16 @@
 import { Router } from 'express';
 import { ProductController } from './product.controller';
 import { authenticate, authorize } from '../../middleware/auth';
-import { validate } from '../../middleware/validate';
-import { createProductSchema, updateProductSchema, addVariantSchema, updateVariantSchema } from './product.validation';
+import { validate, validateQuery } from '../../middleware/validate';
+import { createProductSchema, updateProductSchema, addVariantSchema, updateVariantSchema, getProductQuerySchema, searchProductQuerySchema } from './product.validation';
 import { Role } from '../../generated/prisma/client';
 
 const router = Router();
 const productController = new ProductController();
 
 // Public routes (Customers + Guests viewing the storefront)
-router.get('/', productController.getProducts);
+router.get('/', validateQuery(getProductQuerySchema), productController.getProducts);
+router.get('/search', validateQuery(searchProductQuerySchema), productController.searchProducts);
 router.get('/:id', productController.getProductById);
 
 // Vendor-only routes (Dashboard inventory management)

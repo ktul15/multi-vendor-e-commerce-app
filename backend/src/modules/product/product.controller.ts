@@ -7,11 +7,22 @@ import { ApiResponse } from '../../utils/apiResponse';
 const productService = new ProductService();
 
 export class ProductController {
-    getProducts = catchAsync(async (req: Request, res: Response) => {
-        // Will expand with query pagination/filters in Issue 21
-        const { vendorId, categoryId } = req.query as { vendorId?: string; categoryId?: string };
-        const products = await productService.getProducts({ vendorId, categoryId });
-        ApiResponse.success(res, products, 'Products fetched successfully');
+    getProducts = catchAsync(async (req: AuthRequest, res: Response) => {
+        // Query param validation parses numbers and sets defaults per Zod schema
+        const queryParams = req.query as any;
+        const productsPaginated = await productService.getProducts(queryParams);
+        ApiResponse.success(res, productsPaginated, 'Products fetched successfully');
+    });
+
+    searchProducts = catchAsync(async (req: AuthRequest, res: Response) => {
+        const queryParams = req.query as any;
+        const productsPaginated = await productService.getProducts({
+            search: queryParams.q,
+            page: queryParams.page,
+            limit: queryParams.limit,
+            sort: 'newest'
+        });
+        ApiResponse.success(res, productsPaginated, 'Products searched successfully');
     });
 
     getProductById = catchAsync(async (req: Request, res: Response) => {
