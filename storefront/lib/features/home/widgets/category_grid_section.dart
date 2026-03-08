@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../../core/config/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -31,9 +33,11 @@ class CategoryTile extends StatelessWidget {
     final color = _iconColors[colorIndex];
 
     return GestureDetector(
-      onTap: () {
-        // TODO(#24): navigate to ProductList filtered by category.id
-      },
+      onTap: () => context.push(
+        '${AppRoutes.products}'
+        '?categoryId=${category.id}'
+        '&title=${Uri.encodeComponent(category.name)}',
+      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

@@ -4,7 +4,7 @@ import '../../../core/theme/app_dimensions.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/models/product_model.dart';
-import 'product_card.dart';
+import '../../../shared/widgets/product_card.dart';
 
 class ProductSection extends StatelessWidget {
   final String title;
