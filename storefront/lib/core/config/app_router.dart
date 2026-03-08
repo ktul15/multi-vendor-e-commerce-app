@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../features/auth/domain/auth_bloc.dart';
-import '../../features/auth/domain/auth_state.dart';
-import '../../features/auth/presentation/login_screen.dart';
-import '../../features/auth/presentation/register_screen.dart';
-import '../../features/auth/presentation/forgot_password_screen.dart';
-import '../../features/home/presentation/home_screen.dart';
+import '../../features/auth/bloc/auth_bloc.dart';
+import '../../features/auth/bloc/auth_state.dart';
+import '../../features/auth/view/login_page.dart';
+import '../../features/auth/view/register_page.dart';
+import '../../features/auth/view/forgot_password_page.dart';
+import '../../features/home/view/home_page.dart';
 
 /// App route paths — centralized to avoid magic strings.
 class AppRoutes {
@@ -52,19 +52,19 @@ GoRouter appRouter(AuthBloc authBloc) {
     routes: [
       GoRoute(
         path: AppRoutes.home,
-        builder: (context, state) => const HomeScreen(),
+        builder: (context, state) => const HomePage(),
       ),
       GoRoute(
         path: AppRoutes.login,
-        builder: (context, state) => const LoginScreen(),
+        builder: (context, state) => const LoginPage(),
       ),
       GoRoute(
         path: AppRoutes.register,
-        builder: (context, state) => const RegisterScreen(),
+        builder: (context, state) => const RegisterPage(),
       ),
       GoRoute(
         path: AppRoutes.forgotPassword,
-        builder: (context, state) => const ForgotPasswordScreen(),
+        builder: (context, state) => const ForgotPasswordPage(),
       ),
     ],
   );

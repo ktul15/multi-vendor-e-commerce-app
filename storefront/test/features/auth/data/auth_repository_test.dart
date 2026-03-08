@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:storefront/core/network/token_storage.dart';
-import 'package:storefront/features/auth/data/auth_repository.dart';
+import 'package:storefront/repositories/auth_repository.dart';
 
 class MockDio extends Mock implements Dio {}
 

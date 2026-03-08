@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Flutter storefront with product listings, cart, payments (Stripe), and order tracking. Node.js backend with REST APIs, JWT auth, and a vendor dashboard.
 
-Currently only the **backend** is implemented. The `backend/` directory is the active workspace.
+Both the **backend** and **storefront** (Flutter) are actively developed. The `backend/` directory contains the Node.js API; `storefront/` contains the Flutter app.
 
 ## Git Flow
 
@@ -16,7 +16,8 @@ Branch hierarchy: `feature/*` → `dev` → `main`
 1. Always cut new feature branches from `dev`, never from `main`
 2. Branch naming: `feature/<issue-number>-<short-description>` (e.g., `feature/21-product-filters`)
 3. Commit messages follow Conventional Commits: `feat(scope): description`, `fix(scope): description`, etc.
-4. Merge feature branch into `dev` when the feature is complete and tests pass
+4. Always include `Closes #<issue-number>` in the commit body so GitHub auto-closes the issue on merge.
+5. Merge feature branch into `dev` when the feature is complete and tests pass
 5. `main` is only updated by merging `dev` — never commit directly to `main` or `dev`
 
 **Starting a new feature:**
@@ -116,6 +117,44 @@ Generated into `src/generated/prisma/` (not the default `node_modules` location)
 ### Role System
 
 Three roles defined in the Prisma schema: `CUSTOMER`, `VENDOR`, `ADMIN`. Product write routes are `VENDOR`-only; public read routes require no auth. Vendors can only modify their own products (enforced in service layer by comparing `product.vendorId` to `req.user.userId`).
+
+## Flutter Storefront Architecture
+
+Follows the **Very Good Ventures (VGV) four-layer architecture**. Reference: https://www.verygood.ventures/blog/very-good-flutter-architecture
+
+### Folder structure
+
+```
+storefront/lib/
+├── core/               # Theme, routing (GoRouter), network (Dio), DI (GetIt)
+├── repositories/       # All repository implementations (data layer)
+├── features/
+│   └── <feature>/
+│       ├── bloc/       # BLoC or Cubit + State (+ Event for BLoC)
+│       ├── view/       # Pages/screens — named *_page.dart, class *Page
+│       └── widgets/    # Feature-specific UI components
+└── shared/
+    └── models/         # Models shared across multiple features
+```
+
+### Rules (must follow for every Flutter issue)
+
+- **BLoC/Cubit lives in `bloc/`** — never in `domain/` or `presentation/`
+- **Repositories live in `lib/repositories/`** — never inside feature folders
+- **Screens are pages**: file = `*_page.dart`, class = `*Page` (e.g., `home_page.dart` → `class HomePage`)
+- **No `data/` or `domain/` subfolders** per feature — the VGV structure is flat (`bloc/`, `view/`, `widgets/`)
+- **Presentation never touches repositories directly** — always goes through BLoC/Cubit
+- **Shared models** (used by 2+ features) go in `shared/models/`; feature-only models go in `features/<name>/models/`
+- Register repositories as `lazySingleton`, BLoC/Cubit as `factory` in `injection_container.dart`
+
+### Flutter commands
+
+```bash
+# Run from storefront/
+flutter analyze --no-fatal-infos   # Static analysis (must be clean before commit)
+flutter test                        # Unit/widget tests
+flutter run --dart-define=API_BASE_URL=http://localhost:5000/api/v1
+```
 
 ## Testing
 
