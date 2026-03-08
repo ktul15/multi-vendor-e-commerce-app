@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import '../../../core/config/app_router.dart';
 import '../../../core/config/injection_container.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -183,9 +185,9 @@ class _LoadedView extends StatelessWidget {
             child: ProductSection(
               title: '🔥 Trending',
               products: trendingProducts,
-              onSeeAll: () {
-                // TODO(#24): navigate to ProductList with sort=popular
-              },
+              onSeeAll: () => context.push(
+                '${AppRoutes.products}?title=Trending',
+              ),
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
@@ -196,9 +198,9 @@ class _LoadedView extends StatelessWidget {
             child: ProductSection(
               title: '✨ New Arrivals',
               products: newArrivals,
-              onSeeAll: () {
-                // TODO(#24): navigate to ProductList with sort=newest
-              },
+              onSeeAll: () => context.push(
+                '${AppRoutes.products}?title=New+Arrivals',
+              ),
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),

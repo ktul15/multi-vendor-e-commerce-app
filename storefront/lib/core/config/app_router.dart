@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
@@ -6,6 +8,8 @@ import '../../features/auth/view/login_page.dart';
 import '../../features/auth/view/register_page.dart';
 import '../../features/auth/view/forgot_password_page.dart';
 import '../../features/home/view/home_page.dart';
+import '../../features/product_list/view/product_list_page.dart';
+import '../../shared/models/product_filters.dart';
 
 /// App route paths — centralized to avoid magic strings.
 class AppRoutes {
@@ -15,6 +19,7 @@ class AppRoutes {
   static const String login = '/login';
   static const String register = '/register';
   static const String forgotPassword = '/forgot-password';
+  static const String products = '/products';
   static const String productDetail = '/product/:id';
   static const String cart = '/cart';
   static const String profile = '/profile';
@@ -66,6 +71,17 @@ GoRouter appRouter(AuthBloc authBloc) {
         path: AppRoutes.forgotPassword,
         builder: (context, state) => const ForgotPasswordPage(),
       ),
+      GoRoute(
+        path: AppRoutes.products,
+        builder: (context, state) {
+          final title = state.uri.queryParameters['title'] ?? 'Products';
+          final categoryId = state.uri.queryParameters['categoryId'];
+          return ProductListPage(
+            title: title,
+            initialFilters: ProductFilters(categoryId: categoryId),
+          );
+        },
+      ),
     ],
   );
 }
@@ -74,10 +90,10 @@ GoRouter appRouter(AuthBloc authBloc) {
 class GoRouterRefreshStream extends ChangeNotifier {
   GoRouterRefreshStream(Stream<dynamic> stream) {
     notifyListeners();
-    _subscription = stream.asBroadcastStream().listen((_) => notifyListeners());
+    _subscription = stream.listen((_) => notifyListeners());
   }
 
-  late final dynamic _subscription;
+  late final StreamSubscription<dynamic> _subscription;
 
   @override
   void dispose() {
