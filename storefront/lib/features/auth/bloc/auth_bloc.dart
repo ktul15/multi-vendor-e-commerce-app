@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../data/auth_repository.dart';
-import '../domain/auth_event.dart';
-import '../domain/auth_state.dart';
+import '../../../repositories/auth_repository.dart';
+import 'auth_event.dart';
+import 'auth_state.dart';
 
 /// AuthBloc — manages authentication state.
 class AuthBloc extends Bloc<AuthEvent, AuthState> {

@@ -2,8 +2,10 @@ import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import '../network/api_client.dart';
 import '../network/token_storage.dart';
-import '../../features/auth/data/auth_repository.dart';
-import '../../features/auth/domain/auth_bloc.dart';
+import '../../repositories/auth_repository.dart';
+import '../../repositories/home_repository.dart';
+import '../../features/auth/bloc/auth_bloc.dart';
+import '../../features/home/bloc/home_cubit.dart';
 
 /// Global service locator instance.
 final sl = GetIt.instance;
@@ -29,10 +31,20 @@ Future<void> initDependencies() async {
     () => AuthRepository(dio: sl<Dio>(), tokenStorage: sl<TokenStorage>()),
   );
 
-  // ── BLoCs ─────────────────────────────────
+  // HomeRepository (lazy singleton — shared across app lifetime)
+  sl.registerLazySingleton<HomeRepository>(
+    () => HomeRepository(dio: sl<Dio>()),
+  );
+
+  // ── BLoCs / Cubits ────────────────────────
 
   // AuthBloc (factory — new instance each time, disposable)
   sl.registerFactory<AuthBloc>(
     () => AuthBloc(authRepository: sl<AuthRepository>()),
+  );
+
+  // HomeCubit (factory — new instance per screen visit)
+  sl.registerFactory<HomeCubit>(
+    () => HomeCubit(repository: sl<HomeRepository>()),
   );
 }
