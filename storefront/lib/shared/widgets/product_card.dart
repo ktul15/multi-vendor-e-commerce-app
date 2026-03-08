@@ -75,7 +75,7 @@ class ProductRatingRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Icon(Icons.star_rounded, size: 14, color: Color(0xFFF59E0B)),
+        const Icon(Icons.star_rounded, size: 14, color: AppColors.rating),
         const SizedBox(width: 2),
         Text(
           product.avgRating > 0

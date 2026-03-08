@@ -43,7 +43,9 @@ class ProductModel extends Equatable {
   final double avgRating;
   final int reviewCount;
   final String? categoryId;
+  final String? categoryName;
   final String? vendorId;
+  final String? vendorName;
   final List<VariantModel> variants;
   final DateTime createdAt;
 
@@ -58,7 +60,9 @@ class ProductModel extends Equatable {
     required this.avgRating,
     required this.reviewCount,
     this.categoryId,
+    this.categoryName,
     this.vendorId,
+    this.vendorName,
     required this.variants,
     required this.createdAt,
   });
@@ -74,6 +78,8 @@ class ProductModel extends Equatable {
   bool get isInStock => variants.isEmpty || variants.any((v) => v.stock > 0);
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
+    final vendor = json['vendor'] as Map<String, dynamic>?;
+    final category = json['category'] as Map<String, dynamic>?;
     return ProductModel(
       id: json['id'] as String,
       name: json['name'] as String,
@@ -85,7 +91,9 @@ class ProductModel extends Equatable {
       avgRating: (json['avgRating'] as num? ?? 0).toDouble(),
       reviewCount: json['reviewCount'] as int? ?? 0,
       categoryId: json['categoryId'] as String?,
+      categoryName: category?['name'] as String?,
       vendorId: json['vendorId'] as String?,
+      vendorName: vendor?['name'] as String?,
       variants: (json['variants'] as List<dynamic>? ?? [])
           .map((v) => VariantModel.fromJson(v as Map<String, dynamic>))
           .toList(),
@@ -105,7 +113,9 @@ class ProductModel extends Equatable {
         avgRating,
         reviewCount,
         categoryId,
+        categoryName,
         vendorId,
+        vendorName,
         variants,
         createdAt,
       ];

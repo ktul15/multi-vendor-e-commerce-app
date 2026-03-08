@@ -4,9 +4,11 @@ import '../network/api_client.dart';
 import '../network/token_storage.dart';
 import '../../repositories/auth_repository.dart';
 import '../../repositories/home_repository.dart';
+import '../../repositories/product_detail_repository.dart';
 import '../../repositories/product_list_repository.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
 import '../../features/home/bloc/home_cubit.dart';
+import '../../features/product_detail/bloc/product_detail_cubit.dart';
 import '../../features/product_list/bloc/product_list_cubit.dart';
 
 /// Global service locator instance.
@@ -43,6 +45,11 @@ Future<void> initDependencies() async {
     () => ProductListRepository(dio: sl<Dio>()),
   );
 
+  // ProductDetailRepository (lazy singleton)
+  sl.registerLazySingleton<ProductDetailRepository>(
+    () => ProductDetailRepository(dio: sl<Dio>()),
+  );
+
   // ── BLoCs / Cubits ────────────────────────
 
   // AuthBloc (lazy singleton — shared across the app; used by GoRouter
@@ -59,5 +66,10 @@ Future<void> initDependencies() async {
   // ProductListCubit (factory — new instance per screen visit)
   sl.registerFactory<ProductListCubit>(
     () => ProductListCubit(repository: sl<ProductListRepository>()),
+  );
+
+  // ProductDetailCubit (factory — new instance per product page visit)
+  sl.registerFactory<ProductDetailCubit>(
+    () => ProductDetailCubit(repository: sl<ProductDetailRepository>()),
   );
 }

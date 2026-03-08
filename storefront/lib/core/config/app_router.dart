@@ -8,6 +8,7 @@ import '../../features/auth/view/login_page.dart';
 import '../../features/auth/view/register_page.dart';
 import '../../features/auth/view/forgot_password_page.dart';
 import '../../features/home/view/home_page.dart';
+import '../../features/product_detail/view/product_detail_page.dart';
 import '../../features/product_list/view/product_list_page.dart';
 import '../../shared/models/product_filters.dart';
 
@@ -80,6 +81,13 @@ GoRouter appRouter(AuthBloc authBloc) {
             title: title,
             initialFilters: ProductFilters(categoryId: categoryId),
           );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.productDetail,
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return ProductDetailPage(productId: id);
         },
       ),
     ],
