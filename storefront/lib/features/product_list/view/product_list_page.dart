@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import '../../../core/config/app_router.dart';
 import '../../../core/config/injection_container.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -257,9 +259,9 @@ class _GridView extends StatelessWidget {
         return ProductCard(
           product: state.products[index],
           width: double.infinity,
-          onTap: () {
-            // TODO(#25): navigate to ProductDetailPage
-          },
+          onTap: () => context.push(
+            AppRoutes.productDetail.replaceFirst(':id', state.products[index].id),
+          ),
         );
       },
     );
@@ -285,9 +287,9 @@ class _ListView extends StatelessWidget {
         }
         return ProductListItem(
           product: state.products[index],
-          onTap: () {
-            // TODO(#25): navigate to ProductDetailPage
-          },
+          onTap: () => context.push(
+            AppRoutes.productDetail.replaceFirst(':id', state.products[index].id),
+          ),
         );
       },
     );
