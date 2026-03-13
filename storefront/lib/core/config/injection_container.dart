@@ -4,14 +4,17 @@ import '../network/api_client.dart';
 import '../network/dio_http_client.dart';
 import '../network/http_client.dart';
 import '../network/token_storage.dart';
+import '../storage/recent_searches_storage.dart';
 import '../../repositories/auth_repository.dart';
 import '../../repositories/home_repository.dart';
 import '../../repositories/product_detail_repository.dart';
 import '../../repositories/product_list_repository.dart';
+import '../../repositories/search_repository.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
 import '../../features/home/bloc/home_cubit.dart';
 import '../../features/product_detail/bloc/product_detail_cubit.dart';
 import '../../features/product_list/bloc/product_list_cubit.dart';
+import '../../features/search/bloc/search_cubit.dart';
 
 /// Global service locator instance.
 final sl = GetIt.instance;
@@ -56,6 +59,16 @@ Future<void> initDependencies() async {
     () => ProductDetailRepository(client: sl<HttpClient>()),
   );
 
+  sl.registerLazySingleton<SearchRepository>(
+    () => SearchRepository(client: sl<HttpClient>()),
+  );
+
+  // ── Core storage ──────────────────────────
+
+  sl.registerLazySingleton<RecentSearchesStorage>(
+    () => RecentSearchesStorage(),
+  );
+
   // ── BLoCs / Cubits ────────────────────────
 
   // AuthBloc (lazy singleton — shared across the app; used by GoRouter
@@ -77,5 +90,13 @@ Future<void> initDependencies() async {
   // ProductDetailCubit (factory — new instance per product page visit)
   sl.registerFactory<ProductDetailCubit>(
     () => ProductDetailCubit(repository: sl<ProductDetailRepository>()),
+  );
+
+  // SearchCubit (factory — new instance per search screen visit)
+  sl.registerFactory<SearchCubit>(
+    () => SearchCubit(
+      repository: sl<SearchRepository>(),
+      storage: sl<RecentSearchesStorage>(),
+    ),
   );
 }

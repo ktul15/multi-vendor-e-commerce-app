@@ -104,9 +104,7 @@ class _HomeAppBar extends StatelessWidget {
             ),
           ),
           IconButton(
-            onPressed: () {
-              // TODO(#26): navigate to SearchScreen
-            },
+            onPressed: () => context.push(AppRoutes.search),
             icon: const Icon(Icons.search_rounded),
             style: IconButton.styleFrom(
               backgroundColor: AppColors.surface,
