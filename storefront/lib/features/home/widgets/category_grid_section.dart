@@ -33,10 +33,12 @@ class CategoryTile extends StatelessWidget {
     final color = _iconColors[colorIndex];
 
     return GestureDetector(
-      onTap: () => context.push(
-        '${AppRoutes.products}'
-        '?categoryId=${category.id}'
-        '&title=${Uri.encodeComponent(category.name)}',
+      onTap: () => context.pushNamed(
+        AppRoutes.productsName,
+        queryParameters: {
+          'categoryId': category.id,
+          'title': category.name,
+        },
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

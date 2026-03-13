@@ -433,8 +433,9 @@ class _ResultsView extends StatelessWidget {
               final product = state.products[index];
               return ProductListItem(
                 product: product,
-                onTap: () => context.push(
-                  AppRoutes.productDetail.replaceFirst(':id', product.id),
+                onTap: () => context.pushNamed(
+                  AppRoutes.productDetailName,
+                  pathParameters: {'id': product.id},
                 ),
               );
             },
