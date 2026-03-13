@@ -104,7 +104,7 @@ class _HomeAppBar extends StatelessWidget {
             ),
           ),
           IconButton(
-            onPressed: () => context.push(AppRoutes.search),
+            onPressed: () => context.pushNamed(AppRoutes.searchName),
             icon: const Icon(Icons.search_rounded),
             style: IconButton.styleFrom(
               backgroundColor: AppColors.surface,
@@ -183,8 +183,9 @@ class _LoadedView extends StatelessWidget {
             child: ProductSection(
               title: '🔥 Trending',
               products: trendingProducts,
-              onSeeAll: () => context.push(
-                '${AppRoutes.products}?title=Trending',
+              onSeeAll: () => context.pushNamed(
+                AppRoutes.productsName,
+                queryParameters: {'title': 'Trending'},
               ),
             ),
           ),
@@ -196,8 +197,9 @@ class _LoadedView extends StatelessWidget {
             child: ProductSection(
               title: '✨ New Arrivals',
               products: newArrivals,
-              onSeeAll: () => context.push(
-                '${AppRoutes.products}?title=New+Arrivals',
+              onSeeAll: () => context.pushNamed(
+                AppRoutes.productsName,
+                queryParameters: {'title': 'New Arrivals'},
               ),
             ),
           ),

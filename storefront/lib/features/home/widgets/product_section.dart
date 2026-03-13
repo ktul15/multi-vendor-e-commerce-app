@@ -64,8 +64,9 @@ class ProductSection extends StatelessWidget {
                 const SizedBox(width: AppSpacing.sm),
             itemBuilder: (context, index) => ProductCard(
               product: products[index],
-              onTap: () => context.push(
-                AppRoutes.productDetail.replaceFirst(':id', products[index].id),
+              onTap: () => context.pushNamed(
+                AppRoutes.productDetailName,
+                pathParameters: {'id': products[index].id},
               ),
             ),
           ),

@@ -259,8 +259,9 @@ class _GridView extends StatelessWidget {
         return ProductCard(
           product: state.products[index],
           width: double.infinity,
-          onTap: () => context.push(
-            AppRoutes.productDetail.replaceFirst(':id', state.products[index].id),
+          onTap: () => context.pushNamed(
+            AppRoutes.productDetailName,
+            pathParameters: {'id': state.products[index].id},
           ),
         );
       },
@@ -287,8 +288,9 @@ class _ListView extends StatelessWidget {
         }
         return ProductListItem(
           product: state.products[index],
-          onTap: () => context.push(
-            AppRoutes.productDetail.replaceFirst(':id', state.products[index].id),
+          onTap: () => context.pushNamed(
+            AppRoutes.productDetailName,
+            pathParameters: {'id': state.products[index].id},
           ),
         );
       },

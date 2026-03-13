@@ -13,10 +13,11 @@ import '../../features/product_list/view/product_list_page.dart';
 import '../../features/search/view/search_page.dart';
 import '../../shared/models/product_filters.dart';
 
-/// App route paths — centralized to avoid magic strings.
+/// App route paths and names — centralized to avoid magic strings.
 class AppRoutes {
   AppRoutes._();
 
+  // ── Paths ──────────────────────────────────────────
   static const String home = '/';
   static const String login = '/login';
   static const String register = '/register';
@@ -26,6 +27,17 @@ class AppRoutes {
   static const String search = '/search';
   static const String cart = '/cart';
   static const String profile = '/profile';
+
+  // ── Names (used with pushNamed / goNamed) ──────────
+  static const String homeName = 'home';
+  static const String loginName = 'login';
+  static const String registerName = 'register';
+  static const String forgotPasswordName = 'forgotPassword';
+  static const String productsName = 'products';
+  static const String productDetailName = 'productDetail';
+  static const String searchName = 'search';
+  static const String cartName = 'cart';
+  static const String profileName = 'profile';
 }
 
 /// GoRouter configuration with auth-aware redirects.
@@ -59,22 +71,27 @@ GoRouter appRouter(AuthBloc authBloc) {
     },
     routes: [
       GoRoute(
+        name: AppRoutes.homeName,
         path: AppRoutes.home,
         builder: (context, state) => const HomePage(),
       ),
       GoRoute(
+        name: AppRoutes.loginName,
         path: AppRoutes.login,
         builder: (context, state) => const LoginPage(),
       ),
       GoRoute(
+        name: AppRoutes.registerName,
         path: AppRoutes.register,
         builder: (context, state) => const RegisterPage(),
       ),
       GoRoute(
+        name: AppRoutes.forgotPasswordName,
         path: AppRoutes.forgotPassword,
         builder: (context, state) => const ForgotPasswordPage(),
       ),
       GoRoute(
+        name: AppRoutes.productsName,
         path: AppRoutes.products,
         builder: (context, state) {
           final title = state.uri.queryParameters['title'] ?? 'Products';
@@ -86,6 +103,7 @@ GoRouter appRouter(AuthBloc authBloc) {
         },
       ),
       GoRoute(
+        name: AppRoutes.productDetailName,
         path: AppRoutes.productDetail,
         builder: (context, state) {
           final id = state.pathParameters['id']!;
@@ -93,6 +111,7 @@ GoRouter appRouter(AuthBloc authBloc) {
         },
       ),
       GoRoute(
+        name: AppRoutes.searchName,
         path: AppRoutes.search,
         builder: (context, state) => const SearchPage(),
       ),
