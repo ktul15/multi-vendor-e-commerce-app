@@ -1,27 +1,19 @@
-import 'package:dio/dio.dart';
+import '../core/network/api_exception.dart';
+import '../core/network/http_client.dart';
 import '../shared/models/product_model.dart';
 
 class ProductDetailRepository {
-  final Dio _dio;
+  final HttpClient _client;
 
-  ProductDetailRepository({required Dio dio}) : _dio = dio;
+  ProductDetailRepository({required HttpClient client}) : _client = client;
 
   Future<ProductModel> getProductById(String id) async {
-    final response = await _dio.get<Map<String, dynamic>>('/products/$id');
+    final body = await _client.get('/products/$id');
 
-    final body = response.data;
     if (body == null || body['data'] is! Map) {
-      throw const _ProductDetailException('Failed to load product');
+      throw const ApiException('Failed to load product');
     }
 
     return ProductModel.fromJson(body['data'] as Map<String, dynamic>);
   }
-}
-
-class _ProductDetailException implements Exception {
-  final String message;
-  const _ProductDetailException(this.message);
-
-  @override
-  String toString() => message;
 }
