@@ -10,6 +10,7 @@ import '../../features/auth/view/forgot_password_page.dart';
 import '../../features/home/view/home_page.dart';
 import '../../features/product_detail/view/product_detail_page.dart';
 import '../../features/product_list/view/product_list_page.dart';
+import '../../features/search/view/search_page.dart';
 import '../../shared/models/product_filters.dart';
 
 /// App route paths — centralized to avoid magic strings.
@@ -22,6 +23,7 @@ class AppRoutes {
   static const String forgotPassword = '/forgot-password';
   static const String products = '/products';
   static const String productDetail = '/product/:id';
+  static const String search = '/search';
   static const String cart = '/cart';
   static const String profile = '/profile';
 }
@@ -89,6 +91,10 @@ GoRouter appRouter(AuthBloc authBloc) {
           final id = state.pathParameters['id']!;
           return ProductDetailPage(productId: id);
         },
+      ),
+      GoRoute(
+        path: AppRoutes.search,
+        builder: (context, state) => const SearchPage(),
       ),
     ],
   );
