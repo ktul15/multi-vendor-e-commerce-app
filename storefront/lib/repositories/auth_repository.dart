@@ -1,15 +1,14 @@
-import 'package:dio/dio.dart';
-import '../../../core/network/api_client.dart';
-import '../../../core/network/token_storage.dart';
+import '../core/network/api_client.dart';
+import '../core/network/http_client.dart';
+import '../core/network/token_storage.dart';
 
-/// Auth repository — handles API calls for authentication.
 class AuthRepository {
-  final Dio _dio;
+  final HttpClient _client;
   final TokenStorage _tokenStorage;
 
-  AuthRepository({Dio? dio, TokenStorage? tokenStorage})
-    : _dio = dio ?? ApiClient.instance,
-      _tokenStorage = tokenStorage ?? TokenStorage();
+  AuthRepository({required HttpClient client, required TokenStorage tokenStorage})
+      : _client = client,
+        _tokenStorage = tokenStorage;
 
   /// Register a new user.
   Future<Map<String, dynamic>> register({
@@ -17,19 +16,17 @@ class AuthRepository {
     required String email,
     required String password,
   }) async {
-    final response = await _dio.post(
+    final body = await _client.post(
       '/auth/register',
       data: {'name': name, 'email': email, 'password': password},
     );
 
-    final data = response.data['data'];
-
+    final data = body!['data'] as Map<String, dynamic>;
     await _tokenStorage.saveTokens(
-      accessToken: data['tokens']['accessToken'],
-      refreshToken: data['tokens']['refreshToken'],
+      accessToken: data['tokens']['accessToken'] as String,
+      refreshToken: data['tokens']['refreshToken'] as String,
     );
-
-    return data['user'];
+    return data['user'] as Map<String, dynamic>;
   }
 
   /// Login with email and password.
@@ -37,25 +34,23 @@ class AuthRepository {
     required String email,
     required String password,
   }) async {
-    final response = await _dio.post(
+    final body = await _client.post(
       '/auth/login',
       data: {'email': email, 'password': password},
     );
 
-    final data = response.data['data'];
-
+    final data = body!['data'] as Map<String, dynamic>;
     await _tokenStorage.saveTokens(
-      accessToken: data['tokens']['accessToken'],
-      refreshToken: data['tokens']['refreshToken'],
+      accessToken: data['tokens']['accessToken'] as String,
+      refreshToken: data['tokens']['refreshToken'] as String,
     );
-
-    return data['user'];
+    return data['user'] as Map<String, dynamic>;
   }
 
   /// Get current user profile.
   Future<Map<String, dynamic>> getProfile() async {
-    final response = await _dio.get('/auth/profile');
-    return response.data['data'];
+    final body = await _client.get('/auth/profile');
+    return body!['data'] as Map<String, dynamic>;
   }
 
   /// Logout — clear tokens and notify server.
@@ -63,7 +58,7 @@ class AuthRepository {
     try {
       final refreshToken = await _tokenStorage.getRefreshToken();
       if (refreshToken != null) {
-        await _dio.post('/auth/logout', data: {'refreshToken': refreshToken});
+        await _client.post('/auth/logout', data: {'refreshToken': refreshToken});
       }
     } catch (_) {
       // Ignore logout API errors — we clear tokens regardless

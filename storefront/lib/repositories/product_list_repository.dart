@@ -1,28 +1,28 @@
-import 'package:dio/dio.dart';
+import '../core/network/api_exception.dart';
+import '../core/network/http_client.dart';
 import '../shared/models/product_filters.dart';
 import '../shared/models/product_model.dart';
 
 class ProductListRepository {
-  final Dio _dio;
+  final HttpClient _client;
 
-  ProductListRepository({required Dio dio}) : _dio = dio;
+  ProductListRepository({required HttpClient client}) : _client = client;
 
   Future<ProductsPage> getProducts({
     required ProductFilters filters,
     int page = 1,
     int limit = 20,
   }) async {
-    final response = await _dio.get<Map<String, dynamic>>(
+    final body = await _client.get(
       '/products',
       queryParameters: filters.toQueryParams(page, limit),
     );
 
-    final body = response.data;
     if (body == null ||
         body['data'] is! Map ||
         (body['data'] as Map)['items'] is! List ||
         (body['data'] as Map)['meta'] is! Map) {
-      throw const _ProductListException('Failed to load products');
+      throw const ApiException('Failed to load products');
     }
 
     final data = body['data'] as Map<String, dynamic>;
@@ -37,12 +37,4 @@ class ProductListRepository {
       totalPages: meta['totalPages'] as int,
     );
   }
-}
-
-class _ProductListException implements Exception {
-  final String message;
-  const _ProductListException(this.message);
-
-  @override
-  String toString() => message;
 }
