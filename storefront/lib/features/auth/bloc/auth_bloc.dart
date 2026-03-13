@@ -1,5 +1,5 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../repositories/auth_repository.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
@@ -29,8 +29,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(AuthUnauthenticated());
         return;
       }
-
-      // Tokens exist — try to fetch profile (validates token)
       final user = await _authRepository.getProfile();
       emit(AuthAuthenticated(user: user));
     } catch (_) {
@@ -50,9 +48,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         password: event.password,
       );
       emit(AuthAuthenticated(user: user));
-    } on DioException catch (e) {
-      emit(AuthError(message: e.message ?? 'Login failed'));
-    } catch (e) {
+    } on ApiException catch (e) {
+      emit(AuthError(message: e.message));
+    } on NetworkException catch (e) {
+      emit(AuthError(message: e.message));
+    } catch (_) {
       emit(AuthError(message: 'Something went wrong'));
     }
   }
@@ -70,9 +70,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         password: event.password,
       );
       emit(AuthAuthenticated(user: user));
-    } on DioException catch (e) {
-      emit(AuthError(message: e.message ?? 'Registration failed'));
-    } catch (e) {
+    } on ApiException catch (e) {
+      emit(AuthError(message: e.message));
+    } on NetworkException catch (e) {
+      emit(AuthError(message: e.message));
+    } catch (_) {
       emit(AuthError(message: 'Something went wrong'));
     }
   }

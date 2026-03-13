@@ -1,26 +1,17 @@
-import 'package:dio/dio.dart';
-import '../../../shared/models/category_model.dart';
-import '../../../shared/models/product_model.dart';
-
-/// Thrown when the API response is structurally unexpected.
-class HomeDataException implements Exception {
-  final String message;
-  const HomeDataException(this.message);
-
-  @override
-  String toString() => message;
-}
+import '../core/network/api_exception.dart';
+import '../core/network/http_client.dart';
+import '../shared/models/category_model.dart';
+import '../shared/models/product_model.dart';
 
 class HomeRepository {
-  final Dio _dio;
+  final HttpClient _client;
 
-  HomeRepository({required Dio dio}) : _dio = dio;
+  HomeRepository({required HttpClient client}) : _client = client;
 
   Future<List<CategoryModel>> getCategories() async {
-    final response = await _dio.get<Map<String, dynamic>>('/categories');
-    final body = response.data;
+    final body = await _client.get('/categories');
     if (body == null || body['data'] is! List) {
-      throw const HomeDataException('Failed to load categories');
+      throw const ApiException('Failed to load categories');
     }
     return (body['data'] as List<dynamic>)
         .map((e) => CategoryModel.fromJson(e as Map<String, dynamic>))
@@ -38,15 +29,11 @@ class HomeRepository {
   Future<List<ProductModel>> _fetchProducts(
     Map<String, dynamic> queryParameters,
   ) async {
-    final response = await _dio.get<Map<String, dynamic>>(
-      '/products',
-      queryParameters: queryParameters,
-    );
-    final body = response.data;
+    final body = await _client.get('/products', queryParameters: queryParameters);
     if (body == null ||
         body['data'] is! Map ||
         (body['data'] as Map)['items'] is! List) {
-      throw const HomeDataException('Failed to load products');
+      throw const ApiException('Failed to load products');
     }
     return ((body['data'] as Map<String, dynamic>)['items'] as List<dynamic>)
         .map((e) => ProductModel.fromJson(e as Map<String, dynamic>))

@@ -1,5 +1,5 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../repositories/product_list_repository.dart';
 import '../../../shared/models/product_filters.dart';
 import 'product_list_state.dart';
@@ -30,15 +30,12 @@ class ProductListCubit extends Cubit<ProductListState> {
         totalPages: page.totalPages,
         filters: activeFilters,
       ));
-    } on DioException catch (e) {
-      final message = e.response?.data?['message'] as String? ??
-          _friendlyMessage(e.type);
-      emit(ProductListError(message: message, filters: activeFilters));
+    } on ApiException catch (e) {
+      emit(ProductListError(message: e.message, filters: activeFilters));
+    } on NetworkException catch (e) {
+      emit(ProductListError(message: e.message, filters: activeFilters));
     } catch (e) {
-      emit(ProductListError(
-        message: e.toString(),
-        filters: activeFilters,
-      ));
+      emit(ProductListError(message: e.toString(), filters: activeFilters));
     }
   }
 
@@ -62,16 +59,15 @@ class ProductListCubit extends Cubit<ProductListState> {
         total: page.total,
         isLoadingMore: false,
       ));
-    } on DioException {
-      // On load-more failure, restore previous state without the loading flag
-      emit(current.copyWith(isLoadingMore: false));
     } catch (_) {
+      // On load-more failure, restore previous state without the loading flag
       emit(current.copyWith(isLoadingMore: false));
     }
   }
 
   /// Apply new filters and reload from page 1.
-  Future<void> applyFilters(ProductFilters filters) => loadProducts(filters: filters);
+  Future<void> applyFilters(ProductFilters filters) =>
+      loadProducts(filters: filters);
 
   /// Change sort and reload.
   Future<void> applySort(ProductSort sort) {
@@ -104,14 +100,4 @@ class ProductListCubit extends Cubit<ProductListState> {
             : const ProductFilters();
     return loadProducts(filters: filters);
   }
-
-  String _friendlyMessage(DioExceptionType type) => switch (type) {
-        DioExceptionType.connectionTimeout ||
-        DioExceptionType.receiveTimeout ||
-        DioExceptionType.sendTimeout =>
-          'Connection timed out. Check your internet and try again.',
-        DioExceptionType.connectionError =>
-          'No internet connection. Please try again.',
-        _ => 'Something went wrong. Please try again.',
-      };
 }

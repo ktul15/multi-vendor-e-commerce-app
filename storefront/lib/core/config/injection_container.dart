@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import '../network/api_client.dart';
+import '../network/dio_http_client.dart';
+import '../network/http_client.dart';
 import '../network/token_storage.dart';
 import '../../repositories/auth_repository.dart';
 import '../../repositories/home_repository.dart';
@@ -26,28 +28,32 @@ Future<void> initDependencies() async {
   ApiClient.tokenStorage = sl<TokenStorage>();
 
   // Dio HTTP client (singleton — one instance for the app lifetime)
+  // Dio is referenced only here and in DioHttpClient.
   sl.registerLazySingleton<Dio>(() => ApiClient.instance);
+
+  // HttpClient — the transport abstraction used by all repositories.
+  // Backed by DioHttpClient; swap to a different impl here to change transport.
+  sl.registerLazySingleton<HttpClient>(() => DioHttpClient(sl<Dio>()));
 
   // ── Repositories ──────────────────────────
 
-  // AuthRepository (lazy singleton — created once when first needed)
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepository(dio: sl<Dio>(), tokenStorage: sl<TokenStorage>()),
+    () => AuthRepository(
+      client: sl<HttpClient>(),
+      tokenStorage: sl<TokenStorage>(),
+    ),
   );
 
-  // HomeRepository (lazy singleton — shared across app lifetime)
   sl.registerLazySingleton<HomeRepository>(
-    () => HomeRepository(dio: sl<Dio>()),
+    () => HomeRepository(client: sl<HttpClient>()),
   );
 
-  // ProductListRepository (lazy singleton)
   sl.registerLazySingleton<ProductListRepository>(
-    () => ProductListRepository(dio: sl<Dio>()),
+    () => ProductListRepository(client: sl<HttpClient>()),
   );
 
-  // ProductDetailRepository (lazy singleton)
   sl.registerLazySingleton<ProductDetailRepository>(
-    () => ProductDetailRepository(dio: sl<Dio>()),
+    () => ProductDetailRepository(client: sl<HttpClient>()),
   );
 
   // ── BLoCs / Cubits ────────────────────────
