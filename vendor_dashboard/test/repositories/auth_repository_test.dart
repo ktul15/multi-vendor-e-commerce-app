@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:vendor_dashboard/core/network/token_storage.dart';
-import 'package:vendor_dashboard/features/auth/data/auth_repository.dart';
+import 'package:vendor_dashboard/repositories/auth_repository.dart';
 
 class MockDio extends Mock implements Dio {}
 
@@ -82,7 +82,7 @@ void main() {
           ),
         );
 
-        expect(
+        await expectLater(
           () => authRepository.login(
             email: 'customer@test.com',
             password: 'test',
@@ -116,7 +116,7 @@ void main() {
           ),
         );
 
-        expect(
+        await expectLater(
           () => authRepository.getProfile(),
           throwsA(
             isA<DioException>().having(

@@ -4,8 +4,8 @@ import 'core/config/app_router.dart';
 import 'core/config/app_env.dart';
 import 'core/config/injection_container.dart';
 import 'core/theme/app_theme.dart';
-import 'features/auth/domain/auth_bloc.dart';
-import 'features/auth/domain/auth_event.dart';
+import 'features/auth/bloc/auth_bloc.dart';
+import 'features/auth/bloc/auth_event.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
 
-class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+class DashboardPage extends StatelessWidget {
+  const DashboardPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -11,7 +12,7 @@ class DashboardScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.dashboard, size: 80, color: Color(0xFF0D9488)),
+            Icon(Icons.dashboard, size: 80, color: AppColors.primary),
             SizedBox(height: 16),
             Text(
               'Vendor Dashboard',
@@ -20,7 +21,7 @@ class DashboardScreen extends StatelessWidget {
             SizedBox(height: 8),
             Text(
               'Manage your store',
-              style: TextStyle(fontSize: 16, color: Color(0xFF64748B)),
+              style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
             ),
           ],
         ),

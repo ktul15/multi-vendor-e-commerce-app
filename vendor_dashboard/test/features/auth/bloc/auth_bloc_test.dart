@@ -2,10 +2,10 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:vendor_dashboard/features/auth/data/auth_repository.dart';
-import 'package:vendor_dashboard/features/auth/domain/auth_bloc.dart';
-import 'package:vendor_dashboard/features/auth/domain/auth_event.dart';
-import 'package:vendor_dashboard/features/auth/domain/auth_state.dart';
+import 'package:vendor_dashboard/repositories/auth_repository.dart';
+import 'package:vendor_dashboard/features/auth/bloc/auth_bloc.dart';
+import 'package:vendor_dashboard/features/auth/bloc/auth_event.dart';
+import 'package:vendor_dashboard/features/auth/bloc/auth_state.dart';
 
 class MockAuthRepository extends Mock implements AuthRepository {}
 
@@ -27,7 +27,7 @@ void main() {
         ).thenAnswer((_) async => false);
         return AuthBloc(authRepository: mockAuthRepository);
       },
-      act: (bloc) => bloc.add(AuthCheckRequested()),
+      act: (bloc) => bloc.add(const AuthCheckRequested()),
       expect: () => [isA<AuthLoading>(), isA<AuthUnauthenticated>()],
     );
 
@@ -42,7 +42,7 @@ void main() {
         );
         return AuthBloc(authRepository: mockAuthRepository);
       },
-      act: (bloc) => bloc.add(AuthCheckRequested()),
+      act: (bloc) => bloc.add(const AuthCheckRequested()),
       expect: () => [
         isA<AuthLoading>(),
         isA<AuthAuthenticated>().having(
@@ -123,7 +123,7 @@ void main() {
         when(() => mockAuthRepository.logout()).thenAnswer((_) async {});
         return AuthBloc(authRepository: mockAuthRepository);
       },
-      act: (bloc) => bloc.add(AuthLogoutRequested()),
+      act: (bloc) => bloc.add(const AuthLogoutRequested()),
       expect: () => [isA<AuthLoading>(), isA<AuthUnauthenticated>()],
     );
   });
