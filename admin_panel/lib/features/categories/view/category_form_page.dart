@@ -3,26 +3,26 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../categories/domain/category_model.dart';
-import 'category_cubit.dart';
-import 'category_state.dart';
+import '../bloc/category_cubit.dart';
+import '../bloc/category_state.dart';
+import '../models/category_model.dart';
 
-/// Add / edit screen for a single category.
+/// Add / edit page for a single category.
 /// Receives its [CategoryCubit] via [BlocProvider.value] from the router
-/// so it shares state with [CategoryListScreen].
-class CategoryFormScreen extends StatefulWidget {
+/// so it shares state with [CategoryListPage].
+class CategoryFormPage extends StatefulWidget {
   /// Non-null when editing an existing category.
   final String? categoryId;
 
-  const CategoryFormScreen({super.key, this.categoryId});
+  const CategoryFormPage({super.key, this.categoryId});
 
   bool get isEditing => categoryId != null;
 
   @override
-  State<CategoryFormScreen> createState() => _CategoryFormScreenState();
+  State<CategoryFormPage> createState() => _CategoryFormPageState();
 }
 
-class _CategoryFormScreenState extends State<CategoryFormScreen> {
+class _CategoryFormPageState extends State<CategoryFormPage> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _imageController;
@@ -57,7 +57,7 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
 
     final state = context.read<CategoryCubit>().state;
     if (state is CategoryLoaded || state is CategoryError) {
-      // Data is already available (normal navigation from list screen).
+      // Data is already available (normal navigation from list page).
       _loadFromState();
     } else {
       // State is Initial — deep link directly to the edit route.

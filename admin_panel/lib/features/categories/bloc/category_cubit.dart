@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/network/api_exception.dart';
-import '../data/category_repository.dart';
-import '../domain/category_model.dart';
+import '../../../repositories/category_repository.dart';
+import '../models/category_model.dart';
 import 'category_state.dart';
 
 class CategoryCubit extends Cubit<CategoryState> {
