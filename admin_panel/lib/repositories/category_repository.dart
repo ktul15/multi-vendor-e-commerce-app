@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import '../../../core/network/api_client.dart';
-import '../../../core/network/api_exception.dart';
-import '../domain/category_model.dart';
+import '../core/network/api_client.dart';
+import '../core/network/api_exception.dart';
+import '../features/categories/models/category_model.dart';
 
 class CategoryRepository {
   final Dio _dio;

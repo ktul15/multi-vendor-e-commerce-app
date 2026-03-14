@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_colors.dart';
 
 /// Shows a confirmation dialog before deleting [categoryName].
 /// Returns true if the user confirms, false/null otherwise.

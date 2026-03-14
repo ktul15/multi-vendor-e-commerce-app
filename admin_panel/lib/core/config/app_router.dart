@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../../features/auth/presentation/login_screen.dart';
-import '../../features/categories/presentation/category_cubit.dart';
-import '../../features/categories/presentation/category_form_screen.dart';
-import '../../features/categories/presentation/category_list_screen.dart';
-import '../../features/dashboard/presentation/dashboard_screen.dart';
+import '../../features/auth/view/login_page.dart';
+import '../../features/categories/bloc/category_cubit.dart';
+import '../../features/categories/view/category_form_page.dart';
+import '../../features/categories/view/category_list_page.dart';
+import '../../features/dashboard/view/dashboard_page.dart';
 import '../../shared/widgets/admin_shell.dart';
 import 'injection_container.dart';
 
@@ -40,7 +40,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       name: AppRoutes.loginName,
       path: AppRoutes.login,
-      builder: (context, state) => const LoginScreen(),
+      builder: (context, state) => const LoginPage(),
     ),
 
     // All admin screens share the persistent AdminShell sidebar.
@@ -53,7 +53,7 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           name: AppRoutes.dashboardName,
           path: AppRoutes.dashboard,
-          builder: (context, state) => const DashboardScreen(),
+          builder: (context, state) => const DashboardPage(),
         ),
 
         // Categories — list + nested create/edit share one lazySingleton cubit.
@@ -64,7 +64,7 @@ final GoRouter appRouter = GoRouter(
             // ensureLoaded skips the network call when data is already fresh
             // (e.g. navigating back after a mutation that ran _silentRefresh).
             value: sl<CategoryCubit>()..ensureLoaded(),
-            child: const CategoryListScreen(),
+            child: const CategoryListPage(),
           ),
           routes: [
             GoRoute(
@@ -72,7 +72,7 @@ final GoRouter appRouter = GoRouter(
               path: AppRoutes.categoryCreate,
               builder: (context, state) => BlocProvider.value(
                 value: sl<CategoryCubit>(),
-                child: const CategoryFormScreen(),
+                child: const CategoryFormPage(),
               ),
             ),
             GoRoute(
@@ -80,7 +80,7 @@ final GoRouter appRouter = GoRouter(
               path: AppRoutes.categoryEdit,
               builder: (context, state) => BlocProvider.value(
                 value: sl<CategoryCubit>(),
-                child: CategoryFormScreen(
+                child: CategoryFormPage(
                   categoryId: state.pathParameters['id'],
                 ),
               ),
@@ -93,29 +93,29 @@ final GoRouter appRouter = GoRouter(
           name: AppRoutes.usersName,
           path: AppRoutes.users,
           builder: (context, state) =>
-              const _PlaceholderScreen(title: 'Users'),
+              const _PlaceholderPage(title: 'Users'),
         ),
         GoRoute(
           name: AppRoutes.vendorsName,
           path: AppRoutes.vendors,
           builder: (context, state) =>
-              const _PlaceholderScreen(title: 'Vendors'),
+              const _PlaceholderPage(title: 'Vendors'),
         ),
         GoRoute(
           name: AppRoutes.settingsName,
           path: AppRoutes.settings,
           builder: (context, state) =>
-              const _PlaceholderScreen(title: 'Settings'),
+              const _PlaceholderPage(title: 'Settings'),
         ),
       ],
     ),
   ],
 );
 
-class _PlaceholderScreen extends StatelessWidget {
+class _PlaceholderPage extends StatelessWidget {
   final String title;
 
-  const _PlaceholderScreen({required this.title});
+  const _PlaceholderPage({required this.title});
 
   @override
   Widget build(BuildContext context) {

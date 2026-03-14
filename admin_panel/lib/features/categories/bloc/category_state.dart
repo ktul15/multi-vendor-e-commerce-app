@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import '../domain/category_model.dart';
+import '../models/category_model.dart';
 
 sealed class CategoryState extends Equatable {
   const CategoryState();

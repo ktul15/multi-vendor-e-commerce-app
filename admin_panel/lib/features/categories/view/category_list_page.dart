@@ -3,22 +3,22 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/config/app_router.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../categories/domain/category_model.dart';
-import 'category_cubit.dart';
-import 'category_state.dart';
-import 'widgets/category_tree_tile.dart';
-import 'widgets/delete_confirm_dialog.dart';
+import '../bloc/category_cubit.dart';
+import '../bloc/category_state.dart';
+import '../models/category_model.dart';
+import '../widgets/category_tree_tile.dart';
+import '../widgets/delete_confirm_dialog.dart';
 
 // The CategoryCubit is provided via BlocProvider.value in app_router.dart,
-// so this screen is a plain StatefulWidget with no BlocProvider wrapper.
-class CategoryListScreen extends StatefulWidget {
-  const CategoryListScreen({super.key});
+// so this page is a plain StatefulWidget with no BlocProvider wrapper.
+class CategoryListPage extends StatefulWidget {
+  const CategoryListPage({super.key});
 
   @override
-  State<CategoryListScreen> createState() => _CategoryListScreenState();
+  State<CategoryListPage> createState() => _CategoryListPageState();
 }
 
-class _CategoryListScreenState extends State<CategoryListScreen> {
+class _CategoryListPageState extends State<CategoryListPage> {
   // 0 = Table, 1 = Tree
   int _viewIndex = 0;
 
@@ -262,8 +262,7 @@ class _TableView extends StatelessWidget {
                             icon: Icon(
                               Icons.delete_outline_rounded,
                               size: 18,
-                              color:
-                                  isMutating ? null : AppColors.error,
+                              color: isMutating ? null : AppColors.error,
                             ),
                             onPressed: isMutating
                                 ? null

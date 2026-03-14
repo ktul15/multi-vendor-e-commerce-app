@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../category_state.dart';
-import '../category_cubit.dart';
-import '../../domain/category_model.dart';
-import 'delete_confirm_dialog.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/theme/app_colors.dart';
+import '../bloc/category_cubit.dart';
+import '../bloc/category_state.dart';
+import '../models/category_model.dart';
+import 'delete_confirm_dialog.dart';
 
 /// Recursively renders a category node with expand/collapse for children.
 class CategoryTreeTile extends StatefulWidget {
