@@ -40,6 +40,28 @@ export const validate = (schema: z.ZodType) => {
 };
 
 /**
+ * Validates req.params against a Zod schema.
+ */
+export const validateParams = (schema: z.ZodType) => {
+    return (req: Request, _res: Response, next: NextFunction): void => {
+        const result = schema.safeParse(req.params);
+
+        if (!result.success) {
+            const issues = 'issues' in result.error ? result.error.issues : [];
+            const fieldErrors = issues.map((issue) => ({
+                field: issue.path.map(String).join('.'),
+                message: issue.message,
+            }));
+            next(ApiError.badRequest('Invalid route parameter', fieldErrors));
+            return;
+        }
+
+        req.params = result.data as Record<string, string>;
+        next();
+    };
+};
+
+/**
  * Validates req.query against a Zod schema.
  */
 export const validateQuery = (schema: z.ZodType) => {
