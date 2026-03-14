@@ -2,8 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:vendor_dashboard/core/config/injection_container.dart';
-import 'package:vendor_dashboard/features/auth/domain/auth_bloc.dart';
-import 'package:vendor_dashboard/features/auth/presentation/login_screen.dart';
+import 'package:vendor_dashboard/features/auth/bloc/auth_bloc.dart';
+import 'package:vendor_dashboard/features/auth/view/login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -12,14 +12,14 @@ void main() {
     await initDependencies();
   });
 
-  testWidgets('VendorLoginScreen should render email and password fields', (
+  testWidgets('VendorLoginPage should render email and password fields', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
       MaterialApp(
         home: BlocProvider(
           create: (_) => sl<AuthBloc>(),
-          child: const VendorLoginScreen(),
+          child: const VendorLoginPage(),
         ),
       ),
     );

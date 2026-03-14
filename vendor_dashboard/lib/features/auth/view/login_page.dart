@@ -3,20 +3,20 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../domain/auth_bloc.dart';
-import '../domain/auth_event.dart';
-import '../domain/auth_state.dart';
+import '../bloc/auth_bloc.dart';
+import '../bloc/auth_event.dart';
+import '../bloc/auth_state.dart';
 
-/// Vendor Login Screen
+/// Vendor Login Page
 /// Allows vendors to log into the dashboard.
-class VendorLoginScreen extends StatefulWidget {
-  const VendorLoginScreen({super.key});
+class VendorLoginPage extends StatefulWidget {
+  const VendorLoginPage({super.key});
 
   @override
-  State<VendorLoginScreen> createState() => _VendorLoginScreenState();
+  State<VendorLoginPage> createState() => _VendorLoginPageState();
 }
 
-class _VendorLoginScreenState extends State<VendorLoginScreen> {
+class _VendorLoginPageState extends State<VendorLoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();

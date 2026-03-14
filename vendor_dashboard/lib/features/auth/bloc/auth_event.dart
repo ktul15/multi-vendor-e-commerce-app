@@ -8,7 +8,9 @@ abstract class AuthEvent extends Equatable {
 }
 
 /// Request to check if the user is already logged in via stored tokens.
-class AuthCheckRequested extends AuthEvent {}
+class AuthCheckRequested extends AuthEvent {
+  const AuthCheckRequested();
+}
 
 /// Request to log in with email and password.
 class AuthLoginRequested extends AuthEvent {
@@ -22,4 +24,6 @@ class AuthLoginRequested extends AuthEvent {
 }
 
 /// Request to log out.
-class AuthLogoutRequested extends AuthEvent {}
+class AuthLogoutRequested extends AuthEvent {
+  const AuthLogoutRequested();
+}

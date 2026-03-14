@@ -10,7 +10,7 @@ abstract class AuthState extends Equatable {
 /// Initial state when the app starts.
 class AuthInitial extends AuthState {}
 
-/// Authenticaton is in progress (e.g., checking tokens or logging in).
+/// Authentication is in progress (e.g., checking tokens or logging in).
 class AuthLoading extends AuthState {}
 
 /// User is successfully authenticated.

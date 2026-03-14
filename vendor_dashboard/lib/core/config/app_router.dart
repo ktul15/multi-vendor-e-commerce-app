@@ -1,9 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../features/auth/domain/auth_bloc.dart';
-import '../../features/auth/domain/auth_state.dart';
-import '../../features/dashboard/presentation/dashboard_screen.dart';
-import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/bloc/auth_bloc.dart';
+import '../../features/auth/bloc/auth_state.dart';
+import '../../features/dashboard/view/dashboard_page.dart';
+import '../../features/auth/view/login_page.dart';
 
 /// App route paths.
 class AppRoutes {
@@ -44,11 +46,11 @@ GoRouter appRouter(AuthBloc authBloc) {
     routes: [
       GoRoute(
         path: AppRoutes.dashboard,
-        builder: (context, state) => const DashboardScreen(),
+        builder: (context, state) => const DashboardPage(),
       ),
       GoRoute(
         path: AppRoutes.login,
-        builder: (context, state) => const VendorLoginScreen(),
+        builder: (context, state) => const VendorLoginPage(),
       ),
     ],
   );
@@ -61,7 +63,7 @@ class GoRouterRefreshStream extends ChangeNotifier {
     _subscription = stream.asBroadcastStream().listen((_) => notifyListeners());
   }
 
-  late final dynamic _subscription;
+  late final StreamSubscription<dynamic> _subscription;
 
   @override
   void dispose() {

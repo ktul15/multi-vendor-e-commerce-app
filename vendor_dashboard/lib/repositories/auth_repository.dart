@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
-import '../../../core/network/api_client.dart';
-import '../../../core/network/token_storage.dart';
+import '../core/network/api_client.dart';
+import '../core/network/token_storage.dart';
 
 /// Auth repository for Vendor Dashboard.
 class AuthRepository {
