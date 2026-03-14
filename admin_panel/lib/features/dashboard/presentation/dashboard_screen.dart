@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -6,25 +7,29 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Admin Panel')),
-      body: const Center(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(title: const Text('Dashboard')),
+      body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.admin_panel_settings,
+            const Icon(
+              Icons.dashboard_rounded,
               size: 80,
-              color: Color(0xFF4F46E5),
+              color: AppColors.primary,
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
-              'Admin Panel',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              'Admin Dashboard',
+              style: Theme.of(context).textTheme.headlineSmall,
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               'Platform administration',
-              style: TextStyle(fontSize: 16, color: Color(0xFF64748B)),
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: AppColors.textSecondary),
             ),
           ],
         ),
