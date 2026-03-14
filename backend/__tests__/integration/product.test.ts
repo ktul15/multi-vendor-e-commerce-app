@@ -134,7 +134,7 @@ describe('Product API (Issue #20)', () => {
                 });
 
             expect(res.status).toBe(200);
-            expect(res.body.data.basePrice).toBe(19.99);
+            expect(res.body.data.basePrice).toBe("19.99");
             expect(res.body.data.tags).toEqual(['classic', 'fiction']);
         });
     });
@@ -153,7 +153,7 @@ describe('Product API (Issue #20)', () => {
 
             expect(res.status).toBe(201);
             expect(res.body.data.sku).toBe('GATSBY-HARDCOVER');
-            expect(res.body.data.price).toBe(24.99);
+            expect(res.body.data.price).toBe("24.99");
             variantId = res.body.data.id;
         });
 

@@ -20,6 +20,46 @@ enum Role {
   ADMIN
 }
 
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CARD
+  CASH_ON_DELIVERY
+  WALLET
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+// ISO 4217 currency codes supported by the platform
+enum Currency {
+  USD
+  EUR
+  GBP
+  INR
+  CAD
+  AUD
+}
+
 // ========================
 // Models
 // ========================
@@ -31,14 +71,19 @@ model User {
   password   String
   role       Role     @default(CUSTOMER)
   avatar     String?
-  fcmToken   String?
+  // FCM tokens are device-scoped; unique prevents duplicate registrations
+  fcmToken   String?  @unique
   isVerified Boolean  @default(false)
   isBanned   Boolean  @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   // Relationships
-  products Product[]
+  products     Product[]
+  cart         Cart?
+  addresses    Address[]
+  orders       Order[]
+  vendorOrders VendorOrder[] @relation("VendorOrders")
 
   @@map("users")
 }
@@ -65,15 +110,16 @@ model Category {
 }
 
 model Product {
-  id          String   @id @default(uuid())
+  id          String  @id @default(uuid())
   vendorId    String
   categoryId  String
   name        String
   description String
-  basePrice   Float
+  basePrice   Decimal  @db.Decimal(10, 2)
   images      String[]
   isActive    Boolean  @default(true)
-  avgRating   Float    @default(0.0)
+  // Denormalized aggregate — must be updated atomically alongside Review writes
+  avgRating   Decimal  @default(0.0) @db.Decimal(3, 2)
   reviewCount Int      @default(0)
   tags        String[]
 
@@ -98,15 +144,201 @@ model Variant {
   productId String
   size      String?
   color     String?
-  price     Float
+  price     Decimal @db.Decimal(10, 2)
   stock     Int     @default(0)
   sku       String  @unique
 
   // Relationships
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems  CartItem[]
+  orderItems OrderItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([productId])
   @@map("variants")
+}
+
+// ========================
+// Cart Models
+// ========================
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cartId    String
+  variantId String
+  quantity  Int      @default(1)
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variant   Variant  @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, variantId])
+  @@map("cart_items")
+}
+
+// ========================
+// Address Model
+// ========================
+
+model Address {
+  id        String   @id @default(uuid())
+  userId    String
+  fullName  String
+  phone     String
+  street    String
+  city      String
+  state     String
+  country   String
+  zipCode   String
+  // Only one default per user — enforced in service layer via transaction
+  isDefault Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders    Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+// ========================
+// Order Models
+// ========================
+
+model Order {
+  id          String  @id @default(uuid())
+  userId      String
+  addressId   String
+  promoCodeId String?
+  // Snapshot of the shipping address at time of order — prevents stale data if
+  // the user edits their address later. addressId FK is kept for reference only.
+  shippingAddress Json
+  subtotal    Decimal @db.Decimal(10, 2)
+  discount    Decimal @default(0) @db.Decimal(10, 2)
+  tax         Decimal @default(0) @db.Decimal(10, 2)
+  total       Decimal @db.Decimal(10, 2)
+  notes       String?
+
+  user         User          @relation(fields: [userId], references: [id])
+  // onDelete: Restrict is the default; explicit here to document intent —
+  // an address used in an order must not be deleted.
+  address      Address       @relation(fields: [addressId], references: [id], onDelete: Restrict)
+  promoCode    PromoCode?    @relation(fields: [promoCodeId], references: [id])
+  vendorOrders VendorOrder[]
+  payment      Payment?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([promoCodeId])
+  @@map("orders")
+}
+
+// One VendorOrder per vendor per customer Order.
+// Carries its own status so vendors can fulfill independently.
+model VendorOrder {
+  id       String      @id @default(uuid())
+  orderId  String
+  vendorId String
+  status   OrderStatus @default(PENDING)
+  subtotal Decimal     @db.Decimal(10, 2)
+
+  order    Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  vendor   User        @relation("VendorOrders", fields: [vendorId], references: [id])
+  items    OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orderId, vendorId])
+  @@index([vendorId])
+  @@index([status])
+  @@map("vendor_orders")
+}
+
+model OrderItem {
+  id            String  @id @default(uuid())
+  vendorOrderId String
+  variantId     String
+  quantity      Int
+  unitPrice     Decimal @db.Decimal(10, 2)
+  totalPrice    Decimal @db.Decimal(10, 2)
+
+  vendorOrder VendorOrder @relation(fields: [vendorOrderId], references: [id], onDelete: Cascade)
+  // onDelete: Restrict — a variant that has been ordered cannot be deleted;
+  // use isActive=false on the Variant for soft-deletion instead.
+  variant     Variant     @relation(fields: [variantId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([vendorOrderId])
+  @@index([variantId])
+  @@map("order_items")
+}
+
+// ========================
+// Payment Model
+// ========================
+
+model Payment {
+  id                    String        @id @default(uuid())
+  orderId               String        @unique
+  amount                Decimal       @db.Decimal(10, 2)
+  currency              Currency      @default(USD)
+  method                PaymentMethod
+  status                PaymentStatus @default(PENDING)
+  stripePaymentIntentId String?       @unique
+  stripePaymentMethodId String?
+  paidAt                DateTime?
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@map("payments")
+}
+
+// ========================
+// Promo Code Model
+// ========================
+
+model PromoCode {
+  id            String       @id @default(uuid())
+  code          String       @unique
+  discountType  DiscountType
+  discountValue Decimal      @db.Decimal(10, 2)
+  minOrderValue Decimal?     @db.Decimal(10, 2)
+  maxDiscount   Decimal?     @db.Decimal(10, 2)
+  usageLimit    Int?
+  // usageCount increments must be done atomically in the service layer
+  // (UPDATE ... WHERE usage_count < usage_limit) to prevent race conditions.
+  usageCount    Int          @default(0)
+  isActive      Boolean      @default(true)
+  expiresAt     DateTime?
+  orders        Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // @@index([code]) removed — @unique already creates a B-tree index on code
+  @@index([isActive])
+  @@map("promo_codes")
 }
