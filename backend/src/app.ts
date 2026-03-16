@@ -54,10 +54,12 @@ app.get('/api/health', (_req, res) => {
 import authRoutes from './modules/auth/auth.routes';
 import categoryRoutes from './modules/category/category.routes';
 import productRoutes from './modules/product/product.routes';
+import cartRoutes from './modules/cart/cart.routes';
 
 app.use('/api/v1/auth', authLimiter, authRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/products', productRoutes);
+app.use('/api/v1/cart', cartRoutes);
 
 // ---------------------
 // Error Handling
