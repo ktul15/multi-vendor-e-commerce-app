@@ -220,6 +220,7 @@ model Address {
 
 model Order {
   id          String  @id @default(uuid())
+  orderNumber String  @unique
   userId      String
   addressId   String
   promoCodeId String?
