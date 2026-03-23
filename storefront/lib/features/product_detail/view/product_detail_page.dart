@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/config/injection_container.dart';
+import '../../cart/bloc/cart_cubit.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -16,9 +17,13 @@ class ProductDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) =>
-          sl<ProductDetailCubit>()..loadProduct(productId),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+            create: (_) =>
+                sl<ProductDetailCubit>()..loadProduct(productId)),
+        BlocProvider.value(value: sl<CartCubit>()),
+      ],
       child: const _ProductDetailView(),
     );
   }
@@ -299,11 +304,16 @@ class _AddToCartBar extends StatelessWidget {
               child: ElevatedButton.icon(
                 onPressed: state.isInStock && !needsVariant
                     ? () {
-                        // TODO(cart): add to cart
+                        final variantId = state.selectedVariant?.id ??
+                            state.product.variants.first.id;
+                        context
+                            .read<CartCubit>()
+                            .addItem(variantId, 1);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Cart coming soon!'),
-                            duration: Duration(seconds: 2),
+                          SnackBar(
+                            content:
+                                Text('${state.product.name} added to cart'),
+                            duration: const Duration(seconds: 2),
                           ),
                         );
                       }

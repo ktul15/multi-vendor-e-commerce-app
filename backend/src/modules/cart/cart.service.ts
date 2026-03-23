@@ -29,6 +29,8 @@ interface CartItemDetail {
             name: string;
             images: string[];
             isActive: boolean;
+            vendorId: string;
+            vendor: { name: string };
         };
     };
 }
@@ -44,6 +46,8 @@ const cartInclude = {
                             name: true,
                             images: true,
                             isActive: true,
+                            vendorId: true,
+                            vendor: { select: { name: true } },
                         },
                     },
                 },
