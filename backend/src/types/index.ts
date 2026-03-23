@@ -1,5 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 
+// Extend Express Request globally to carry the raw body buffer needed for Stripe webhook verification
+declare global {
+    namespace Express {
+        interface Request {
+            rawBody?: Buffer;
+        }
+    }
+}
+
 // JWT token payload — stored inside access & refresh tokens
 export interface JwtPayload {
     userId: string;

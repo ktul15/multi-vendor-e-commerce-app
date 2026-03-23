@@ -1,4 +1,4 @@
-import express, { Application } from 'express';
+import express, { Application, Request } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -19,8 +19,21 @@ app.use(
         credentials: true,
     })
 );
-app.use(express.json({ limit: '10mb' }));
+app.use(
+    express.json({
+        limit: '10mb',
+        verify: (req, _res, buf) => {
+            (req as Request).rawBody = buf;
+        },
+    })
+);
 app.use(express.urlencoded({ extended: true }));
+
+// ---------------------
+// Stripe Webhook (must be before globalLimiter so Stripe retries are never throttled)
+// ---------------------
+import paymentRoutes from './modules/payment/payment.routes';
+app.use('/api/v1/payments', paymentRoutes);
 
 // ---------------------
 // Rate Limiting
