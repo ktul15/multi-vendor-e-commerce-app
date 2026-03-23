@@ -10,6 +10,7 @@ import '../../features/auth/view/forgot_password_page.dart';
 import '../../features/home/view/home_page.dart';
 import '../../features/product_detail/view/product_detail_page.dart';
 import '../../features/product_list/view/product_list_page.dart';
+import '../../features/cart/view/cart_page.dart';
 import '../../features/search/view/search_page.dart';
 import '../../shared/models/product_filters.dart';
 
@@ -114,6 +115,11 @@ GoRouter appRouter(AuthBloc authBloc) {
         name: AppRoutes.searchName,
         path: AppRoutes.search,
         builder: (context, state) => const SearchPage(),
+      ),
+      GoRoute(
+        name: AppRoutes.cartName,
+        path: AppRoutes.cart,
+        builder: (context, state) => const CartPage(),
       ),
     ],
   );

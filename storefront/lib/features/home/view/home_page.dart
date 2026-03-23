@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/config/app_router.dart';
 import '../../../core/config/injection_container.dart';
+import '../../../features/cart/bloc/cart_cubit.dart';
+import '../../../features/cart/bloc/cart_state.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -20,8 +22,11 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<HomeCubit>()..loadHome(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => sl<HomeCubit>()..loadHome()),
+        BlocProvider.value(value: sl<CartCubit>()),
+      ],
       child: const _HomeView(),
     );
   }
@@ -112,15 +117,24 @@ class _HomeAppBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          IconButton(
-            onPressed: () {
-              // TODO(cart issue): navigate to CartScreen
+          BlocBuilder<CartCubit, CartState>(
+            builder: (context, cartState) {
+              final count = cartState is CartLoaded
+                  ? cartState.cart.itemCount
+                  : 0;
+              return Badge(
+                isLabelVisible: count > 0,
+                label: Text('$count'),
+                child: IconButton(
+                  onPressed: () => context.pushNamed(AppRoutes.cartName),
+                  icon: const Icon(Icons.shopping_cart_outlined),
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.surface,
+                    foregroundColor: AppColors.textPrimary,
+                  ),
+                ),
+              );
             },
-            icon: const Icon(Icons.shopping_cart_outlined),
-            style: IconButton.styleFrom(
-              backgroundColor: AppColors.surface,
-              foregroundColor: AppColors.textPrimary,
-            ),
           ),
         ],
       ),
@@ -154,9 +168,7 @@ class _LoadedView extends StatelessWidget {
         const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
 
         if (displayCategories.isNotEmpty) ...[
-          const SliverToBoxAdapter(
-            child: _SectionTitle('Categories'),
-          ),
+          const SliverToBoxAdapter(child: _SectionTitle('Categories')),
           const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
           // SliverGrid avoids shrinkWrap + GridView performance pitfall
           SliverPadding(
@@ -278,23 +290,19 @@ class _ErrorView extends StatelessWidget {
     return ListView(
       children: [
         SizedBox(
-          height: MediaQuery.of(context).size.height -
+          height:
+              MediaQuery.of(context).size.height -
               MediaQuery.of(context).padding.top -
               MediaQuery.of(context).padding.bottom -
               kToolbarHeight,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.wifi_off_rounded,
-                size: 72,
-                color: Colors.grey,
-              ),
+              const Icon(Icons.wifi_off_rounded, size: 72, color: Colors.grey),
               const SizedBox(height: AppSpacing.base),
               Text(
                 'Something went wrong',
-                style:
-                    AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
+                style: AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
               ),
               const SizedBox(height: AppSpacing.sm),
               Padding(

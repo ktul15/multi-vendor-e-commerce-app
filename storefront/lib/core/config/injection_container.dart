@@ -9,8 +9,10 @@ import '../../repositories/auth_repository.dart';
 import '../../repositories/home_repository.dart';
 import '../../repositories/product_detail_repository.dart';
 import '../../repositories/product_list_repository.dart';
+import '../../repositories/cart_repository.dart';
 import '../../repositories/search_repository.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
+import '../../features/cart/bloc/cart_cubit.dart';
 import '../../features/home/bloc/home_cubit.dart';
 import '../../features/product_detail/bloc/product_detail_cubit.dart';
 import '../../features/product_list/bloc/product_list_cubit.dart';
@@ -63,6 +65,10 @@ Future<void> initDependencies() async {
     () => SearchRepository(client: sl<HttpClient>()),
   );
 
+  sl.registerLazySingleton<CartRepository>(
+    () => CartRepository(client: sl<HttpClient>()),
+  );
+
   // ── Core storage ──────────────────────────
 
   sl.registerLazySingleton<RecentSearchesStorage>(
@@ -90,6 +96,11 @@ Future<void> initDependencies() async {
   // ProductDetailCubit (factory — new instance per product page visit)
   sl.registerFactory<ProductDetailCubit>(
     () => ProductDetailCubit(repository: sl<ProductDetailRepository>()),
+  );
+
+  // CartCubit (lazySingleton — shared global state: home badge, product detail, cart page)
+  sl.registerLazySingleton<CartCubit>(
+    () => CartCubit(repository: sl<CartRepository>()),
   );
 
   // SearchCubit (factory — new instance per search screen visit)
