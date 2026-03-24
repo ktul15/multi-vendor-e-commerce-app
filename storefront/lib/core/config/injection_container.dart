@@ -9,10 +9,15 @@ import '../../repositories/auth_repository.dart';
 import '../../repositories/home_repository.dart';
 import '../../repositories/product_detail_repository.dart';
 import '../../repositories/product_list_repository.dart';
+import '../../repositories/address_repository.dart';
 import '../../repositories/cart_repository.dart';
+import '../../repositories/order_repository.dart';
 import '../../repositories/search_repository.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
 import '../../features/cart/bloc/cart_cubit.dart';
+import '../../features/checkout/bloc/checkout_bloc.dart';
+import '../stripe/flutter_stripe_service.dart';
+import '../stripe/stripe_service.dart';
 import '../../features/home/bloc/home_cubit.dart';
 import '../../features/product_detail/bloc/product_detail_cubit.dart';
 import '../../features/product_list/bloc/product_list_cubit.dart';
@@ -69,6 +74,20 @@ Future<void> initDependencies() async {
     () => CartRepository(client: sl<HttpClient>()),
   );
 
+  sl.registerLazySingleton<AddressRepository>(
+    () => AddressRepository(client: sl<HttpClient>()),
+  );
+
+  sl.registerLazySingleton<OrderRepository>(
+    () => OrderRepository(client: sl<HttpClient>()),
+  );
+
+  // ── Services ──────────────────────────────
+
+  sl.registerLazySingleton<StripeService>(
+    () => const FlutterStripeService(),
+  );
+
   // ── Core storage ──────────────────────────
 
   sl.registerLazySingleton<RecentSearchesStorage>(
@@ -108,6 +127,16 @@ Future<void> initDependencies() async {
     () => SearchCubit(
       repository: sl<SearchRepository>(),
       storage: sl<RecentSearchesStorage>(),
+    ),
+  );
+
+  // CheckoutBloc (factory — fresh instance per checkout session)
+  sl.registerFactory<CheckoutBloc>(
+    () => CheckoutBloc(
+      addressRepository: sl<AddressRepository>(),
+      orderRepository: sl<OrderRepository>(),
+      stripeService: sl<StripeService>(),
+      cartCubit: sl<CartCubit>(),
     ),
   );
 }

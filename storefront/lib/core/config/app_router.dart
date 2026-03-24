@@ -11,7 +11,10 @@ import '../../features/home/view/home_page.dart';
 import '../../features/product_detail/view/product_detail_page.dart';
 import '../../features/product_list/view/product_list_page.dart';
 import '../../features/cart/view/cart_page.dart';
+import '../../features/checkout/view/checkout_page.dart';
+import '../../features/checkout/view/checkout_success_page.dart';
 import '../../features/search/view/search_page.dart';
+import '../../shared/models/order_model.dart';
 import '../../shared/models/product_filters.dart';
 
 /// App route paths and names — centralized to avoid magic strings.
@@ -28,6 +31,8 @@ class AppRoutes {
   static const String search = '/search';
   static const String cart = '/cart';
   static const String profile = '/profile';
+  static const String checkout = '/checkout';
+  static const String checkoutSuccess = '/checkout/success';
 
   // ── Names (used with pushNamed / goNamed) ──────────
   static const String homeName = 'home';
@@ -39,6 +44,8 @@ class AppRoutes {
   static const String searchName = 'search';
   static const String cartName = 'cart';
   static const String profileName = 'profile';
+  static const String checkoutName = 'checkout';
+  static const String checkoutSuccessName = 'checkoutSuccess';
 }
 
 /// GoRouter configuration with auth-aware redirects.
@@ -120,6 +127,26 @@ GoRouter appRouter(AuthBloc authBloc) {
         name: AppRoutes.cartName,
         path: AppRoutes.cart,
         builder: (context, state) => const CartPage(),
+      ),
+      GoRoute(
+        name: AppRoutes.checkoutName,
+        path: AppRoutes.checkout,
+        builder: (context, state) => const CheckoutPage(),
+      ),
+      GoRoute(
+        name: AppRoutes.checkoutSuccessName,
+        path: AppRoutes.checkoutSuccess,
+        builder: (context, state) {
+          final order = state.extra as OrderModel?;
+          // extra is null on deep-link or hot-restart; redirect home gracefully.
+          if (order == null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) context.go(AppRoutes.home);
+            });
+            return const SizedBox.shrink();
+          }
+          return CheckoutSuccessPage(order: order);
+        },
       ),
     ],
   );

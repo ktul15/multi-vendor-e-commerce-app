@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import '../../../core/config/app_router.dart';
 import '../../../core/config/injection_container.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -190,7 +192,7 @@ class _CartScaffold extends StatelessWidget {
                       AppSpacing.xl,
                     ),
                     child: ElevatedButton(
-                      onPressed: null, // Checkout — coming soon
+                      onPressed: () => context.push(AppRoutes.checkout),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
                             vertical: AppSpacing.md),
