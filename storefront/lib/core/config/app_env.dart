@@ -21,4 +21,9 @@ class AppEnv {
     'ENV',
     defaultValue: 'development',
   ) == 'production';
+
+  static const String stripePublishableKey = String.fromEnvironment(
+    'STRIPE_PUBLISHABLE_KEY',
+    defaultValue: '',
+  );
 }

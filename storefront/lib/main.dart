@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 import 'core/config/app_router.dart';
 import 'core/config/app_env.dart';
 import 'core/config/injection_container.dart';
@@ -9,6 +10,10 @@ import 'features/auth/bloc/auth_event.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Stripe before running the app.
+  Stripe.publishableKey = AppEnv.stripePublishableKey;
+  await Stripe.instance.applySettings();
 
   // Initialize all dependencies via GetIt
   await initDependencies();
