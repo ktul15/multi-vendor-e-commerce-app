@@ -43,6 +43,38 @@ class AddressRepository {
     return AddressModel.fromJson(body['data'] as Map<String, dynamic>);
   }
 
+  Future<AddressModel> updateAddress(
+    String id, {
+    required String fullName,
+    required String phone,
+    required String street,
+    required String city,
+    required String state,
+    required String country,
+    required String zipCode,
+  }) async {
+    final body = await _client.put('/addresses/$id', data: {
+      'fullName': fullName,
+      'phone': phone,
+      'street': street,
+      'city': city,
+      'state': state,
+      'country': country,
+      'zipCode': zipCode,
+    });
+    if (body == null || body['data'] is! Map) {
+      throw const ApiException('Failed to update address');
+    }
+    return AddressModel.fromJson(body['data'] as Map<String, dynamic>);
+  }
+
+  Future<void> deleteAddress(String id) async {
+    // The backend returns 204 No Content on success (null body).
+    // DioHttpClient converts any non-2xx response to ApiException, so if
+    // this call returns without throwing the delete succeeded.
+    await _client.delete('/addresses/$id');
+  }
+
   Future<AddressModel> setDefault(String id) async {
     final body = await _client.patch('/addresses/$id/default');
     if (body == null || body['data'] is! Map) {

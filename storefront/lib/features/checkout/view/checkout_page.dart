@@ -128,10 +128,28 @@ class _AddressStepBody extends StatelessWidget {
               ),
             ),
           SliverToBoxAdapter(
-            child: TextButton.icon(
-              onPressed: () => _openAddForm(context),
-              icon: const Icon(Icons.add),
-              label: const Text('Add new address'),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton.icon(
+                  onPressed: () => _openAddForm(context),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add new address'),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    await context.push(AppRoutes.addresses);
+                    // Reload addresses so any additions/edits made on the
+                    // management screen appear here without restarting checkout.
+                    if (context.mounted) {
+                      context
+                          .read<CheckoutBloc>()
+                          .add(const CheckoutStarted());
+                    }
+                  },
+                  child: const Text('Manage saved addresses →'),
+                ),
+              ],
             ),
           ),
         ],
@@ -306,7 +324,7 @@ class _DeliveryAddressCard extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.base),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: AppColors.border),
       ),
       child: Row(
