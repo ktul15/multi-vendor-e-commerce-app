@@ -13,6 +13,7 @@ import '../../repositories/address_repository.dart';
 import '../../repositories/cart_repository.dart';
 import '../../repositories/order_repository.dart';
 import '../../repositories/search_repository.dart';
+import '../../features/address_management/bloc/address_management_cubit.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
 import '../../features/cart/bloc/cart_cubit.dart';
 import '../../features/checkout/bloc/checkout_bloc.dart';
@@ -128,6 +129,11 @@ Future<void> initDependencies() async {
       repository: sl<SearchRepository>(),
       storage: sl<RecentSearchesStorage>(),
     ),
+  );
+
+  // AddressManagementCubit (factory — fresh instance per screen visit)
+  sl.registerFactory<AddressManagementCubit>(
+    () => AddressManagementCubit(repository: sl<AddressRepository>()),
   );
 
   // CheckoutBloc (factory — fresh instance per checkout session)

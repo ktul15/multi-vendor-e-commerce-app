@@ -10,6 +10,7 @@ import '../../features/auth/view/forgot_password_page.dart';
 import '../../features/home/view/home_page.dart';
 import '../../features/product_detail/view/product_detail_page.dart';
 import '../../features/product_list/view/product_list_page.dart';
+import '../../features/address_management/view/address_management_page.dart';
 import '../../features/cart/view/cart_page.dart';
 import '../../features/checkout/view/checkout_page.dart';
 import '../../features/checkout/view/checkout_success_page.dart';
@@ -31,6 +32,7 @@ class AppRoutes {
   static const String search = '/search';
   static const String cart = '/cart';
   static const String profile = '/profile';
+  static const String addresses = '/addresses';
   static const String checkout = '/checkout';
   static const String checkoutSuccess = '/checkout/success';
 
@@ -44,6 +46,7 @@ class AppRoutes {
   static const String searchName = 'search';
   static const String cartName = 'cart';
   static const String profileName = 'profile';
+  static const String addressesName = 'addresses';
   static const String checkoutName = 'checkout';
   static const String checkoutSuccessName = 'checkoutSuccess';
 }
@@ -127,6 +130,11 @@ GoRouter appRouter(AuthBloc authBloc) {
         name: AppRoutes.cartName,
         path: AppRoutes.cart,
         builder: (context, state) => const CartPage(),
+      ),
+      GoRoute(
+        name: AppRoutes.addressesName,
+        path: AppRoutes.addresses,
+        builder: (context, state) => const AddressManagementPage(),
       ),
       GoRoute(
         name: AppRoutes.checkoutName,
