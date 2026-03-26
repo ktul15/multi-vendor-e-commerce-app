@@ -1,6 +1,7 @@
 import '../core/network/api_exception.dart';
 import '../core/network/http_client.dart';
 import '../shared/models/order_model.dart';
+import '../shared/models/orders_page.dart';
 
 class OrderRepository {
   final HttpClient _client;
@@ -21,6 +22,39 @@ class OrderRepository {
       throw const ApiException('Failed to place order');
     }
     return OrderModel.fromJson(body['data'] as Map<String, dynamic>);
+  }
+
+  Future<OrdersPage> getOrders({
+    int page = 1,
+    int limit = 10,
+    String? status,
+  }) async {
+    final queryParams = <String, String>{
+      'page': '$page',
+      'limit': '$limit',
+    };
+    if (status != null) queryParams['status'] = status;
+
+    final body = await _client.get('/orders', queryParameters: queryParams);
+
+    if (body == null ||
+        body['data'] is! Map ||
+        (body['data'] as Map)['items'] is! List ||
+        (body['data'] as Map)['meta'] is! Map) {
+      throw const ApiException('Failed to load orders');
+    }
+
+    final data = body['data'] as Map<String, dynamic>;
+    final meta = data['meta'] as Map<String, dynamic>;
+
+    return OrdersPage(
+      items: (data['items'] as List<dynamic>)
+          .map((e) => OrderModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      total: meta['total'] as int,
+      page: meta['page'] as int,
+      totalPages: meta['totalPages'] as int,
+    );
   }
 
   Future<String> createPaymentIntent({

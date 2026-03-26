@@ -117,6 +117,15 @@ class _HomeAppBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
+          IconButton(
+            onPressed: () => context.pushNamed(AppRoutes.ordersName),
+            icon: const Icon(Icons.receipt_long_outlined),
+            style: IconButton.styleFrom(
+              backgroundColor: AppColors.surface,
+              foregroundColor: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
           BlocBuilder<CartCubit, CartState>(
             builder: (context, cartState) {
               final count = cartState is CartLoaded
