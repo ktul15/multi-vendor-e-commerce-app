@@ -17,6 +17,7 @@ import '../../features/address_management/bloc/address_management_cubit.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
 import '../../features/cart/bloc/cart_cubit.dart';
 import '../../features/checkout/bloc/checkout_bloc.dart';
+import '../../features/order_history/bloc/order_list_cubit.dart';
 import '../stripe/flutter_stripe_service.dart';
 import '../stripe/stripe_service.dart';
 import '../../features/home/bloc/home_cubit.dart';
@@ -134,6 +135,11 @@ Future<void> initDependencies() async {
   // AddressManagementCubit (factory — fresh instance per screen visit)
   sl.registerFactory<AddressManagementCubit>(
     () => AddressManagementCubit(repository: sl<AddressRepository>()),
+  );
+
+  // OrderListCubit (factory — new instance per screen visit)
+  sl.registerFactory<OrderListCubit>(
+    () => OrderListCubit(repository: sl<OrderRepository>()),
   );
 
   // CheckoutBloc (factory — fresh instance per checkout session)
