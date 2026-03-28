@@ -5,6 +5,7 @@ import { env } from '../../config/env';
 import { ApiError } from '../../utils/apiError';
 import {
   DiscountType,
+  NotificationType,
   OrderStatus,
   Prisma,
 } from '../../generated/prisma/client';
@@ -12,7 +13,43 @@ import {
   CreateOrderInput,
   GetOrdersQueryInput,
   CancelOrderInput,
+  UpdateVendorOrderStatusInput,
 } from './order.validation';
+import { NotificationService } from '../notification/notification.service';
+
+const notificationService = new NotificationService();
+
+/** Allowed forward-only status transitions for vendor orders. */
+const ALLOWED_TRANSITIONS: Record<string, OrderStatus[]> = {
+  PENDING: ['CONFIRMED'],
+  CONFIRMED: ['PROCESSING'],
+  PROCESSING: ['SHIPPED'],
+  SHIPPED: ['DELIVERED'],
+};
+
+/** Human-readable notification titles per status. */
+const STATUS_TITLES: Record<string, string> = {
+  CONFIRMED: 'Order Confirmed',
+  PROCESSING: 'Order Processing',
+  SHIPPED: 'Order Shipped',
+  DELIVERED: 'Order Delivered',
+};
+
+/** Notification body templates per status. */
+const STATUS_BODIES: Record<string, string> = {
+  CONFIRMED: 'Your order has been confirmed by the vendor.',
+  PROCESSING: 'Your order is now being prepared.',
+  SHIPPED: 'Your order has been shipped!',
+  DELIVERED: 'Your order has been delivered. Enjoy!',
+};
+
+/** Map OrderStatus to NotificationType for notification creation. */
+const STATUS_TO_NOTIFICATION_TYPE: Record<string, NotificationType> = {
+  CONFIRMED: 'ORDER_CONFIRMED',
+  PROCESSING: 'ORDER_PROCESSING',
+  SHIPPED: 'ORDER_SHIPPED',
+  DELIVERED: 'ORDER_DELIVERED',
+};
 
 const CANCELLABLE_STATUSES: OrderStatus[] = ['PENDING', 'CONFIRMED'];
 
@@ -498,5 +535,65 @@ export class OrderService {
     });
 
     return cancelled;
+  }
+
+  async updateVendorOrderStatus(
+    vendorId: string,
+    orderId: string,
+    vendorOrderId: string,
+    input: UpdateVendorOrderStatusInput
+  ) {
+    const { status: newStatus } = input;
+
+    const vendorOrder = await prisma.vendorOrder.findFirst({
+      where: { id: vendorOrderId, orderId },
+      include: {
+        order: { select: { userId: true, orderNumber: true } },
+      },
+    });
+
+    if (!vendorOrder) {
+      throw ApiError.notFound('Vendor order not found');
+    }
+
+    if (vendorOrder.vendorId !== vendorId) {
+      throw ApiError.forbidden('You can only update your own vendor orders');
+    }
+
+    // Validate forward-only transition
+    const allowed = ALLOWED_TRANSITIONS[vendorOrder.status];
+    if (!allowed || !allowed.includes(newStatus as OrderStatus)) {
+      throw ApiError.badRequest(
+        `Cannot transition from ${vendorOrder.status} to ${newStatus}`
+      );
+    }
+
+    const updated = await prisma.vendorOrder.update({
+      where: { id: vendorOrderId },
+      data: { status: newStatus as OrderStatus },
+      include: {
+        items: {
+          include: {
+            variant: {
+              select: { sku: true, size: true, color: true, price: true },
+            },
+          },
+        },
+      },
+    });
+
+    // Send notification to the customer
+    const notificationType = STATUS_TO_NOTIFICATION_TYPE[newStatus];
+    if (notificationType) {
+      await notificationService.createAndSend(
+        vendorOrder.order.userId,
+        notificationType,
+        STATUS_TITLES[newStatus],
+        STATUS_BODIES[newStatus],
+        { orderId, vendorOrderId, orderNumber: vendorOrder.order.orderNumber }
+      );
+    }
+
+    return updated;
   }
 }

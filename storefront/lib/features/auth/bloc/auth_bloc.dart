@@ -1,5 +1,9 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/config/injection_container.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/services/push_notification_service.dart';
+import '../../../features/notifications/bloc/notification_cubit.dart';
 import '../../../repositories/auth_repository.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
@@ -17,6 +21,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthLogoutRequested>(_onLogoutRequested);
   }
 
+  /// Initialize push notifications and notification cubit after authentication.
+  Future<void> _initNotifications() async {
+    try {
+      await sl<PushNotificationService>().initialize();
+      await sl<NotificationCubit>().init();
+    } catch (_) {
+      // Non-critical — app works without push notifications
+    }
+  }
+
+  /// Clean up push notifications on logout.
+  /// Backend logout already clears the FCM token, so no explicit removeFcmToken() call needed.
+  void _cleanupNotifications() {
+    sl<PushNotificationService>().dispose();
+    sl<NotificationCubit>().reset();
+  }
+
   /// Auto-login: check stored tokens and fetch profile.
   Future<void> _onCheckRequested(
     AuthCheckRequested event,
@@ -31,6 +52,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       }
       final user = await _authRepository.getProfile();
       emit(AuthAuthenticated(user: user));
+      unawaited(_initNotifications());
     } catch (_) {
       emit(AuthUnauthenticated());
     }
@@ -48,6 +70,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         password: event.password,
       );
       emit(AuthAuthenticated(user: user));
+      unawaited(_initNotifications());
     } on ApiException catch (e) {
       emit(AuthError(message: e.message));
     } on NetworkException catch (e) {
@@ -70,6 +93,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         password: event.password,
       );
       emit(AuthAuthenticated(user: user));
+      unawaited(_initNotifications());
     } on ApiException catch (e) {
       emit(AuthError(message: e.message));
     } on NetworkException catch (e) {
@@ -79,11 +103,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  /// Logout — clear tokens and reset state.
+  /// Logout — clear tokens, cleanup notifications, and reset state.
   Future<void> _onLogoutRequested(
     AuthLogoutRequested event,
     Emitter<AuthState> emit,
   ) async {
+    _cleanupNotifications();
     await _authRepository.logout();
     emit(AuthUnauthenticated());
   }

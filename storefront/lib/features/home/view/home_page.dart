@@ -5,6 +5,8 @@ import '../../../core/config/app_router.dart';
 import '../../../core/config/injection_container.dart';
 import '../../../features/cart/bloc/cart_cubit.dart';
 import '../../../features/cart/bloc/cart_state.dart';
+import '../../../features/notifications/bloc/notification_cubit.dart';
+import '../../../features/notifications/bloc/notification_state.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -26,6 +28,7 @@ class HomePage extends StatelessWidget {
       providers: [
         BlocProvider(create: (_) => sl<HomeCubit>()..loadHome()),
         BlocProvider.value(value: sl<CartCubit>()),
+        BlocProvider.value(value: sl<NotificationCubit>()),
       ],
       child: const _HomeView(),
     );
@@ -115,6 +118,27 @@ class _HomeAppBar extends StatelessWidget {
               backgroundColor: AppColors.surface,
               foregroundColor: AppColors.textPrimary,
             ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          BlocBuilder<NotificationCubit, NotificationState>(
+            builder: (context, notifState) {
+              final count = notifState is NotificationLoaded
+                  ? notifState.unreadCount
+                  : 0;
+              return Badge(
+                isLabelVisible: count > 0,
+                label: Text('$count'),
+                child: IconButton(
+                  onPressed: () =>
+                      context.pushNamed(AppRoutes.notificationsName),
+                  icon: const Icon(Icons.notifications_outlined),
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.surface,
+                    foregroundColor: AppColors.textPrimary,
+                  ),
+                ),
+              );
+            },
           ),
           const SizedBox(width: AppSpacing.sm),
           IconButton(

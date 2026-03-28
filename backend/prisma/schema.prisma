@@ -30,6 +30,16 @@ enum OrderStatus {
   REFUNDED
 }
 
+enum NotificationType {
+  ORDER_CONFIRMED
+  ORDER_PROCESSING
+  ORDER_SHIPPED
+  ORDER_DELIVERED
+  ORDER_CANCELLED
+  ORDER_REFUNDED
+  PROMO
+}
+
 enum PaymentStatus {
   PENDING
   PROCESSING
@@ -79,11 +89,12 @@ model User {
   updatedAt  DateTime @updatedAt
 
   // Relationships
-  products     Product[]
-  cart         Cart?
-  addresses    Address[]
-  orders       Order[]
-  vendorOrders VendorOrder[] @relation("VendorOrders")
+  products      Product[]
+  cart          Cart?
+  addresses     Address[]
+  orders        Order[]
+  vendorOrders  VendorOrder[]    @relation("VendorOrders")
+  notifications Notification[]
 
   @@map("users")
 }
@@ -343,4 +354,27 @@ model PromoCode {
   // @@index([code]) removed — @unique already creates a B-tree index on code
   @@index([isActive])
   @@map("promo_codes")
+}
+
+// ========================
+// Notification Model
+// ========================
+
+model Notification {
+  id     String           @id @default(uuid())
+  userId String
+  type   NotificationType
+  title  String
+  body   String
+  data   Json?
+  isRead Boolean          @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
 }
