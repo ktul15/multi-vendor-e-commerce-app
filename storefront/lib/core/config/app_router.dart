@@ -14,6 +14,7 @@ import '../../features/address_management/view/address_management_page.dart';
 import '../../features/cart/view/cart_page.dart';
 import '../../features/checkout/view/checkout_page.dart';
 import '../../features/checkout/view/checkout_success_page.dart';
+import '../../features/order_detail/view/order_detail_page.dart';
 import '../../features/order_history/view/order_history_page.dart';
 import '../../features/search/view/search_page.dart';
 import '../../shared/models/order_model.dart';
@@ -35,6 +36,7 @@ class AppRoutes {
   static const String profile = '/profile';
   static const String addresses = '/addresses';
   static const String orders = '/orders';
+  static const String orderDetail = '/orders/:id';
   static const String checkout = '/checkout';
   static const String checkoutSuccess = '/checkout/success';
 
@@ -50,6 +52,7 @@ class AppRoutes {
   static const String profileName = 'profile';
   static const String addressesName = 'addresses';
   static const String ordersName = 'orders';
+  static const String orderDetailName = 'orderDetail';
   static const String checkoutName = 'checkout';
   static const String checkoutSuccessName = 'checkoutSuccess';
 }
@@ -143,6 +146,14 @@ GoRouter appRouter(AuthBloc authBloc) {
         name: AppRoutes.ordersName,
         path: AppRoutes.orders,
         builder: (context, state) => const OrderHistoryPage(),
+      ),
+      GoRoute(
+        name: AppRoutes.orderDetailName,
+        path: AppRoutes.orderDetail,
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return OrderDetailPage(orderId: id);
+        },
       ),
       GoRoute(
         name: AppRoutes.checkoutName,

@@ -1,5 +1,6 @@
 import '../core/network/api_exception.dart';
 import '../core/network/http_client.dart';
+import '../shared/models/order_detail_model.dart';
 import '../shared/models/order_model.dart';
 import '../shared/models/orders_page.dart';
 
@@ -55,6 +56,25 @@ class OrderRepository {
       page: meta['page'] as int,
       totalPages: meta['totalPages'] as int,
     );
+  }
+
+  Future<OrderDetailModel> getOrderById(String id) async {
+    final body = await _client.get('/orders/$id');
+    if (body == null || body['data'] is! Map) {
+      throw const ApiException('Failed to load order details');
+    }
+    return OrderDetailModel.fromJson(body['data'] as Map<String, dynamic>);
+  }
+
+  Future<OrderDetailModel> cancelOrder(String id, {String? reason}) async {
+    final data = <String, dynamic>{};
+    if (reason != null && reason.isNotEmpty) data['reason'] = reason;
+
+    final body = await _client.put('/orders/$id/cancel', data: data);
+    if (body == null || body['data'] is! Map) {
+      throw const ApiException('Failed to cancel order');
+    }
+    return OrderDetailModel.fromJson(body['data'] as Map<String, dynamic>);
   }
 
   Future<String> createPaymentIntent({
