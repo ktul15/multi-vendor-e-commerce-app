@@ -10,14 +10,25 @@ import {
   getOrdersQuerySchema,
   orderParamSchema,
   cancelOrderSchema,
+  vendorOrderParamSchema,
+  updateVendorOrderStatusSchema,
 } from './order.validation';
 import { OrderController } from './order.controller';
 
 const router = Router();
 const orderController = new OrderController();
 
-// CUSTOMER-only: orders are placed by end users.
-// If admin order placement is needed in the future, widen to authorize('CUSTOMER', 'ADMIN').
+// ── Vendor-only: update vendor order status ──
+router.put(
+  '/:id/vendor-orders/:vendorOrderId/status',
+  authenticate,
+  authorize('VENDOR'),
+  validateParams(vendorOrderParamSchema),
+  validate(updateVendorOrderStatusSchema),
+  orderController.updateVendorOrderStatus
+);
+
+// ── Customer-only: create, list, get, cancel ──
 router.use(authenticate, authorize('CUSTOMER'));
 
 router.get('/', validateQuery(getOrdersQuerySchema), orderController.list);

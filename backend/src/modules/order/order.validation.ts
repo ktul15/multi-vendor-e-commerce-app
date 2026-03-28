@@ -40,6 +40,18 @@ export const cancelOrderSchema = z.object({
   reason: z.string().max(500).optional(),
 });
 
+export const vendorOrderParamSchema = z.object({
+  id: z.string().uuid('Invalid order ID'),
+  vendorOrderId: z.string().uuid('Invalid vendor order ID'),
+});
+
+export const updateVendorOrderStatusSchema = z.object({
+  status: z.enum(['CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED']),
+});
+
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 export type GetOrdersQueryInput = z.infer<typeof getOrdersQuerySchema>;
 export type CancelOrderInput = z.infer<typeof cancelOrderSchema>;
+export type UpdateVendorOrderStatusInput = z.infer<
+  typeof updateVendorOrderStatusSchema
+>;

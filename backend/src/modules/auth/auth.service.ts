@@ -187,6 +187,13 @@ export const logout = async (refreshToken: string): Promise<void> => {
         if (ttl > 0) {
             await blacklistToken(refreshToken, ttl);
         }
+        // Clear FCM token so the device stops receiving push notifications
+        if (decoded.userId) {
+            await prisma.user.update({
+                where: { id: decoded.userId },
+                data: { fcmToken: null },
+            });
+        }
     } catch {
         // If token is already expired or invalid, no need to blacklist
     }

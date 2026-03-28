@@ -12,13 +12,16 @@ import '../../repositories/product_list_repository.dart';
 import '../../repositories/address_repository.dart';
 import '../../repositories/cart_repository.dart';
 import '../../repositories/order_repository.dart';
+import '../../repositories/notification_repository.dart';
 import '../../repositories/search_repository.dart';
 import '../../features/address_management/bloc/address_management_cubit.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
 import '../../features/cart/bloc/cart_cubit.dart';
 import '../../features/checkout/bloc/checkout_bloc.dart';
+import '../../features/notifications/bloc/notification_cubit.dart';
 import '../../features/order_detail/bloc/order_detail_cubit.dart';
 import '../../features/order_history/bloc/order_list_cubit.dart';
+import '../services/push_notification_service.dart';
 import '../stripe/flutter_stripe_service.dart';
 import '../stripe/stripe_service.dart';
 import '../../features/home/bloc/home_cubit.dart';
@@ -85,10 +88,20 @@ Future<void> initDependencies() async {
     () => OrderRepository(client: sl<HttpClient>()),
   );
 
+  sl.registerLazySingleton<NotificationRepository>(
+    () => NotificationRepository(client: sl<HttpClient>()),
+  );
+
   // ── Services ──────────────────────────────
 
   sl.registerLazySingleton<StripeService>(
     () => const FlutterStripeService(),
+  );
+
+  sl.registerLazySingleton<PushNotificationService>(
+    () => PushNotificationService(
+      notificationRepository: sl<NotificationRepository>(),
+    ),
   );
 
   // ── Core storage ──────────────────────────
@@ -123,6 +136,14 @@ Future<void> initDependencies() async {
   // CartCubit (lazySingleton — shared global state: home badge, product detail, cart page)
   sl.registerLazySingleton<CartCubit>(
     () => CartCubit(repository: sl<CartRepository>()),
+  );
+
+  // NotificationCubit (lazySingleton — shared global state: home badge, notification center)
+  sl.registerLazySingleton<NotificationCubit>(
+    () => NotificationCubit(
+      repository: sl<NotificationRepository>(),
+      pushService: sl<PushNotificationService>(),
+    ),
   );
 
   // SearchCubit (factory — new instance per search screen visit)

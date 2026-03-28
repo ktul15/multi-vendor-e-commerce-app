@@ -4,6 +4,7 @@ import {
   CreateOrderInput,
   GetOrdersQueryInput,
   CancelOrderInput,
+  UpdateVendorOrderStatusInput,
 } from './order.validation';
 import { ApiResponse } from '../../utils/apiResponse';
 import { catchAsync } from '../../utils/catchAsync';
@@ -43,4 +44,22 @@ export class OrderController {
     );
     ApiResponse.success(res, order, 'Order cancelled successfully');
   });
+
+  updateVendorOrderStatus = catchAsync(
+    async (req: AuthRequest, res: Response) => {
+      const id = req.params.id as string;
+      const vendorOrderId = req.params.vendorOrderId as string;
+      const vendorOrder = await orderService.updateVendorOrderStatus(
+        req.user!.userId,
+        id,
+        vendorOrderId,
+        req.body as UpdateVendorOrderStatusInput
+      );
+      ApiResponse.success(
+        res,
+        vendorOrder,
+        'Vendor order status updated successfully'
+      );
+    }
+  );
 }
