@@ -95,6 +95,8 @@ model User {
   orders        Order[]
   vendorOrders  VendorOrder[]    @relation("VendorOrders")
   notifications Notification[]
+  reviews       Review[]
+  wishlistItems WishlistItem[]
 
   @@map("users")
 }
@@ -130,14 +132,16 @@ model Product {
   images      String[]
   isActive    Boolean  @default(true)
   // Denormalized aggregate — must be updated atomically alongside Review writes
-  avgRating   Decimal  @default(0.0) @db.Decimal(3, 2)
+  avgRating   Decimal  @default(0.0) @db.Decimal(4, 2)
   reviewCount Int      @default(0)
   tags        String[]
 
   // Relationships
   vendor   User      @relation(fields: [vendorId], references: [id])
   category Category  @relation(fields: [categoryId], references: [id])
-  variants Variant[]
+  variants      Variant[]
+  reviews       Review[]
+  wishlistItems WishlistItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -377,4 +381,40 @@ model Notification {
   @@index([userId, isRead])
   @@index([userId, createdAt])
   @@map("notifications")
+}
+
+// ========================
+// Review & Wishlist Models
+// ========================
+
+model Review {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([productId])
+  @@index([productId, rating])
+  @@map("reviews")
+}
+
+model WishlistItem {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@map("wishlist_items")
 }
