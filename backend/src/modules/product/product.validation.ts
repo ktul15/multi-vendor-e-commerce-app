@@ -1,18 +1,5 @@
 import { z } from 'zod';
-
-// Coerce string query params to numbers safely, ignoring empty strings and NaN
-const coerceNumber = (val: unknown) => {
-    if (val === undefined || val === '') return undefined;
-    const n = Number(val);
-    return Number.isNaN(n) ? undefined : n;
-};
-
-// Coerce 'true'/'false' string query params to booleans
-const coerceBoolean = (val: unknown) => {
-    if (val === 'true') return true;
-    if (val === 'false') return false;
-    return undefined;
-};
+import { coerceNumber, coerceBoolean } from '../../utils/zodHelpers';
 
 export const variantSchema = z.object({
     size: z.string().optional(),
