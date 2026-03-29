@@ -20,12 +20,19 @@ Branch hierarchy: `feature/*` → `dev` → `main`
 5. Merge feature branch into `dev` when the feature is complete and tests pass
 6. After pushing `dev`, close the GitHub issue with `gh issue close <issue-number>` and a short comment noting the branch and target
 7. `main` is only updated by merging `dev` — never commit directly to `main` or `dev`
+8. When starting a new issue, move its project card to **"In Progress"** in GitHub Projects
+9. After merging and closing an issue, move its project card to **"Done"** in GitHub Projects
 
 **Starting a new feature:**
 ```bash
 git checkout dev
 git pull origin dev
 git checkout -b feature/<issue-number>-<short-description>
+# Move the issue card to "In Progress" in GitHub Projects:
+# 1. Find the item ID for the issue:
+gh project item-list 2 --owner ktul15 --format json | jq '.items[] | select(.content.number == <issue-number>) | .id'
+# 2. Update the Status field:
+gh project item-edit --project-id 2 --id <item-id> --field-id PVTSSF_lAHOAcao0M4BQZKpzg-hsng --single-select-option-id 47fc9ee4
 ```
 
 **Finishing a feature:**
@@ -35,7 +42,17 @@ git merge --no-ff feature/<issue-number>-<short-description>
 git push origin dev
 # Close the GitHub issue after pushing:
 gh issue close <issue-number> --comment "Resolved in feature/<issue-number>-<short-description>, merged into dev."
+# Move the issue card to "Done" in GitHub Projects:
+# 1. Find the item ID for the issue (if not already known):
+gh project item-list 2 --owner ktul15 --format json | jq '.items[] | select(.content.number == <issue-number>) | .id'
+# 2. Update the Status field:
+gh project item-edit --project-id 2 --id <item-id> --field-id PVTSSF_lAHOAcao0M4BQZKpzg-hsng --single-select-option-id 98236657
 ```
+
+**GitHub Projects — reference IDs (project #2: multi-vendor-e-commerce-app):**
+- Project node ID: `PVT_kwHOAcao0M4BQZKp`
+- Status field ID: `PVTSSF_lAHOAcao0M4BQZKpzg-hsng`
+- Status options: `47fc9ee4` = In progress | `98236657` = Done | `61e4505c` = Ready | `f75ad846` = Backlog
 
 **Before committing — mandatory code review:**
 1. Run the `senior-code-reviewer` agent on all changed files

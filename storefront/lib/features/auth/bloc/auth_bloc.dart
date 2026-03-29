@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/config/injection_container.dart';
 import '../../../core/network/api_exception.dart';
@@ -26,7 +27,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       await sl<PushNotificationService>().initialize();
       await sl<NotificationCubit>().init();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Error initializing notifications: $e');
       // Non-critical — app works without push notifications
     }
   }

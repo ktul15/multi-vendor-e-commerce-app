@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show debugPrint, defaultTargetPlatform, TargetPlatform;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../repositories/notification_repository.dart';
 
@@ -31,19 +32,30 @@ class PushNotificationService {
     }
 
     // Request notification permissions (iOS prompts user; Android auto-grants)
-    await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    await _messaging.requestPermission(alert: true, badge: true, sound: true);
+
+    // On iOS, the APNs token is provisioned asynchronously after app launch.
+    // getToken() fails with "apns-token-not-set" if called before it's ready.
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      String? apnsToken;
+      for (var i = 0; i < 5; i++) {
+        apnsToken = await _messaging.getAPNSToken();
+        if (apnsToken != null) break;
+        await Future<void>.delayed(const Duration(seconds: 1));
+      }
+      if (apnsToken == null) {
+        debugPrint('APNs token not available — skip FCM token');
+        return; // APNs not available — skip FCM token
+      }
+    }
 
     // Get and save the current FCM token
     final token = await _messaging.getToken();
     if (token != null) {
       try {
         await _notificationRepository.saveFcmToken(token);
-      } catch (_) {
-        // Non-critical — token will be retried on next app launch
+      } catch (e) {
+        debugPrint('Failed to save FCM token: $e');
       }
     }
 
@@ -52,8 +64,8 @@ class PushNotificationService {
     _tokenRefreshSub = _messaging.onTokenRefresh.listen((newToken) async {
       try {
         await _notificationRepository.saveFcmToken(newToken);
-      } catch (_) {
-        // Silently fail — will retry on next refresh
+      } catch (e) {
+        debugPrint('Failed to save refreshed FCM token: $e');
       }
     });
 

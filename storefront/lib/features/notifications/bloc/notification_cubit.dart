@@ -48,8 +48,12 @@ class NotificationCubit extends Cubit<NotificationState> {
     }
 
     try {
-      final result = await _repository.getNotifications(page: 1);
-      final unread = await _repository.getUnreadCount();
+      final results = await Future.wait([
+        _repository.getNotifications(page: 1),
+        _repository.getUnreadCount(),
+      ]);
+      final result = results[0] as NotificationsPageData;
+      final unread = results[1] as int;
       emit(NotificationLoaded(
         notifications: result.items,
         unreadCount: unread,

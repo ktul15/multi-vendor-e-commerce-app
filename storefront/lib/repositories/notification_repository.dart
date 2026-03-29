@@ -19,10 +19,10 @@ class NotificationRepository {
     int page = 1,
     int limit = 20,
   }) async {
-    final body = await _client.get('/notifications', queryParameters: {
-      'page': '$page',
-      'limit': '$limit',
-    });
+    final body = await _client.get(
+      '/notifications',
+      queryParameters: {'page': '$page', 'limit': '$limit'},
+    );
 
     if (body == null ||
         body['data'] is! Map ||
@@ -53,7 +53,7 @@ class NotificationRepository {
   }
 
   Future<void> markAsRead(String id) async {
-    await _client.put('/notifications/$id/read');
+    await _client.put('/notifications/${Uri.encodeComponent(id)}/read');
   }
 
   Future<void> markAllAsRead() async {
