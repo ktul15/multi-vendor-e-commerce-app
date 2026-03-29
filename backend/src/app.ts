@@ -71,6 +71,7 @@ import cartRoutes from './modules/cart/cart.routes';
 import addressRoutes from './modules/address/address.routes';
 import orderRoutes from './modules/order/order.routes';
 import notificationRoutes from './modules/notification/notification.routes';
+import reviewRoutes from './modules/review/review.routes';
 
 app.use('/api/v1/auth', authLimiter, authRoutes);
 app.use('/api/v1/categories', categoryRoutes);
@@ -79,6 +80,7 @@ app.use('/api/v1/cart', cartRoutes);
 app.use('/api/v1/addresses', addressRoutes);
 app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/reviews', reviewRoutes);
 
 // ---------------------
 // Error Handling

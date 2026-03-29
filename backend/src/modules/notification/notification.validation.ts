@@ -1,17 +1,5 @@
 import { z } from 'zod/v4';
-
-const coerceNumber = (val: unknown) => {
-  if (val === undefined || val === '') return undefined;
-  const n = Number(val);
-  return Number.isNaN(n) ? undefined : n;
-};
-
-const coerceBoolean = (val: unknown) => {
-  if (val === undefined || val === '') return undefined;
-  if (val === 'true') return true;
-  if (val === 'false') return false;
-  return undefined;
-};
+import { coerceNumber, coerceBoolean } from '../../utils/zodHelpers';
 
 export const saveFcmTokenSchema = z.object({
   token: z.string().min(1, 'FCM token is required'),

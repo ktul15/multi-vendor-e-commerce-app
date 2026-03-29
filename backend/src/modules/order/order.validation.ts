@@ -1,11 +1,5 @@
 import { z } from 'zod/v4';
-
-// Coerce string query params to numbers safely, ignoring empty strings and NaN
-const coerceNumber = (val: unknown) => {
-  if (val === undefined || val === '') return undefined;
-  const n = Number(val);
-  return Number.isNaN(n) ? undefined : n;
-};
+import { coerceNumber } from '../../utils/zodHelpers';
 
 export const createOrderSchema = z.object({
   addressId: z.string().uuid('Invalid address ID'),
