@@ -97,6 +97,7 @@ model User {
   notifications Notification[]
   reviews       Review[]
   wishlistItems WishlistItem[]
+  promoUsages   PromoUsage[]
 
   @@map("users")
 }
@@ -254,6 +255,7 @@ model Order {
   // an address used in an order must not be deleted.
   address      Address       @relation(fields: [addressId], references: [id], onDelete: Restrict)
   promoCode    PromoCode?    @relation(fields: [promoCodeId], references: [id])
+  promoUsage   PromoUsage?
   vendorOrders VendorOrder[]
   payment      Payment?
 
@@ -348,9 +350,11 @@ model PromoCode {
   // usageCount increments must be done atomically in the service layer
   // (UPDATE ... WHERE usage_count < usage_limit) to prevent race conditions.
   usageCount    Int          @default(0)
+  perUserLimit  Int?
   isActive      Boolean      @default(true)
   expiresAt     DateTime?
   orders        Order[]
+  usages        PromoUsage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -358,6 +362,28 @@ model PromoCode {
   // @@index([code]) removed — @unique already creates a B-tree index on code
   @@index([isActive])
   @@map("promo_codes")
+}
+
+// ========================
+// Promo Usage Tracking
+// ========================
+
+model PromoUsage {
+  id          String @id @default(uuid())
+  userId      String
+  promoCodeId String
+  orderId     String @unique
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Restrict: promo codes with usage records cannot be hard-deleted (audit safety)
+  promoCode PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Restrict)
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  usedAt DateTime @default(now())
+
+  @@unique([userId, orderId])
+  @@index([userId, promoCodeId])
+  @@map("promo_usages")
 }
 
 // ========================
