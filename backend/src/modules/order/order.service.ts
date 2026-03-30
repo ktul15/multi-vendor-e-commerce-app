@@ -106,6 +106,7 @@ export class OrderService {
       maxDiscount: number | null;
       minOrderValue: number | null;
       usageLimit: number | null;
+      perUserLimit: number | null;
     } | null = null;
 
     if (promoCodeInput) {
@@ -119,6 +120,16 @@ export class OrderService {
       if (promo.usageLimit !== null && promo.usageCount >= promo.usageLimit) {
         throw ApiError.badRequest('Promo code usage limit reached');
       }
+      if (promo.perUserLimit !== null) {
+        const userUsageCount = await prisma.promoUsage.count({
+          where: { userId, promoCodeId: promo.id },
+        });
+        if (userUsageCount >= promo.perUserLimit) {
+          throw ApiError.badRequest(
+            'You have already used this promo code the maximum number of times'
+          );
+        }
+      }
       promoPrecheck = {
         id: promo.id,
         discountType: promo.discountType,
@@ -128,6 +139,7 @@ export class OrderService {
         minOrderValue:
           promo.minOrderValue !== null ? Number(promo.minOrderValue) : null,
         usageLimit: promo.usageLimit,
+        perUserLimit: promo.perUserLimit,
       };
     }
 
@@ -181,6 +193,7 @@ export class OrderService {
       // 4. Apply promo (re-validate inside tx for TOCTOU guard)
       let discount = 0;
       let promoId: string | null = null;
+      let promoPerUserLimit: number | null = null;
 
       if (promoPrecheck) {
         // Re-fetch full promo row inside tx to guard all validity conditions
@@ -199,27 +212,34 @@ export class OrderService {
         ) {
           throw ApiError.badRequest('Promo code usage limit reached');
         }
+        // Per-user limit check is deferred to the atomic INSERT below (Fix: TOCTOU race)
 
-        if (
-          promoPrecheck.minOrderValue !== null &&
-          subtotal < promoPrecheck.minOrderValue
-        ) {
+        const freshMinOrderValue =
+          freshPromo.minOrderValue !== null
+            ? Number(freshPromo.minOrderValue)
+            : null;
+        if (freshMinOrderValue !== null && subtotal < freshMinOrderValue) {
           throw ApiError.badRequest(
-            `Minimum order value of ${promoPrecheck.minOrderValue} required for this promo code`
+            `Minimum order value of ${freshMinOrderValue} required for this promo code`
           );
         }
 
-        const discountValue = promoPrecheck.discountValue;
-        const maxDiscount = promoPrecheck.maxDiscount;
+        // Use freshPromo values for discount calculation (not stale promoPrecheck)
+        const discountValue = Number(freshPromo.discountValue);
+        const maxDiscount =
+          freshPromo.maxDiscount !== null
+            ? Number(freshPromo.maxDiscount)
+            : null;
 
-        if (promoPrecheck.discountType === DiscountType.PERCENTAGE) {
+        if (freshPromo.discountType === DiscountType.PERCENTAGE) {
           discount = (subtotal * discountValue) / 100;
           if (maxDiscount !== null) discount = Math.min(discount, maxDiscount);
         } else {
           discount = Math.min(discountValue, subtotal);
         }
         discount = Math.round(discount * 100) / 100;
-        promoId = promoPrecheck.id;
+        promoId = freshPromo.id;
+        promoPerUserLimit = freshPromo.perUserLimit;
       }
 
       // 5. Totals
@@ -311,6 +331,35 @@ export class OrderService {
                 `;
         if (affected === 0) {
           throw ApiError.badRequest('Promo code usage limit reached');
+        }
+
+        // Atomically record per-user promo usage with limit guard.
+        // A single INSERT ... WHERE prevents TOCTOU races where two concurrent
+        // transactions both count 0 usages and both insert (exceeding the limit).
+        const perUserLimit = promoPerUserLimit;
+        if (perUserLimit !== null) {
+          const inserted = await tx.$executeRaw`
+            INSERT INTO "promo_usages" ("id", "userId", "promoCodeId", "orderId", "usedAt")
+            SELECT gen_random_uuid(), ${userId}, ${promoId}, ${createdOrder.id}, NOW()
+            WHERE (
+              SELECT COUNT(*) FROM "promo_usages"
+              WHERE "userId" = ${userId} AND "promoCodeId" = ${promoId}
+            ) < ${perUserLimit}
+          `;
+          if (inserted === 0) {
+            throw ApiError.badRequest(
+              'You have already used this promo code the maximum number of times'
+            );
+          }
+        } else {
+          // No per-user limit — just record usage for tracking
+          await tx.promoUsage.create({
+            data: {
+              userId,
+              promoCodeId: promoId,
+              orderId: createdOrder.id,
+            },
+          });
         }
       }
 

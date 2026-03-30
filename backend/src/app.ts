@@ -14,18 +14,22 @@ const app: Application = express();
 // ---------------------
 app.use(helmet());
 app.use(
-    cors({
-        origin: [env.STOREFRONT_URL, env.VENDOR_DASHBOARD_URL, env.ADMIN_DASHBOARD_URL],
-        credentials: true,
-    })
+  cors({
+    origin: [
+      env.STOREFRONT_URL,
+      env.VENDOR_DASHBOARD_URL,
+      env.ADMIN_DASHBOARD_URL,
+    ],
+    credentials: true,
+  })
 );
 app.use(
-    express.json({
-        limit: '10mb',
-        verify: (req, _res, buf) => {
-            (req as Request).rawBody = buf;
-        },
-    })
+  express.json({
+    limit: '10mb',
+    verify: (req, _res, buf) => {
+      (req as Request).rawBody = buf;
+    },
+  })
 );
 app.use(express.urlencoded({ extended: true }));
 
@@ -44,21 +48,25 @@ app.use(globalLimiter);
 // Logging
 // ---------------------
 if (env.isDev) {
-    app.use(morgan('dev'));
+  app.use(morgan('dev'));
 } else {
-    app.use(morgan('combined'));
+  app.use(morgan('combined'));
 }
 
 // ---------------------
 // Health Check
 // ---------------------
 app.get('/api/health', (_req, res) => {
-    ApiResponse.success(res, {
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: env.NODE_ENV,
-    }, 'Server is running');
+  ApiResponse.success(
+    res,
+    {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: env.NODE_ENV,
+    },
+    'Server is running'
+  );
 });
 
 // ---------------------
@@ -73,6 +81,7 @@ import orderRoutes from './modules/order/order.routes';
 import notificationRoutes from './modules/notification/notification.routes';
 import reviewRoutes from './modules/review/review.routes';
 import wishlistRoutes from './modules/wishlist/wishlist.routes';
+import promoRoutes from './modules/promo/promo.routes';
 
 app.use('/api/v1/auth', authLimiter, authRoutes);
 app.use('/api/v1/categories', categoryRoutes);
@@ -83,6 +92,7 @@ app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/reviews', reviewRoutes);
 app.use('/api/v1/wishlist', wishlistRoutes);
+app.use('/api/v1/promo-codes', promoRoutes);
 
 // ---------------------
 // Error Handling
