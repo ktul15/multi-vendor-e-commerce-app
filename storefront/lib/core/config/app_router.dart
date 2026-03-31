@@ -17,9 +17,13 @@ import '../../features/checkout/view/checkout_success_page.dart';
 import '../../features/order_detail/view/order_detail_page.dart';
 import '../../features/notifications/view/notification_center_page.dart';
 import '../../features/order_history/view/order_history_page.dart';
+import '../../features/reviews/view/review_list_page.dart';
+import '../../features/reviews/view/write_review_page.dart';
 import '../../features/search/view/search_page.dart';
+import '../../features/wishlist/view/wishlist_page.dart';
 import '../../shared/models/order_model.dart';
 import '../../shared/models/product_filters.dart';
+import '../../shared/models/review_model.dart';
 
 /// App route paths and names — centralized to avoid magic strings.
 class AppRoutes {
@@ -41,6 +45,9 @@ class AppRoutes {
   static const String notifications = '/notifications';
   static const String checkout = '/checkout';
   static const String checkoutSuccess = '/checkout/success';
+  static const String reviews = '/product/:id/reviews';
+  static const String writeReview = '/product/:id/review/write';
+  static const String wishlist = '/wishlist';
 
   // ── Names (used with pushNamed / goNamed) ──────────
   static const String homeName = 'home';
@@ -58,6 +65,9 @@ class AppRoutes {
   static const String notificationsName = 'notifications';
   static const String checkoutName = 'checkout';
   static const String checkoutSuccessName = 'checkoutSuccess';
+  static const String reviewsName = 'reviews';
+  static const String writeReviewName = 'writeReview';
+  static const String wishlistName = 'wishlist';
 }
 
 /// GoRouter configuration with auth-aware redirects.
@@ -162,6 +172,43 @@ GoRouter appRouter(AuthBloc authBloc) {
         name: AppRoutes.notificationsName,
         path: AppRoutes.notifications,
         builder: (context, state) => const NotificationCenterPage(),
+      ),
+      GoRoute(
+        name: AppRoutes.reviewsName,
+        path: AppRoutes.reviews,
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          final productName =
+              state.uri.queryParameters['productName'] ?? 'Product';
+          final avgRating =
+              double.tryParse(state.uri.queryParameters['avgRating'] ?? '') ??
+                  0;
+          final reviewCount =
+              int.tryParse(state.uri.queryParameters['reviewCount'] ?? '') ?? 0;
+          return ReviewListPage(
+            productId: id,
+            productName: productName,
+            avgRating: avgRating,
+            reviewCount: reviewCount,
+          );
+        },
+      ),
+      GoRoute(
+        name: AppRoutes.writeReviewName,
+        path: AppRoutes.writeReview,
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          final existingReview = state.extra as ReviewModel?;
+          return WriteReviewPage(
+            productId: id,
+            existingReview: existingReview,
+          );
+        },
+      ),
+      GoRoute(
+        name: AppRoutes.wishlistName,
+        path: AppRoutes.wishlist,
+        builder: (context, state) => const WishlistPage(),
       ),
       GoRoute(
         name: AppRoutes.checkoutName,

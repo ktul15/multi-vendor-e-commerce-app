@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import '../../../core/config/app_router.dart';
 import '../../../core/config/injection_container.dart';
 import '../../cart/bloc/cart_cubit.dart';
+import '../../wishlist/bloc/wishlist_cubit.dart';
+import '../../wishlist/bloc/wishlist_state.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../bloc/product_detail_cubit.dart';
 import '../bloc/product_detail_state.dart';
+import '../../reviews/widgets/star_rating_display.dart';
 import '../widgets/product_image_gallery.dart';
 import '../widgets/variant_selector.dart';
 
@@ -23,6 +28,7 @@ class ProductDetailPage extends StatelessWidget {
             create: (_) =>
                 sl<ProductDetailCubit>()..loadProduct(productId)),
         BlocProvider.value(value: sl<CartCubit>()),
+        BlocProvider.value(value: sl<WishlistCubit>()),
       ],
       child: const _ProductDetailView(),
     );
@@ -72,6 +78,22 @@ class _LoadedView extends StatelessWidget {
             flexibleSpace: FlexibleSpaceBar(
               background: ProductImageGallery(images: product.images),
             ),
+            actions: [
+              BlocBuilder<WishlistCubit, WishlistState>(
+                builder: (context, wishlistState) {
+                  final isWishlisted = wishlistState is WishlistLoaded &&
+                      wishlistState.isInWishlist(product.id);
+                  return IconButton(
+                    onPressed: () =>
+                        context.read<WishlistCubit>().toggleProduct(product.id),
+                    icon: Icon(
+                      isWishlisted ? Icons.favorite : Icons.favorite_outline,
+                      color: isWishlisted ? AppColors.secondary : null,
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
 
           // Main content
@@ -240,6 +262,15 @@ class _LoadedView extends StatelessWidget {
                   ),
                 ),
 
+                // Reviews section
+                const Divider(height: 1),
+                _ReviewsSection(
+                  productId: product.id,
+                  productName: product.name,
+                  avgRating: product.avgRating,
+                  reviewCount: product.reviewCount,
+                ),
+
                 // Bottom padding so the fixed bar doesn't obscure content
                 const SizedBox(height: AppSpacing.massive + AppSpacing.xl),
               ],
@@ -366,6 +397,98 @@ class _StockBadge extends StatelessWidget {
           color: inStock ? AppColors.success : AppColors.error,
           fontWeight: FontWeight.w600,
         ),
+      ),
+    );
+  }
+}
+
+// ── Reviews section ──────────────────────────────────────────────────────────
+
+class _ReviewsSection extends StatelessWidget {
+  final String productId;
+  final String productName;
+  final double avgRating;
+  final int reviewCount;
+
+  const _ReviewsSection({
+    required this.productId,
+    required this.productName,
+    required this.avgRating,
+    required this.reviewCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.base),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('Reviews', style: AppTextStyles.h5),
+              if (reviewCount > 0) ...[
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  '($reviewCount)',
+                  style: AppTextStyles.caption,
+                ),
+              ],
+              const Spacer(),
+              if (reviewCount > 0)
+                TextButton(
+                  onPressed: () => context.pushNamed(
+                    AppRoutes.reviewsName,
+                    pathParameters: {'id': productId},
+                    queryParameters: {
+                      'productName': productName,
+                      'avgRating': avgRating.toString(),
+                      'reviewCount': reviewCount.toString(),
+                    },
+                  ),
+                  child: const Text('See all'),
+                ),
+            ],
+          ),
+          if (reviewCount > 0) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                StarRatingDisplay(rating: avgRating, size: 18),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  '${avgRating.toStringAsFixed(1)} out of 5',
+                  style: AppTextStyles.body.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'No reviews yet',
+              style: AppTextStyles.body.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+          const SizedBox(height: AppSpacing.md),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => context.pushNamed(
+                AppRoutes.writeReviewName,
+                pathParameters: {'id': productId},
+              ),
+              icon: const Icon(Icons.rate_review_outlined, size: 18),
+              label: const Text('Write a Review'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
