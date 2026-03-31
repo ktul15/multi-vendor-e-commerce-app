@@ -13,7 +13,9 @@ import '../../repositories/address_repository.dart';
 import '../../repositories/cart_repository.dart';
 import '../../repositories/order_repository.dart';
 import '../../repositories/notification_repository.dart';
+import '../../repositories/review_repository.dart';
 import '../../repositories/search_repository.dart';
+import '../../repositories/wishlist_repository.dart';
 import '../../features/address_management/bloc/address_management_cubit.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
 import '../../features/cart/bloc/cart_cubit.dart';
@@ -28,6 +30,7 @@ import '../../features/home/bloc/home_cubit.dart';
 import '../../features/product_detail/bloc/product_detail_cubit.dart';
 import '../../features/product_list/bloc/product_list_cubit.dart';
 import '../../features/search/bloc/search_cubit.dart';
+import '../../features/wishlist/bloc/wishlist_cubit.dart';
 
 /// Global service locator instance.
 final sl = GetIt.instance;
@@ -90,6 +93,14 @@ Future<void> initDependencies() async {
 
   sl.registerLazySingleton<NotificationRepository>(
     () => NotificationRepository(client: sl<HttpClient>()),
+  );
+
+  sl.registerLazySingleton<ReviewRepository>(
+    () => ReviewRepository(client: sl<HttpClient>()),
+  );
+
+  sl.registerLazySingleton<WishlistRepository>(
+    () => WishlistRepository(client: sl<HttpClient>()),
   );
 
   // ── Services ──────────────────────────────
@@ -167,6 +178,11 @@ Future<void> initDependencies() async {
   // OrderDetailCubit (factory — new instance per detail view)
   sl.registerFactory<OrderDetailCubit>(
     () => OrderDetailCubit(repository: sl<OrderRepository>()),
+  );
+
+  // WishlistCubit (lazySingleton — shared global state: product detail heart, wishlist page)
+  sl.registerLazySingleton<WishlistCubit>(
+    () => WishlistCubit(repository: sl<WishlistRepository>()),
   );
 
   // CheckoutBloc (factory — fresh instance per checkout session)
