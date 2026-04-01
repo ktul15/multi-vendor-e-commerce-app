@@ -60,6 +60,13 @@ enum DiscountType {
   FIXED
 }
 
+enum VendorProfileStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
 // ISO 4217 currency codes supported by the platform
 enum Currency {
   USD
@@ -98,8 +105,33 @@ model User {
   reviews       Review[]
   wishlistItems WishlistItem[]
   promoUsages   PromoUsage[]
+  vendorProfile VendorProfile?
 
   @@map("users")
+}
+
+// ========================
+// Vendor Profile
+// ========================
+
+model VendorProfile {
+  id              String              @id @default(uuid())
+  userId          String              @unique
+  storeName       String
+  storeLogo       String?
+  storeBanner     String?
+  description     String?
+  status          VendorProfileStatus @default(PENDING)
+  stripeAccountId String?             @unique
+  // Expected shape: { accountHolderName, bankName, accountNumber, routingNumber }
+  bankDetails     Json?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@map("vendor_profiles")
 }
 
 // ========================
