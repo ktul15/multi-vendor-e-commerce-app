@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:storefront/shared/models/notification_model.dart';
 import '../../../core/services/push_notification_service.dart';
 import '../../../repositories/notification_repository.dart';
 import 'notification_state.dart';
@@ -12,9 +13,9 @@ class NotificationCubit extends Cubit<NotificationState> {
   NotificationCubit({
     required NotificationRepository repository,
     required PushNotificationService pushService,
-  })  : _repository = repository,
-        _pushService = pushService,
-        super(const NotificationInitial());
+  }) : _repository = repository,
+       _pushService = pushService,
+       super(const NotificationInitial());
 
   /// Start listening for foreground push messages and load initial unread count.
   Future<void> init() async {
@@ -40,11 +41,13 @@ class NotificationCubit extends Cubit<NotificationState> {
     if (current is NotificationLoaded) {
       emit(current.copyWith(isLoading: true, clearError: true));
     } else {
-      emit(const NotificationLoaded(
-        notifications: [],
-        unreadCount: 0,
-        isLoading: true,
-      ));
+      emit(
+        const NotificationLoaded(
+          notifications: [],
+          unreadCount: 0,
+          isLoading: true,
+        ),
+      );
     }
 
     try {
@@ -54,12 +57,14 @@ class NotificationCubit extends Cubit<NotificationState> {
       ]);
       final result = results[0] as NotificationsPageData;
       final unread = results[1] as int;
-      emit(NotificationLoaded(
-        notifications: result.items,
-        unreadCount: unread,
-        page: result.page,
-        totalPages: result.totalPages,
-      ));
+      emit(
+        NotificationLoaded(
+          notifications: result.items,
+          unreadCount: unread,
+          page: result.page,
+          totalPages: result.totalPages,
+        ),
+      );
     } catch (e) {
       final s = state;
       if (s is NotificationLoaded) {
@@ -79,12 +84,14 @@ class NotificationCubit extends Cubit<NotificationState> {
     try {
       final nextPage = current.page + 1;
       final result = await _repository.getNotifications(page: nextPage);
-      emit(current.copyWith(
-        notifications: [...current.notifications, ...result.items],
-        page: result.page,
-        totalPages: result.totalPages,
-        isLoadingMore: false,
-      ));
+      emit(
+        current.copyWith(
+          notifications: [...current.notifications, ...result.items],
+          page: result.page,
+          totalPages: result.totalPages,
+          isLoadingMore: false,
+        ),
+      );
     } catch (e) {
       emit(current.copyWith(isLoadingMore: false, error: e.toString()));
     }
@@ -105,8 +112,9 @@ class NotificationCubit extends Cubit<NotificationState> {
         .map((n) => n.id == id ? n.copyWith(isRead: true) : n)
         .toList();
     final wasUnread = current.notifications.any((n) => n.id == id && !n.isRead);
-    final newCount =
-        wasUnread ? (current.unreadCount - 1).clamp(0, 999) : current.unreadCount;
+    final newCount = wasUnread
+        ? (current.unreadCount - 1).clamp(0, 999)
+        : current.unreadCount;
 
     emit(current.copyWith(notifications: updated, unreadCount: newCount));
 
@@ -123,8 +131,9 @@ class NotificationCubit extends Cubit<NotificationState> {
     final current = state;
     if (current is! NotificationLoaded) return;
 
-    final updated =
-        current.notifications.map((n) => n.copyWith(isRead: true)).toList();
+    final updated = current.notifications
+        .map((n) => n.copyWith(isRead: true))
+        .toList();
     emit(current.copyWith(notifications: updated, unreadCount: 0));
 
     try {
