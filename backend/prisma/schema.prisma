@@ -118,8 +118,10 @@ model VendorProfile {
   id              String              @id @default(uuid())
   userId          String              @unique
   storeName       String
-  storeLogo       String?
-  storeBanner     String?
+  storeLogo           String?
+  storeLogoPublicId   String?
+  storeBanner         String?
+  storeBannerPublicId String?
   description     String?
   status          VendorProfileStatus @default(PENDING)
   stripeAccountId String?             @unique

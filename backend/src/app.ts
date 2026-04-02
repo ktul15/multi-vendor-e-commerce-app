@@ -82,6 +82,7 @@ import notificationRoutes from './modules/notification/notification.routes';
 import reviewRoutes from './modules/review/review.routes';
 import wishlistRoutes from './modules/wishlist/wishlist.routes';
 import promoRoutes from './modules/promo/promo.routes';
+import vendorProfileRoutes from './modules/vendor-profile/vendor-profile.routes';
 
 app.use('/api/v1/auth', authLimiter, authRoutes);
 app.use('/api/v1/categories', categoryRoutes);
@@ -93,6 +94,7 @@ app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/reviews', reviewRoutes);
 app.use('/api/v1/wishlist', wishlistRoutes);
 app.use('/api/v1/promo-codes', promoRoutes);
+app.use('/api/v1/vendor-profile', vendorProfileRoutes);
 
 // ---------------------
 // Error Handling
