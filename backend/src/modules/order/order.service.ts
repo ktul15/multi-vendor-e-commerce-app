@@ -14,7 +14,11 @@ import {
   GetOrdersQueryInput,
   CancelOrderInput,
   UpdateVendorOrderStatusInput,
+  GetVendorOrdersQueryInput,
+  UpdateVendorOrderStatusWithTrackingInput,
 } from './order.validation';
+import { sendEmail, escapeHtml } from '../../utils/email';
+import { logger } from '../../utils/logger';
 import { NotificationService } from '../notification/notification.service';
 
 const notificationService = new NotificationService();
@@ -631,17 +635,161 @@ export class OrderService {
       },
     });
 
-    // Send notification to the customer
+    // Send notification to the customer (fire-and-forget)
     const notificationType = STATUS_TO_NOTIFICATION_TYPE[newStatus];
     if (notificationType) {
-      await notificationService.createAndSend(
-        vendorOrder.order.userId,
-        notificationType,
-        STATUS_TITLES[newStatus],
-        STATUS_BODIES[newStatus],
-        { orderId, vendorOrderId, orderNumber: vendorOrder.order.orderNumber }
+      notificationService
+        .createAndSend(
+          vendorOrder.order.userId,
+          notificationType,
+          STATUS_TITLES[newStatus],
+          STATUS_BODIES[newStatus],
+          { orderId, vendorOrderId, orderNumber: vendorOrder.order.orderNumber }
+        )
+        .catch((err) => logger.error('Notification send error', err));
+    }
+
+    return updated;
+  }
+
+  async getVendorOrders(vendorId: string, query: GetVendorOrdersQueryInput) {
+    const { page, limit, status } = query;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.VendorOrderWhereInput = {
+      vendorId,
+      ...(status && { status }),
+    };
+
+    const [total, vendorOrders] = await Promise.all([
+      prisma.vendorOrder.count({ where }),
+      prisma.vendorOrder.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          items: {
+            include: {
+              variant: {
+                select: {
+                  sku: true,
+                  size: true,
+                  color: true,
+                  price: true,
+                  product: { select: { name: true, images: true } },
+                },
+              },
+            },
+          },
+          order: {
+            select: {
+              orderNumber: true,
+              shippingAddress: true,
+              createdAt: true,
+              user: { select: { name: true, email: true } },
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      items: vendorOrders,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    };
+  }
+
+  async updateVendorOrderStatusWithTracking(
+    vendorId: string,
+    vendorOrderId: string,
+    input: UpdateVendorOrderStatusWithTrackingInput
+  ) {
+    const { status: newStatus, trackingNumber, trackingCarrier } = input;
+
+    const vendorOrder = await prisma.vendorOrder.findUnique({
+      where: { id: vendorOrderId },
+      include: {
+        order: {
+          select: {
+            orderNumber: true,
+            user: { select: { id: true, email: true, name: true } },
+          },
+        },
+      },
+    });
+
+    if (!vendorOrder) {
+      throw ApiError.notFound('Vendor order not found');
+    }
+
+    if (vendorOrder.vendorId !== vendorId) {
+      throw ApiError.forbidden('You can only update your own vendor orders');
+    }
+
+    const allowed = ALLOWED_TRANSITIONS[vendorOrder.status];
+    if (!allowed || !allowed.includes(newStatus as OrderStatus)) {
+      throw ApiError.badRequest(
+        `Cannot transition from ${vendorOrder.status} to ${newStatus}`
       );
     }
+
+    const updated = await prisma.vendorOrder.update({
+      where: { id: vendorOrderId },
+      data: {
+        status: newStatus as OrderStatus,
+        ...(trackingNumber !== undefined && { trackingNumber }),
+        ...(trackingCarrier !== undefined && { trackingCarrier }),
+      },
+      include: {
+        items: {
+          include: {
+            variant: {
+              select: { sku: true, size: true, color: true, price: true },
+            },
+          },
+        },
+      },
+    });
+
+    // Send push notification + email (fire-and-forget — never block the response)
+    const notificationType = STATUS_TO_NOTIFICATION_TYPE[newStatus];
+    const { email, name } = vendorOrder.order.user;
+    const orderNumber = vendorOrder.order.orderNumber;
+
+    const safeName = escapeHtml(name ?? 'there');
+    const safeOrderNumber = escapeHtml(orderNumber);
+    const safeTracking = trackingNumber ? escapeHtml(trackingNumber) : '';
+    const safeCarrier = trackingCarrier ? escapeHtml(trackingCarrier) : '';
+    const trackingHtml = safeTracking
+      ? `<p><strong>Tracking Number:</strong> ${safeTracking}${safeCarrier ? ` (${safeCarrier})` : ''}</p>`
+      : '';
+
+    Promise.allSettled([
+      notificationType
+        ? notificationService.createAndSend(
+            vendorOrder.order.user.id,
+            notificationType,
+            STATUS_TITLES[newStatus],
+            STATUS_BODIES[newStatus],
+            { vendorOrderId, orderNumber }
+          )
+        : Promise.resolve(),
+      sendEmail(
+        email,
+        `Order ${safeOrderNumber} — ${STATUS_TITLES[newStatus]}`,
+        `<h2>${STATUS_TITLES[newStatus]}</h2>
+         <p>Hi ${safeName},</p>
+         <p>${STATUS_BODIES[newStatus]}</p>
+         ${trackingHtml}
+         <p>Order Number: <strong>${safeOrderNumber}</strong></p>`
+      ),
+    ]).catch((err) => logger.error('Post-update notification error', err));
 
     return updated;
   }

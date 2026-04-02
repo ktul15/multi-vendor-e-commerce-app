@@ -5,6 +5,8 @@ import {
   GetOrdersQueryInput,
   CancelOrderInput,
   UpdateVendorOrderStatusInput,
+  GetVendorOrdersQueryInput,
+  UpdateVendorOrderStatusWithTrackingInput,
 } from './order.validation';
 import { ApiResponse } from '../../utils/apiResponse';
 import { catchAsync } from '../../utils/catchAsync';
@@ -55,6 +57,31 @@ export class OrderController {
         vendorOrderId,
         req.body as UpdateVendorOrderStatusInput
       );
+      ApiResponse.success(
+        res,
+        vendorOrder,
+        'Vendor order status updated successfully'
+      );
+    }
+  );
+
+  listVendorOrders = catchAsync(async (req: AuthRequest, res: Response) => {
+    const orders = await orderService.getVendorOrders(
+      req.user!.userId,
+      req.query as unknown as GetVendorOrdersQueryInput
+    );
+    ApiResponse.success(res, orders, 'Vendor orders retrieved successfully');
+  });
+
+  updateVendorOrderStatusWithTracking = catchAsync(
+    async (req: AuthRequest, res: Response) => {
+      const vendorOrderId = req.params.id as string;
+      const vendorOrder =
+        await orderService.updateVendorOrderStatusWithTracking(
+          req.user!.userId,
+          vendorOrderId,
+          req.body as UpdateVendorOrderStatusWithTrackingInput
+        );
       ApiResponse.success(
         res,
         vendorOrder,

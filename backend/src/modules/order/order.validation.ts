@@ -43,9 +43,36 @@ export const updateVendorOrderStatusSchema = z.object({
   status: z.enum(['CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED']),
 });
 
+export const getVendorOrdersQuerySchema = getOrdersQuerySchema;
+
+export const vendorOrderIdParamSchema = z.object({
+  id: z.string().uuid('Invalid vendor order ID'),
+});
+
+export const updateVendorOrderStatusWithTrackingSchema =
+  updateVendorOrderStatusSchema
+    .extend({
+      trackingNumber: z.string().trim().min(1).max(100).optional(),
+      trackingCarrier: z.string().trim().min(1).max(100).optional(),
+    })
+    .refine(
+      (data) =>
+        data.status !== 'SHIPPED' || (data.trackingNumber && data.trackingCarrier),
+      {
+        message: 'Tracking number and carrier are required when marking as shipped',
+        path: ['trackingNumber'],
+      }
+    );
+
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 export type GetOrdersQueryInput = z.infer<typeof getOrdersQuerySchema>;
 export type CancelOrderInput = z.infer<typeof cancelOrderSchema>;
 export type UpdateVendorOrderStatusInput = z.infer<
   typeof updateVendorOrderStatusSchema
+>;
+export type GetVendorOrdersQueryInput = z.infer<
+  typeof getVendorOrdersQuerySchema
+>;
+export type UpdateVendorOrderStatusWithTrackingInput = z.infer<
+  typeof updateVendorOrderStatusWithTrackingSchema
 >;
