@@ -308,8 +308,10 @@ model VendorOrder {
   id       String      @id @default(uuid())
   orderId  String
   vendorId String
-  status   OrderStatus @default(PENDING)
-  subtotal Decimal     @db.Decimal(10, 2)
+  status          OrderStatus @default(PENDING)
+  subtotal        Decimal     @db.Decimal(10, 2)
+  trackingNumber  String?
+  trackingCarrier String?
 
   order    Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
   vendor   User        @relation("VendorOrders", fields: [vendorId], references: [id])
