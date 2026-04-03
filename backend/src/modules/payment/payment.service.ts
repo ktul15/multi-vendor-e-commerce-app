@@ -1,10 +1,12 @@
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
 import { prisma } from '../../config/prisma';
+import { stripe } from '../../config/stripe';
 import { env } from '../../config/env';
 import { ApiError } from '../../utils/apiError';
 import { logger } from '../../utils/logger';
 import { Currency, PaymentMethod } from '../../generated/prisma/client';
 import { CreatePaymentIntentInput } from './payment.validation';
+import { vendorPayoutService } from '../vendor-payout/vendor-payout.service';
 
 // Stripe states where the client can still complete payment
 const REUSABLE_INTENT_STATUSES: Stripe.PaymentIntent.Status[] = [
@@ -13,12 +15,6 @@ const REUSABLE_INTENT_STATUSES: Stripe.PaymentIntent.Status[] = [
     'requires_action',
     'processing',
 ];
-
-const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-    // Cast required: SDK's type is pinned to its own bundled API version,
-    // but a newer date string is valid at runtime.
-    apiVersion: '2025-01-27.acacia' as Stripe.LatestApiVersion,
-});
 
 export class PaymentService {
     async createPaymentIntent(userId: string, input: CreatePaymentIntentInput) {
@@ -48,6 +44,7 @@ export class PaymentService {
                 const intent = await stripe.paymentIntents.create({
                     amount: Math.round(parseFloat(order.total.toString()) * 100),
                     currency: currency.toLowerCase(),
+                    transfer_group: orderId,
                     metadata: { orderId, userId },
                 });
 
@@ -68,6 +65,7 @@ export class PaymentService {
         const intent = await stripe.paymentIntents.create({
             amount: amountInCents,
             currency: currency.toLowerCase(),
+            transfer_group: orderId,
             metadata: { orderId, userId },
         });
 
@@ -120,6 +118,13 @@ export class PaymentService {
                         data: { status: 'CONFIRMED' },
                     });
                 });
+
+                // Create earnings records and initiate transfers to vendors
+                await vendorPayoutService
+                    .createTransfersForPayment(intent.id)
+                    .catch((err) =>
+                        logger.error('Failed to create vendor transfers:', err)
+                    );
                 break;
             }
 
