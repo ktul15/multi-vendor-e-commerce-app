@@ -38,6 +38,10 @@ enum NotificationType {
   ORDER_CANCELLED
   ORDER_REFUNDED
   PROMO
+  VENDOR_ONBOARDING_COMPLETE
+  VENDOR_PAYOUT_PAID
+  VENDOR_PAYOUT_FAILED
+  VENDOR_EARNING_CREATED
 }
 
 enum PaymentStatus {
@@ -65,6 +69,26 @@ enum VendorProfileStatus {
   APPROVED
   REJECTED
   SUSPENDED
+}
+
+enum VendorOnboardingStatus {
+  NOT_STARTED
+  PENDING
+  COMPLETE
+  RESTRICTED
+}
+
+enum EarningStatus {
+  PENDING
+  TRANSFERRED
+  FAILED
+  REVERSED
+}
+
+enum PayoutStatus {
+  PENDING
+  PAID
+  FAILED
 }
 
 // ISO 4217 currency codes supported by the platform
@@ -125,12 +149,17 @@ model VendorProfile {
   description     String?
   status          VendorProfileStatus @default(PENDING)
   stripeAccountId String?             @unique
+  stripeOnboardingStatus VendorOnboardingStatus @default(NOT_STARTED)
+  // null = use platform default (PLATFORM_COMMISSION_RATE env var)
+  commissionRate  Decimal?            @db.Decimal(5, 2)
   // Expected shape: { accountHolderName, bankName, accountNumber, routingNumber }
   bankDetails     Json?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  earnings VendorEarning[]
+  payouts  VendorPayout[]
 
   @@index([status])
   @@map("vendor_profiles")
@@ -289,9 +318,10 @@ model Order {
   // an address used in an order must not be deleted.
   address      Address       @relation(fields: [addressId], references: [id], onDelete: Restrict)
   promoCode    PromoCode?    @relation(fields: [promoCodeId], references: [id])
-  promoUsage   PromoUsage?
-  vendorOrders VendorOrder[]
-  payment      Payment?
+  promoUsage      PromoUsage?
+  vendorOrders    VendorOrder[]
+  vendorEarnings  VendorEarning[]
+  payment         Payment?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -316,6 +346,7 @@ model VendorOrder {
   order    Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
   vendor   User        @relation("VendorOrders", fields: [vendorId], references: [id])
   items    OrderItem[]
+  earning  VendorEarning?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -479,4 +510,55 @@ model WishlistItem {
   @@unique([userId, productId])
   @@index([userId])
   @@map("wishlist_items")
+}
+
+// ========================
+// Vendor Earnings & Payouts
+// ========================
+
+// One earning record per VendorOrder, created when customer payment succeeds
+model VendorEarning {
+  id               String        @id @default(uuid())
+  vendorProfileId  String
+  vendorOrderId    String        @unique
+  orderId          String
+  grossAmount      Decimal       @db.Decimal(10, 2)
+  commissionRate   Decimal       @db.Decimal(5, 2)
+  commissionAmount Decimal       @db.Decimal(10, 2)
+  netAmount        Decimal       @db.Decimal(10, 2)
+  currency         Currency      @default(USD)
+  status           EarningStatus @default(PENDING)
+  stripeTransferId String?       @unique
+  transferredAt    DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  vendorProfile VendorProfile @relation(fields: [vendorProfileId], references: [id])
+  vendorOrder   VendorOrder   @relation(fields: [vendorOrderId], references: [id])
+  order         Order         @relation(fields: [orderId], references: [id])
+
+  @@index([vendorProfileId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("vendor_earnings")
+}
+
+// Tracks Stripe payouts from vendor Connect accounts to their bank accounts
+model VendorPayout {
+  id              String       @id @default(uuid())
+  vendorProfileId String
+  stripePayoutId  String       @unique
+  amount          Decimal      @db.Decimal(10, 2)
+  currency        Currency     @default(USD)
+  status          PayoutStatus @default(PENDING)
+  arrivalDate     DateTime?
+  failureReason   String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  vendorProfile VendorProfile @relation(fields: [vendorProfileId], references: [id])
+
+  @@index([vendorProfileId])
+  @@index([status])
+  @@map("vendor_payouts")
 }

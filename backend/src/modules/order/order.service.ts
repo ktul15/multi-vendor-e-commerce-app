@@ -1,7 +1,6 @@
 import { randomBytes } from 'crypto';
-import Stripe from 'stripe';
 import { prisma } from '../../config/prisma';
-import { env } from '../../config/env';
+import { stripe } from '../../config/stripe';
 import { ApiError } from '../../utils/apiError';
 import {
   DiscountType,
@@ -20,6 +19,7 @@ import {
 import { sendEmail, escapeHtml } from '../../utils/email';
 import { logger } from '../../utils/logger';
 import { NotificationService } from '../notification/notification.service';
+import { vendorPayoutService } from '../vendor-payout/vendor-payout.service';
 
 const notificationService = new NotificationService();
 
@@ -56,10 +56,6 @@ const STATUS_TO_NOTIFICATION_TYPE: Record<string, NotificationType> = {
 };
 
 const CANCELLABLE_STATUSES: OrderStatus[] = ['PENDING', 'CONFIRMED'];
-
-const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-01-27.acacia' as Stripe.LatestApiVersion,
-});
 
 function generateOrderNumber(): string {
   const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
@@ -563,6 +559,12 @@ export class OrderService {
     if (paymentIntentId) {
       if (previousPaymentStatus === 'SUCCEEDED') {
         await stripe.refunds.create({ payment_intent: paymentIntentId });
+        // Reverse any vendor earnings/transfers for this order
+        await vendorPayoutService
+          .reverseEarningsForOrder(orderId)
+          .catch((err) =>
+            logger.error('Failed to reverse vendor earnings:', err)
+          );
       } else if (previousPaymentStatus === 'PROCESSING') {
         await stripe.paymentIntents.cancel(paymentIntentId);
       }

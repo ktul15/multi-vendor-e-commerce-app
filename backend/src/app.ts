@@ -34,10 +34,12 @@ app.use(
 app.use(express.urlencoded({ extended: true }));
 
 // ---------------------
-// Stripe Webhook (must be before globalLimiter so Stripe retries are never throttled)
+// Stripe Webhooks (must be before globalLimiter so Stripe retries are never throttled)
 // ---------------------
 import paymentRoutes from './modules/payment/payment.routes';
+import { vendorPayoutWebhookRouter } from './modules/vendor-payout/vendor-payout.routes';
 app.use('/api/v1/payments', paymentRoutes);
+app.use('/api/v1/vendor-payouts', vendorPayoutWebhookRouter);
 
 // ---------------------
 // Rate Limiting
@@ -83,6 +85,7 @@ import reviewRoutes from './modules/review/review.routes';
 import wishlistRoutes from './modules/wishlist/wishlist.routes';
 import promoRoutes from './modules/promo/promo.routes';
 import vendorProfileRoutes from './modules/vendor-profile/vendor-profile.routes';
+import vendorPayoutRoutes from './modules/vendor-payout/vendor-payout.routes';
 
 app.use('/api/v1/auth', authLimiter, authRoutes);
 app.use('/api/v1/categories', categoryRoutes);
@@ -95,6 +98,7 @@ app.use('/api/v1/reviews', reviewRoutes);
 app.use('/api/v1/wishlist', wishlistRoutes);
 app.use('/api/v1/promo-codes', promoRoutes);
 app.use('/api/v1/vendor-profile', vendorProfileRoutes);
+app.use('/api/v1/vendor-payouts', vendorPayoutRoutes);
 
 // ---------------------
 // Error Handling

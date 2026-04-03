@@ -23,6 +23,14 @@ export const env = {
     // Stripe
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || '',
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || '',
+    STRIPE_CONNECT_WEBHOOK_SECRET: process.env.STRIPE_CONNECT_WEBHOOK_SECRET || '',
+
+    // Stripe Connect
+    PLATFORM_COMMISSION_RATE: process.env.PLATFORM_COMMISSION_RATE || '10.00',
+    STRIPE_CONNECT_RETURN_URL:
+        process.env.STRIPE_CONNECT_RETURN_URL || 'http://localhost:3001/stripe/return',
+    STRIPE_CONNECT_REFRESH_URL:
+        process.env.STRIPE_CONNECT_REFRESH_URL || 'http://localhost:3001/stripe/refresh',
 
     // Cloudinary
     CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || '',
