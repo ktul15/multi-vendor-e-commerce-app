@@ -4,6 +4,8 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, Role } from '../src/generated/prisma/client';
 import { hashPassword } from '../src/utils/password';
 
+const PLATFORM_COMMISSION_RATE = process.env['PLATFORM_COMMISSION_RATE'] ?? '10.00';
+
 const pool = new pg.Pool({
     connectionString: process.env['DATABASE_URL'],
 });
@@ -57,6 +59,14 @@ async function main() {
         },
     });
     console.log(`  ✅ Customer user created: ${customer.email}`);
+
+    // Seed platform default commission rate
+    await prisma.platformSetting.upsert({
+        where: { key: 'defaultCommissionRate' },
+        update: {},
+        create: { key: 'defaultCommissionRate', value: PLATFORM_COMMISSION_RATE },
+    });
+    console.log(`  ✅ Platform setting seeded: defaultCommissionRate = ${PLATFORM_COMMISSION_RATE}`);
 
     console.log('🌱 Seeding complete!');
 }

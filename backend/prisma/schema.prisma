@@ -562,3 +562,13 @@ model VendorPayout {
   @@index([status])
   @@map("vendor_payouts")
 }
+
+// Generic key-value store for admin-configurable platform settings
+// Currently used for: defaultCommissionRate
+model PlatformSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("platform_settings")
+}
