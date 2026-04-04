@@ -86,6 +86,7 @@ import wishlistRoutes from './modules/wishlist/wishlist.routes';
 import promoRoutes from './modules/promo/promo.routes';
 import vendorProfileRoutes from './modules/vendor-profile/vendor-profile.routes';
 import vendorPayoutRoutes from './modules/vendor-payout/vendor-payout.routes';
+import analyticsRoutes from './modules/analytics/analytics.routes';
 
 app.use('/api/v1/auth', authLimiter, authRoutes);
 app.use('/api/v1/categories', categoryRoutes);
@@ -99,6 +100,7 @@ app.use('/api/v1/wishlist', wishlistRoutes);
 app.use('/api/v1/promo-codes', promoRoutes);
 app.use('/api/v1/vendor-profile', vendorProfileRoutes);
 app.use('/api/v1/vendor-payouts', vendorPayoutRoutes);
+app.use('/api/v1/analytics', analyticsRoutes);
 
 // ---------------------
 // Error Handling
