@@ -1,31 +1,76 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/config/injection_container.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../bloc/dashboard_cubit.dart';
+import '../bloc/dashboard_state.dart';
+import '../widgets/summary_cards.dart';
+import '../widgets/revenue_chart.dart';
+import '../widgets/recent_orders_table.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Vendor Dashboard')),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.dashboard, size: 80, color: AppColors.primary),
-            SizedBox(height: 16),
-            Text(
-              'Vendor Dashboard',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+    return BlocProvider(
+      create: (_) => sl<DashboardCubit>()..load(),
+      child: const _DashboardView(),
+    );
+  }
+}
+
+class _DashboardView extends StatelessWidget {
+  const _DashboardView();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<DashboardCubit, DashboardState>(
+      builder: (context, state) {
+        if (state is DashboardLoading || state is DashboardInitial) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (state is DashboardError) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const SizedBox(height: AppSpacing.md),
+                Text(state.message),
+                const SizedBox(height: AppSpacing.md),
+                ElevatedButton(
+                  onPressed: () => context.read<DashboardCubit>().load(),
+                  child: const Text('Retry'),
+                ),
+              ],
             ),
-            SizedBox(height: 8),
-            Text(
-              'Manage your store',
-              style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
-            ),
-          ],
-        ),
-      ),
+          );
+        }
+
+        final loaded = state as DashboardLoaded;
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Dashboard', style: AppTextStyles.h2),
+              const SizedBox(height: AppSpacing.lg),
+              SummaryCards(summary: loaded.summary),
+              const SizedBox(height: AppSpacing.lg),
+              RevenueChart(
+                title: 'Revenue — last 30 days',
+                salesData: loaded.salesData,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              RecentOrdersTable(orders: loaded.recentOrders),
+            ],
+          ),
+        );
+      },
     );
   }
 }

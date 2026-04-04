@@ -4,8 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
 import '../../features/auth/bloc/auth_state.dart';
-import '../../features/dashboard/view/dashboard_page.dart';
 import '../../features/auth/view/login_page.dart';
+import '../../features/dashboard/view/dashboard_page.dart';
+import '../../features/earnings/view/earnings_page.dart';
+import '../../features/orders/view/orders_page.dart';
+import '../../features/products/view/products_page.dart';
+import '../../features/shell/view/shell_page.dart';
+import '../../features/store/view/store_page.dart';
 
 /// App route paths.
 class AppRoutes {
@@ -15,7 +20,8 @@ class AppRoutes {
   static const String login = '/login';
   static const String products = '/products';
   static const String orders = '/orders';
-  static const String settings = '/settings';
+  static const String earnings = '/earnings';
+  static const String store = '/store';
 }
 
 /// GoRouter configuration with auth-aware redirects for vendors.
@@ -27,16 +33,14 @@ GoRouter appRouter(AuthBloc authBloc) {
       final authState = authBloc.state;
       final isLoginRoute = state.matchedLocation == AppRoutes.login;
 
-      if (authState is AuthInitial || authState is AuthLoading) {
-        return null;
-      }
-
-      // If missing tokens/auth -> redirect to login
-      if (authState is! AuthAuthenticated) {
+      // During the initial auth check, treat as unauthenticated to prevent
+      // protected routes from rendering before credentials are verified.
+      if (authState is AuthInitial ||
+          authState is AuthLoading ||
+          authState is! AuthAuthenticated) {
         return isLoginRoute ? null : AppRoutes.login;
       }
 
-      // If authenticated -> don't let them stay on login screen
       if (isLoginRoute) {
         return AppRoutes.dashboard;
       }
@@ -45,12 +49,33 @@ GoRouter appRouter(AuthBloc authBloc) {
     },
     routes: [
       GoRoute(
-        path: AppRoutes.dashboard,
-        builder: (context, state) => const DashboardPage(),
-      ),
-      GoRoute(
         path: AppRoutes.login,
         builder: (context, state) => const VendorLoginPage(),
+      ),
+      ShellRoute(
+        builder: (context, state, child) => ShellPage(child: child),
+        routes: [
+          GoRoute(
+            path: AppRoutes.dashboard,
+            builder: (context, state) => const DashboardPage(),
+          ),
+          GoRoute(
+            path: AppRoutes.products,
+            builder: (context, state) => const ProductsPage(),
+          ),
+          GoRoute(
+            path: AppRoutes.orders,
+            builder: (context, state) => const OrdersPage(),
+          ),
+          GoRoute(
+            path: AppRoutes.earnings,
+            builder: (context, state) => const EarningsPage(),
+          ),
+          GoRoute(
+            path: AppRoutes.store,
+            builder: (context, state) => const StorePage(),
+          ),
+        ],
       ),
     ],
   );
