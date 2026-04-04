@@ -143,7 +143,17 @@ export class VendorPayoutService {
       return;
     }
 
-    const defaultRate = parseFloat(env.PLATFORM_COMMISSION_RATE);
+    const commissionSetting = await prisma.platformSetting.findUnique({
+      where: { key: 'defaultCommissionRate' },
+    });
+    const defaultRate = commissionSetting
+      ? parseFloat(commissionSetting.value)
+      : parseFloat(env.PLATFORM_COMMISSION_RATE);
+    if (isNaN(defaultRate)) {
+      throw new Error(
+        'Platform commission rate is not a valid number — check PlatformSetting or PLATFORM_COMMISSION_RATE env var'
+      );
+    }
 
     for (const vendorOrder of payment.order.vendorOrders) {
       // Idempotency: skip if earning already exists for this vendor order
