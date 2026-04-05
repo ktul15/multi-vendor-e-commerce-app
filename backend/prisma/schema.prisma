@@ -563,6 +563,23 @@ model VendorPayout {
   @@map("vendor_payouts")
 }
 
+// Storefront promotional banners managed by admin
+model Banner {
+  id            String   @id @default(uuid())
+  title         String
+  imageUrl      String
+  imagePublicId String?  // Cloudinary public ID for deletion; null if image is an external URL
+  linkUrl       String?
+  position      Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([position])
+  @@map("banners")
+}
+
 // Generic key-value store for admin-configurable platform settings
 // Currently used for: defaultCommissionRate
 model PlatformSetting {

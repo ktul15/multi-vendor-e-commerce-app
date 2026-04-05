@@ -88,6 +88,7 @@ import vendorProfileRoutes from './modules/vendor-profile/vendor-profile.routes'
 import vendorPayoutRoutes from './modules/vendor-payout/vendor-payout.routes';
 import analyticsRoutes from './modules/analytics/analytics.routes';
 import adminRoutes from './modules/admin/admin.routes';
+import bannerRoutes from './modules/banner/banner.routes';
 
 app.use('/api/v1/auth', authLimiter, authRoutes);
 app.use('/api/v1/categories', categoryRoutes);
@@ -103,6 +104,7 @@ app.use('/api/v1/vendor-profile', vendorProfileRoutes);
 app.use('/api/v1/vendor-payouts', vendorPayoutRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/banners', bannerRoutes);
 
 // ---------------------
 // Error Handling
