@@ -20,6 +20,7 @@ import '../../features/order_history/view/order_history_page.dart';
 import '../../features/reviews/view/review_list_page.dart';
 import '../../features/reviews/view/write_review_page.dart';
 import '../../features/search/view/search_page.dart';
+import '../../features/admin_dashboard/view/admin_dashboard_page.dart';
 import '../../features/wishlist/view/wishlist_page.dart';
 import '../../shared/models/order_model.dart';
 import '../../shared/models/product_filters.dart';
@@ -48,6 +49,7 @@ class AppRoutes {
   static const String reviews = '/product/:id/reviews';
   static const String writeReview = '/product/:id/review/write';
   static const String wishlist = '/wishlist';
+  static const String adminDashboard = '/admin';
 
   // ── Names (used with pushNamed / goNamed) ──────────
   static const String homeName = 'home';
@@ -68,6 +70,7 @@ class AppRoutes {
   static const String reviewsName = 'reviews';
   static const String writeReviewName = 'writeReview';
   static const String wishlistName = 'wishlist';
+  static const String adminDashboardName = 'adminDashboard';
 }
 
 /// GoRouter configuration with auth-aware redirects.
@@ -95,6 +98,12 @@ GoRouter appRouter(AuthBloc authBloc) {
       // Authenticated — redirect away from auth pages
       if (isOnAuthPage) {
         return AppRoutes.home;
+      }
+
+      // Authenticated non-admin trying to access admin routes — redirect home
+      if (state.matchedLocation.startsWith('/admin')) {
+        final role = authState.user['role'] as String?;
+        if (role != 'ADMIN') return AppRoutes.home;
       }
 
       return null;
@@ -214,6 +223,11 @@ GoRouter appRouter(AuthBloc authBloc) {
         name: AppRoutes.checkoutName,
         path: AppRoutes.checkout,
         builder: (context, state) => const CheckoutPage(),
+      ),
+      GoRoute(
+        name: AppRoutes.adminDashboardName,
+        path: AppRoutes.adminDashboard,
+        builder: (context, state) => const AdminDashboardPage(),
       ),
       GoRoute(
         name: AppRoutes.checkoutSuccessName,
