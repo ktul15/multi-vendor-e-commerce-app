@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../../core/config/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 
 class AdminSidebar extends StatelessWidget {
-  const AdminSidebar({super.key});
+  final String currentRoute;
+
+  const AdminSidebar({super.key, required this.currentRoute});
 
   @override
   Widget build(BuildContext context) {
@@ -28,14 +32,20 @@ class AdminSidebar extends StatelessWidget {
             _NavItem(
               icon: Icons.dashboard_rounded,
               label: 'Overview',
-              isActive: true,
-              onTap: () => Navigator.of(context).pop(),
+              isActive: currentRoute == AppRoutes.adminDashboard,
+              onTap: () {
+                Navigator.of(context).pop();
+                context.go(AppRoutes.adminDashboard);
+              },
             ),
             _NavItem(
               icon: Icons.people_outline_rounded,
               label: 'Users',
-              isActive: false,
-              onTap: () => _showComingSoon(context, 'Users'),
+              isActive: currentRoute == AppRoutes.adminUsers,
+              onTap: () {
+                Navigator.of(context).pop();
+                context.go(AppRoutes.adminUsers);
+              },
             ),
             _NavItem(
               icon: Icons.storefront_outlined,

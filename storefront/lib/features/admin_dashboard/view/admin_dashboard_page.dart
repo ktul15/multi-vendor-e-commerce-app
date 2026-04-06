@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import '../../../core/config/app_router.dart';
 import '../../../core/config/injection_container.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -59,7 +60,7 @@ class _AdminDashboardView extends StatelessWidget {
       builder: (context, state) {
         return Scaffold(
           backgroundColor: AppColors.background,
-          drawer: const AdminSidebar(),
+          drawer: const AdminSidebar(currentRoute: AppRoutes.adminDashboard),
           appBar: AppBar(
             backgroundColor: AppColors.surface,
             foregroundColor: AppColors.textPrimary,
