@@ -21,6 +21,9 @@ import '../../features/reviews/view/review_list_page.dart';
 import '../../features/reviews/view/write_review_page.dart';
 import '../../features/search/view/search_page.dart';
 import '../../features/admin_dashboard/view/admin_dashboard_page.dart';
+import '../../features/admin_user_management/models/admin_user_model.dart';
+import '../../features/admin_user_management/view/admin_user_management_page.dart';
+import '../../features/admin_user_management/view/admin_user_detail_page.dart';
 import '../../features/wishlist/view/wishlist_page.dart';
 import '../../shared/models/order_model.dart';
 import '../../shared/models/product_filters.dart';
@@ -50,6 +53,8 @@ class AppRoutes {
   static const String writeReview = '/product/:id/review/write';
   static const String wishlist = '/wishlist';
   static const String adminDashboard = '/admin';
+  static const String adminUsers = '/admin/users';
+  static const String adminUserDetail = '/admin/users/:id';
 
   // ── Names (used with pushNamed / goNamed) ──────────
   static const String homeName = 'home';
@@ -71,6 +76,8 @@ class AppRoutes {
   static const String writeReviewName = 'writeReview';
   static const String wishlistName = 'wishlist';
   static const String adminDashboardName = 'adminDashboard';
+  static const String adminUsersName = 'adminUsers';
+  static const String adminUserDetailName = 'adminUserDetail';
 }
 
 /// GoRouter configuration with auth-aware redirects.
@@ -228,6 +235,19 @@ GoRouter appRouter(AuthBloc authBloc) {
         name: AppRoutes.adminDashboardName,
         path: AppRoutes.adminDashboard,
         builder: (context, state) => const AdminDashboardPage(),
+      ),
+      GoRoute(
+        name: AppRoutes.adminUsersName,
+        path: AppRoutes.adminUsers,
+        builder: (context, state) => const AdminUserManagementPage(),
+      ),
+      GoRoute(
+        name: AppRoutes.adminUserDetailName,
+        path: AppRoutes.adminUserDetail,
+        redirect: (context, state) =>
+            state.extra is! AdminUserModel ? AppRoutes.adminUsers : null,
+        builder: (context, state) =>
+            AdminUserDetailPage(user: state.extra! as AdminUserModel),
       ),
       GoRoute(
         name: AppRoutes.checkoutSuccessName,
