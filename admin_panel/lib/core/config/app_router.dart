@@ -6,6 +6,9 @@ import '../../features/categories/bloc/category_cubit.dart';
 import '../../features/categories/view/category_form_page.dart';
 import '../../features/categories/view/category_list_page.dart';
 import '../../features/dashboard/view/dashboard_page.dart';
+import '../../features/vendors/bloc/vendor_cubit.dart';
+import '../../features/vendors/view/vendor_detail_page.dart';
+import '../../features/vendors/view/vendor_list_page.dart';
 import '../../shared/widgets/admin_shell.dart';
 import 'injection_container.dart';
 
@@ -30,6 +33,8 @@ class AppRoutes {
   static const String categoryEditName = 'categoryEdit';
   static const String usersName = 'users';
   static const String vendorsName = 'vendors';
+  static const String vendorDetail = ':id';        // relative — nested under /vendors
+  static const String vendorDetailName = 'vendorDetail';
   static const String settingsName = 'settings';
 }
 
@@ -98,8 +103,23 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           name: AppRoutes.vendorsName,
           path: AppRoutes.vendors,
-          builder: (context, state) =>
-              const _PlaceholderPage(title: 'Vendors'),
+          builder: (context, state) => BlocProvider.value(
+            value: sl<VendorCubit>()..ensureLoaded(),
+            child: const VendorListPage(),
+          ),
+          routes: [
+            GoRoute(
+              name: AppRoutes.vendorDetailName,
+              path: AppRoutes.vendorDetail,
+              builder: (context, state) {
+                final id = state.pathParameters['id']!;
+                return BlocProvider.value(
+                  value: sl<VendorCubit>(),
+                  child: VendorDetailPage(vendorId: id),
+                );
+              },
+            ),
+          ],
         ),
         GoRoute(
           name: AppRoutes.settingsName,
