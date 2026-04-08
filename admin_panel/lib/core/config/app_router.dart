@@ -5,7 +5,12 @@ import '../../features/auth/view/login_page.dart';
 import '../../features/categories/bloc/category_cubit.dart';
 import '../../features/categories/view/category_form_page.dart';
 import '../../features/categories/view/category_list_page.dart';
+import '../../features/dashboard/bloc/admin_dashboard_cubit.dart';
 import '../../features/dashboard/view/dashboard_page.dart';
+import '../../features/users/bloc/admin_user_management_cubit.dart';
+import '../../features/users/models/admin_user_model.dart';
+import '../../features/users/view/user_detail_page.dart';
+import '../../features/users/view/user_management_page.dart';
 import '../../features/vendors/bloc/vendor_cubit.dart';
 import '../../features/vendors/view/vendor_detail_page.dart';
 import '../../features/vendors/view/vendor_list_page.dart';
@@ -22,6 +27,7 @@ class AppRoutes {
   static const String categoryCreate = 'create';     // relative — nested under /categories
   static const String categoryEdit = ':id/edit';     // relative — nested under /categories
   static const String users = '/users';
+  static const String userDetail = ':id';            // relative — nested under /users
   static const String vendors = '/vendors';
   static const String settings = '/settings';
 
@@ -32,6 +38,7 @@ class AppRoutes {
   static const String categoryCreateName = 'categoryCreate';
   static const String categoryEditName = 'categoryEdit';
   static const String usersName = 'users';
+  static const String userDetailName = 'userDetail';
   static const String vendorsName = 'vendors';
   static const String vendorDetail = ':id';        // relative — nested under /vendors
   static const String vendorDetailName = 'vendorDetail';
@@ -58,7 +65,11 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           name: AppRoutes.dashboardName,
           path: AppRoutes.dashboard,
-          builder: (context, state) => const DashboardPage(),
+          builder: (context, state) => BlocProvider.value(
+            // ensureLoaded skips the network call when data is already fresh.
+            value: sl<AdminDashboardCubit>()..ensureLoaded(),
+            child: const DashboardPage(),
+          ),
         ),
 
         // Categories — list + nested create/edit share one lazySingleton cubit.
@@ -93,13 +104,30 @@ final GoRouter appRouter = GoRouter(
           ],
         ),
 
-        // Placeholder routes — screens to be built in future issues.
+        // Users — list + detail share one lazySingleton cubit.
         GoRoute(
           name: AppRoutes.usersName,
           path: AppRoutes.users,
-          builder: (context, state) =>
-              const _PlaceholderPage(title: 'Users'),
+          builder: (context, state) => BlocProvider.value(
+            value: sl<AdminUserManagementCubit>()..ensureLoaded(),
+            child: const UserManagementPage(),
+          ),
+          routes: [
+            GoRoute(
+              name: AppRoutes.userDetailName,
+              path: AppRoutes.userDetail,
+              redirect: (context, state) =>
+                  state.extra is! AdminUserModel ? AppRoutes.users : null,
+              builder: (context, state) => BlocProvider.value(
+                value: sl<AdminUserManagementCubit>(),
+                child: UserDetailPage(
+                  userId: (state.extra! as AdminUserModel).id,
+                ),
+              ),
+            ),
+          ],
         ),
+
         GoRoute(
           name: AppRoutes.vendorsName,
           path: AppRoutes.vendors,

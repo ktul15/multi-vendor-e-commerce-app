@@ -44,7 +44,7 @@ class VendorRepository {
         totalPages: meta['totalPages'] as int,
       );
     } on DioException catch (e) {
-      throw ApiException(_errorMessage(e), statusCode: e.response?.statusCode);
+      throw ApiException(e.errorMessage, statusCode: e.response?.statusCode);
     }
   }
 
@@ -52,7 +52,7 @@ class VendorRepository {
     try {
       await _dio.patch('/admin/vendors/$vendorId/approve');
     } on DioException catch (e) {
-      throw ApiException(_errorMessage(e), statusCode: e.response?.statusCode);
+      throw ApiException(e.errorMessage, statusCode: e.response?.statusCode);
     }
   }
 
@@ -60,7 +60,7 @@ class VendorRepository {
     try {
       await _dio.patch('/admin/vendors/$vendorId/reject');
     } on DioException catch (e) {
-      throw ApiException(_errorMessage(e), statusCode: e.response?.statusCode);
+      throw ApiException(e.errorMessage, statusCode: e.response?.statusCode);
     }
   }
 
@@ -68,18 +68,7 @@ class VendorRepository {
     try {
       await _dio.patch('/admin/vendors/$vendorId/suspend');
     } on DioException catch (e) {
-      throw ApiException(_errorMessage(e), statusCode: e.response?.statusCode);
+      throw ApiException(e.errorMessage, statusCode: e.response?.statusCode);
     }
-  }
-
-  String _errorMessage(DioException e) {
-    if (e.response != null) {
-      final data = e.response?.data;
-      if (data is Map && data['message'] != null) {
-        return data['message'] as String;
-      }
-      return 'Request failed (${e.response?.statusCode})';
-    }
-    return e.message ?? 'Network error';
   }
 }

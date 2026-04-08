@@ -1,17 +1,128 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../bloc/admin_user_management_cubit.dart';
+import '../bloc/admin_user_management_state.dart';
 import '../models/admin_user_model.dart';
 import '../widgets/user_role_color.dart';
 
 final _dateFormat = DateFormat('MMM d, yyyy');
 
-class AdminUserDetailPage extends StatelessWidget {
+class UserDetailPage extends StatefulWidget {
+  final String userId;
+
+  const UserDetailPage({super.key, required this.userId});
+
+  @override
+  State<UserDetailPage> createState() => _UserDetailPageState();
+}
+
+class _UserDetailPageState extends State<UserDetailPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Ensure users are loaded in case the user deep-linked directly here.
+    context.read<AdminUserManagementCubit>().ensureLoaded();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<AdminUserManagementCubit, AdminUserManagementState>(
+      builder: (context, state) {
+        return switch (state) {
+          AdminUserManagementInitial() ||
+          AdminUserManagementLoading() =>
+            Scaffold(
+              backgroundColor: AppColors.background,
+              appBar: AppBar(
+                title: const Text('User Detail'),
+                titleTextStyle:
+                    AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
+              ),
+              body: const Center(child: CircularProgressIndicator()),
+            ),
+          AdminUserManagementError(:final message) => Scaffold(
+              backgroundColor: AppColors.background,
+              appBar: AppBar(
+                title: const Text('User Detail'),
+                titleTextStyle:
+                    AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
+              ),
+              body: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline_rounded,
+                        size: 64, color: AppColors.error),
+                    const SizedBox(height: 16),
+                    Text(message,
+                        style: AppTextStyles.body.copyWith(
+                            color: AppColors.textSecondary),
+                        textAlign: TextAlign.center),
+                    const SizedBox(height: 24),
+                    FilledButton.icon(
+                      onPressed: () =>
+                          context.read<AdminUserManagementCubit>().load(),
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          AdminUserManagementLoaded() => _buildDetail(context, state),
+        };
+      },
+    );
+  }
+
+  Widget _buildDetail(BuildContext context, AdminUserManagementLoaded state) {
+    final user =
+        state.items.where((u) => u.id == widget.userId).firstOrNull;
+    if (user == null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text('User Detail'),
+          titleTextStyle:
+              AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.person_off_outlined,
+                  size: 64, color: AppColors.textSecondary),
+              const SizedBox(height: 16),
+              Text(
+                'User not found',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: () => context.pop(),
+                child: const Text('Back to Users'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return _UserDetailView(user: user);
+  }
+}
+
+// ── Detail view ───────────────────────────────────────────────────────────────
+
+class _UserDetailView extends StatelessWidget {
   final AdminUserModel user;
 
-  const AdminUserDetailPage({super.key, required this.user});
+  const _UserDetailView({required this.user});
 
   static Color _vendorStatusColor(String status) {
     return switch (status) {
@@ -32,7 +143,8 @@ class AdminUserDetailPage extends StatelessWidget {
         elevation: 0,
         scrolledUnderElevation: 1,
         title: const Text('User Detail'),
-        titleTextStyle: AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
+        titleTextStyle:
+            AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
       ),
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.base),
@@ -50,12 +162,14 @@ class AdminUserDetailPage extends StatelessWidget {
               _DetailRow(
                 label: 'Email Verified',
                 value: user.isVerified ? 'Yes' : 'No',
-                valueColor: user.isVerified ? AppColors.success : AppColors.warning,
+                valueColor:
+                    user.isVerified ? AppColors.success : AppColors.warning,
               ),
               _DetailRow(
                 label: 'Account Status',
                 value: user.isBanned ? 'Banned' : 'Active',
-                valueColor: user.isBanned ? AppColors.error : AppColors.success,
+                valueColor:
+                    user.isBanned ? AppColors.error : AppColors.success,
               ),
             ],
           ),
@@ -126,8 +240,8 @@ class _UserHeader extends StatelessWidget {
             const SizedBox(height: AppSpacing.xs),
             Text(
               user.email,
-              style:
-                  AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.body
+                  .copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.base),
@@ -186,7 +300,6 @@ class _StatusChip extends StatelessWidget {
 
 class _DetailSection extends StatelessWidget {
   final String title;
-  // List<Widget> keeps the signature open to any widget type in the future.
   final List<Widget> rows;
 
   const _DetailSection({required this.title, required this.rows});
@@ -241,7 +354,8 @@ class _DetailRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+          style:
+              AppTextStyles.body.copyWith(color: AppColors.textSecondary),
         ),
         Text(
           value,

@@ -15,12 +15,8 @@ import '../../repositories/order_repository.dart';
 import '../../repositories/notification_repository.dart';
 import '../../repositories/review_repository.dart';
 import '../../repositories/search_repository.dart';
-import '../../repositories/admin_dashboard_repository.dart';
-import '../../repositories/admin_user_repository.dart';
 import '../../repositories/wishlist_repository.dart';
 import '../../features/address_management/bloc/address_management_cubit.dart';
-import '../../features/admin_dashboard/bloc/admin_dashboard_cubit.dart';
-import '../../features/admin_user_management/bloc/admin_user_management_cubit.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
 import '../../features/cart/bloc/cart_cubit.dart';
 import '../../features/checkout/bloc/checkout_bloc.dart';
@@ -107,14 +103,6 @@ Future<void> initDependencies() async {
     () => WishlistRepository(client: sl<HttpClient>()),
   );
 
-  sl.registerLazySingleton<AdminDashboardRepository>(
-    () => AdminDashboardRepository(client: sl<HttpClient>()),
-  );
-
-  sl.registerLazySingleton<AdminUserRepository>(
-    () => AdminUserRepository(client: sl<HttpClient>()),
-  );
-
   // ── Services ──────────────────────────────
 
   sl.registerLazySingleton<StripeService>(
@@ -195,16 +183,6 @@ Future<void> initDependencies() async {
   // WishlistCubit (lazySingleton — shared global state: product detail heart, wishlist page)
   sl.registerLazySingleton<WishlistCubit>(
     () => WishlistCubit(repository: sl<WishlistRepository>()),
-  );
-
-  // AdminDashboardCubit (factory — fresh instance per admin session)
-  sl.registerFactory<AdminDashboardCubit>(
-    () => AdminDashboardCubit(repository: sl<AdminDashboardRepository>()),
-  );
-
-  // AdminUserManagementCubit (factory — fresh instance per screen visit)
-  sl.registerFactory<AdminUserManagementCubit>(
-    () => AdminUserManagementCubit(repository: sl<AdminUserRepository>()),
   );
 
   // CheckoutBloc (factory — fresh instance per checkout session)

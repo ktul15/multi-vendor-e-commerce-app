@@ -59,7 +59,8 @@ class RevenueChart extends StatelessWidget {
             SizedBox(
               height: 180,
               child: isLoading
-                  ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+                  ? const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2))
                   : revenue.series.isEmpty
                       ? Center(
                           child: Text(
@@ -103,16 +104,22 @@ class _PeriodToggle extends StatelessWidget {
             onTap: () => onChanged(p.$1),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.primary : Colors.transparent,
+                color:
+                    isSelected ? AppColors.primary : Colors.transparent,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
                 p.$2,
                 style: AppTextStyles.caption.copyWith(
-                  color: isSelected ? Colors.white : AppColors.textSecondary,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  color: isSelected
+                      ? Colors.white
+                      : AppColors.textSecondary,
+                  fontWeight: isSelected
+                      ? FontWeight.w600
+                      : FontWeight.w400,
                 ),
               ),
             ),
@@ -136,7 +143,9 @@ class _LineChart extends StatelessWidget {
       return FlSpot(e.key.toDouble(), e.value.revenue);
     }).toList();
 
-    final maxY = series.map((p) => p.revenue).fold(0.0, (a, b) => a > b ? a : b);
+    final maxY = series
+        .map((p) => p.revenue)
+        .fold(0.0, (a, b) => a > b ? a : b);
     final topY = maxY == 0 ? 100.0 : maxY * 1.2;
 
     return LineChart(
@@ -158,7 +167,9 @@ class _LineChart extends StatelessWidget {
               showTitles: true,
               reservedSize: 44,
               getTitlesWidget: (value, meta) {
-                if (value == meta.max || value == 0) return const SizedBox.shrink();
+                if (value == meta.max || value == 0) {
+                  return const SizedBox.shrink();
+                }
                 return Text(
                   '\$${value.toInt()}',
                   style: AppTextStyles.caption.copyWith(
@@ -172,10 +183,14 @@ class _LineChart extends StatelessWidget {
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              interval: (series.length / 4).ceilToDouble().clamp(1, double.infinity),
+              interval: (series.length / 4)
+                  .ceilToDouble()
+                  .clamp(1, double.infinity),
               getTitlesWidget: (value, meta) {
                 final idx = value.toInt();
-                if (idx < 0 || idx >= series.length) return const SizedBox.shrink();
+                if (idx < 0 || idx >= series.length) {
+                  return const SizedBox.shrink();
+                }
                 final date = series[idx].periodStart;
                 final label = '${date.month}/${date.day}';
                 return Padding(
@@ -191,8 +206,10 @@ class _LineChart extends StatelessWidget {
               },
             ),
           ),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false)),
         ),
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
