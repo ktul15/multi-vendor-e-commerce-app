@@ -2,7 +2,9 @@ import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import '../network/api_client.dart';
 import '../../features/categories/bloc/category_cubit.dart';
+import '../../features/vendors/bloc/vendor_cubit.dart';
 import '../../repositories/category_repository.dart';
+import '../../repositories/vendor_repository.dart';
 
 final sl = GetIt.instance;
 
@@ -26,5 +28,15 @@ Future<void> initDependencies() async {
   // would vend a new instance per sl<> call, breaking shared state.
   sl.registerLazySingleton<CategoryCubit>(
     () => CategoryCubit(repository: sl<CategoryRepository>()),
+  );
+
+  sl.registerLazySingleton<VendorRepository>(
+    () => VendorRepository(dio: sl<Dio>()),
+  );
+
+  // VendorCubit — lazySingleton so the list page and detail page share the
+  // same live cubit instance via BlocProvider.value in the router.
+  sl.registerLazySingleton<VendorCubit>(
+    () => VendorCubit(repository: sl<VendorRepository>()),
   );
 }
