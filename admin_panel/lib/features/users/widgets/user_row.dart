@@ -22,7 +22,8 @@ class UserRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: _UserAvatar(name: user.name, role: user.role),
       title: Text(
         user.name,
@@ -38,7 +39,8 @@ class UserRow extends StatelessWidget {
         children: [
           Text(
             user.email,
-            style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+            style: AppTextStyles.caption
+                .copyWith(color: AppColors.textSecondary),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -55,10 +57,13 @@ class UserRow extends StatelessWidget {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : Switch(
-                  value: user.isBanned,
+                  // value: true = switch ON = account is active (not banned).
+                  // Inverting isBanned so the "on" state means "active account",
+                  // matching standard switch semantics where on = enabled.
+                  value: !user.isBanned,
                   onChanged: (_) => onBanToggle(),
-                  activeThumbColor: AppColors.error,
-                  inactiveThumbColor: AppColors.success,
+                  activeThumbColor: AppColors.success,
+                  inactiveThumbColor: AppColors.error,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
     );

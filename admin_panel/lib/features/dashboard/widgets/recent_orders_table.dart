@@ -33,11 +33,13 @@ class RecentOrdersTable extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             if (orders.isEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.base),
+                padding:
+                    const EdgeInsets.symmetric(vertical: AppSpacing.base),
                 child: Center(
                   child: Text(
                     'No orders yet',
-                    style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+                    style: AppTextStyles.body
+                        .copyWith(color: AppColors.textSecondary),
                   ),
                 ),
               )

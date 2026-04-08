@@ -11,6 +11,15 @@ class AdminUserManagementCubit extends Cubit<AdminUserManagementState> {
       : _repository = repository,
         super(const AdminUserManagementInitial());
 
+  /// Skips the network call when data is already loaded (e.g. navigating back).
+  /// The router calls this so the lazySingleton cubit doesn't refetch on every visit.
+  /// Also calls load() if the previous attempt errored, which gives the user
+  /// a retry on re-entering the screen. Only the Loaded state is skipped.
+  void ensureLoaded() {
+    if (state is AdminUserManagementLoaded) return;
+    load();
+  }
+
   Future<void> load() async {
     emit(const AdminUserManagementLoading());
     try {
@@ -21,10 +30,9 @@ class AdminUserManagementCubit extends Cubit<AdminUserManagementState> {
       ));
     } on ApiException catch (e) {
       emit(AdminUserManagementError(e.message));
-    } on NetworkException catch (e) {
-      emit(AdminUserManagementError(e.message));
     } catch (_) {
-      emit(const AdminUserManagementError('Something went wrong. Please try again.'));
+      emit(const AdminUserManagementError(
+          'Something went wrong. Please try again.'));
     }
   }
 
@@ -34,6 +42,7 @@ class AdminUserManagementCubit extends Cubit<AdminUserManagementState> {
     final current = state;
     if (current is! AdminUserManagementLoaded) return;
 
+    emit(current.copyWith(isSearching: true));
     try {
       final result = await _repository.listUsers(
         page: 1,
@@ -48,21 +57,20 @@ class AdminUserManagementCubit extends Cubit<AdminUserManagementState> {
         items: result.items,
         meta: result.meta,
         searchQuery: query,
+        isSearching: false,
       ));
     } on ApiException catch (e) {
       final s = state;
       if (s is AdminUserManagementLoaded) {
-        emit(s.copyWith(transientError: e.message));
-      }
-    } on NetworkException catch (e) {
-      final s = state;
-      if (s is AdminUserManagementLoaded) {
-        emit(s.copyWith(transientError: e.message));
+        emit(s.copyWith(isSearching: false, transientError: e.message));
       }
     } catch (_) {
       final s = state;
       if (s is AdminUserManagementLoaded) {
-        emit(s.copyWith(transientError: 'Search failed. Please try again.'));
+        emit(s.copyWith(
+          isSearching: false,
+          transientError: 'Search failed. Please try again.',
+        ));
       }
     }
   }
@@ -74,6 +82,7 @@ class AdminUserManagementCubit extends Cubit<AdminUserManagementState> {
     if (current is! AdminUserManagementLoaded) return;
     if (current.roleFilter == role) return;
 
+    emit(current.copyWith(isSearching: true));
     try {
       final result = await _repository.listUsers(
         page: 1,
@@ -88,21 +97,20 @@ class AdminUserManagementCubit extends Cubit<AdminUserManagementState> {
         meta: result.meta,
         roleFilter: role,
         clearRoleFilter: role == null,
+        isSearching: false,
       ));
     } on ApiException catch (e) {
       final s = state;
       if (s is AdminUserManagementLoaded) {
-        emit(s.copyWith(transientError: e.message));
-      }
-    } on NetworkException catch (e) {
-      final s = state;
-      if (s is AdminUserManagementLoaded) {
-        emit(s.copyWith(transientError: e.message));
+        emit(s.copyWith(isSearching: false, transientError: e.message));
       }
     } catch (_) {
       final s = state;
       if (s is AdminUserManagementLoaded) {
-        emit(s.copyWith(transientError: 'Filter failed. Please try again.'));
+        emit(s.copyWith(
+          isSearching: false,
+          transientError: 'Filter failed. Please try again.',
+        ));
       }
     }
   }
@@ -117,7 +125,7 @@ class AdminUserManagementCubit extends Cubit<AdminUserManagementState> {
     try {
       final result = await _repository.listUsers(
         page: current.meta.page + 1,
-        limit: current.meta.limit,
+        limit: 15,
         role: current.roleFilter,
         search: current.searchQuery.isNotEmpty ? current.searchQuery : null,
       );
@@ -129,11 +137,6 @@ class AdminUserManagementCubit extends Cubit<AdminUserManagementState> {
         isLoadingMore: false,
       ));
     } on ApiException catch (e) {
-      final s = state;
-      if (s is AdminUserManagementLoaded) {
-        emit(s.copyWith(isLoadingMore: false, transientError: e.message));
-      }
-    } on NetworkException catch (e) {
       final s = state;
       if (s is AdminUserManagementLoaded) {
         emit(s.copyWith(isLoadingMore: false, transientError: e.message));
@@ -187,12 +190,6 @@ class AdminUserManagementCubit extends Cubit<AdminUserManagementState> {
         banningUserIds: newBanning,
       ));
     } on ApiException catch (e) {
-      final s = state;
-      if (s is AdminUserManagementLoaded) {
-        final newBanning = Set<String>.from(s.banningUserIds)..remove(user.id);
-        emit(s.copyWith(banningUserIds: newBanning, transientError: e.message));
-      }
-    } on NetworkException catch (e) {
       final s = state;
       if (s is AdminUserManagementLoaded) {
         final newBanning = Set<String>.from(s.banningUserIds)..remove(user.id);

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/config/app_router.dart';
-import '../../../core/config/injection_container.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -12,29 +11,15 @@ import '../bloc/admin_user_management_cubit.dart';
 import '../bloc/admin_user_management_state.dart';
 import '../models/admin_user_model.dart';
 import '../widgets/user_row.dart';
-import '../../admin_dashboard/widgets/admin_sidebar.dart';
 
-class AdminUserManagementPage extends StatelessWidget {
-  const AdminUserManagementPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<AdminUserManagementCubit>()..load(),
-      child: const _AdminUserManagementView(),
-    );
-  }
-}
-
-class _AdminUserManagementView extends StatefulWidget {
-  const _AdminUserManagementView();
+class UserManagementPage extends StatefulWidget {
+  const UserManagementPage({super.key});
 
   @override
-  State<_AdminUserManagementView> createState() =>
-      _AdminUserManagementViewState();
+  State<UserManagementPage> createState() => _UserManagementPageState();
 }
 
-class _AdminUserManagementViewState extends State<_AdminUserManagementView> {
+class _UserManagementPageState extends State<UserManagementPage> {
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
   Timer? _debounce;
@@ -76,13 +61,16 @@ class _AdminUserManagementViewState extends State<_AdminUserManagementView> {
   Widget build(BuildContext context) {
     return BlocConsumer<AdminUserManagementCubit, AdminUserManagementState>(
       listenWhen: (prev, curr) {
-        if (curr is AdminUserManagementLoaded && prev is AdminUserManagementLoaded) {
-          return curr.transientError != null && curr.transientError != prev.transientError;
+        if (curr is AdminUserManagementLoaded &&
+            prev is AdminUserManagementLoaded) {
+          return curr.transientError != null &&
+              curr.transientError != prev.transientError;
         }
         return false;
       },
       listener: (context, state) {
-        if (state is AdminUserManagementLoaded && state.transientError != null) {
+        if (state is AdminUserManagementLoaded &&
+            state.transientError != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.transientError!),
@@ -96,7 +84,6 @@ class _AdminUserManagementViewState extends State<_AdminUserManagementView> {
       builder: (context, state) {
         return Scaffold(
           backgroundColor: AppColors.background,
-          drawer: const AdminSidebar(currentRoute: AppRoutes.adminUsers),
           appBar: AppBar(
             backgroundColor: AppColors.surface,
             foregroundColor: AppColors.textPrimary,
@@ -117,6 +104,7 @@ class _AdminUserManagementViewState extends State<_AdminUserManagementView> {
                 searchController: _searchController,
                 scrollController: _scrollController,
                 onSearchChanged: _onSearchChanged,
+                isSearching: state.isSearching,
               ),
           },
         );
@@ -132,12 +120,14 @@ class _LoadedBody extends StatelessWidget {
   final TextEditingController searchController;
   final ScrollController scrollController;
   final ValueChanged<String> onSearchChanged;
+  final bool isSearching;
 
   const _LoadedBody({
     required this.state,
     required this.searchController,
     required this.scrollController,
     required this.onSearchChanged,
+    required this.isSearching,
   });
 
   @override
@@ -151,7 +141,14 @@ class _LoadedBody extends StatelessWidget {
           onRoleChanged: (role) =>
               context.read<AdminUserManagementCubit>().filterByRole(role),
         ),
-        const Divider(height: 1, color: AppColors.border),
+        if (isSearching)
+          const LinearProgressIndicator(
+            minHeight: 2,
+            backgroundColor: AppColors.border,
+            color: AppColors.primary,
+          )
+        else
+          const Divider(height: 1, color: AppColors.border),
         Expanded(
           child: RefreshIndicator(
             color: AppColors.primary,
@@ -168,7 +165,7 @@ class _LoadedBody extends StatelessWidget {
   }
 }
 
-class _SearchAndFilterBar extends StatelessWidget {
+class _SearchAndFilterBar extends StatefulWidget {
   final TextEditingController searchController;
   final String? roleFilter;
   final ValueChanged<String> onSearchChanged;
@@ -180,6 +177,25 @@ class _SearchAndFilterBar extends StatelessWidget {
     required this.onSearchChanged,
     required this.onRoleChanged,
   });
+
+  @override
+  State<_SearchAndFilterBar> createState() => _SearchAndFilterBarState();
+}
+
+class _SearchAndFilterBarState extends State<_SearchAndFilterBar> {
+  @override
+  void initState() {
+    super.initState();
+    widget.searchController.addListener(_onControllerChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.searchController.removeListener(_onControllerChanged);
+    super.dispose();
+  }
+
+  void _onControllerChanged() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
@@ -195,24 +211,24 @@ class _SearchAndFilterBar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextField(
-            controller: searchController,
-            onChanged: onSearchChanged,
+            controller: widget.searchController,
+            onChanged: widget.onSearchChanged,
             style: AppTextStyles.body,
             decoration: InputDecoration(
               hintText: 'Search users...',
-              hintStyle:
-                  AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+              hintStyle: AppTextStyles.body
+                  .copyWith(color: AppColors.textSecondary),
               prefixIcon: const Icon(
                 Icons.search_rounded,
                 color: AppColors.textSecondary,
                 size: 20,
               ),
-              suffixIcon: searchController.text.isNotEmpty
+              suffixIcon: widget.searchController.text.isNotEmpty
                   ? IconButton(
                       icon: const Icon(Icons.clear_rounded, size: 18),
                       onPressed: () {
-                        searchController.clear();
-                        onSearchChanged('');
+                        widget.searchController.clear();
+                        widget.onSearchChanged('');
                       },
                     )
                   : null,
@@ -232,8 +248,8 @@ class _SearchAndFilterBar extends StatelessWidget {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide:
-                    const BorderSide(color: AppColors.primary, width: 1.5),
+                borderSide: const BorderSide(
+                    color: AppColors.primary, width: 1.5),
               ),
             ),
           ),
@@ -244,20 +260,20 @@ class _SearchAndFilterBar extends StatelessWidget {
               children: [
                 _RoleChip(
                   label: 'All',
-                  selected: roleFilter == null,
-                  onSelected: () => onRoleChanged(null),
+                  selected: widget.roleFilter == null,
+                  onSelected: () => widget.onRoleChanged(null),
                 ),
                 const SizedBox(width: AppSpacing.xs),
                 _RoleChip(
-                  label: 'USER',
-                  selected: roleFilter == 'USER',
-                  onSelected: () => onRoleChanged('USER'),
+                  label: 'CUSTOMER',
+                  selected: widget.roleFilter == 'CUSTOMER',
+                  onSelected: () => widget.onRoleChanged('CUSTOMER'),
                 ),
                 const SizedBox(width: AppSpacing.xs),
                 _RoleChip(
                   label: 'VENDOR',
-                  selected: roleFilter == 'VENDOR',
-                  onSelected: () => onRoleChanged('VENDOR'),
+                  selected: widget.roleFilter == 'VENDOR',
+                  onSelected: () => widget.onRoleChanged('VENDOR'),
                 ),
               ],
             ),
@@ -328,7 +344,8 @@ class _UserList extends StatelessWidget {
       return Center(
         child: Text(
           'No users found',
-          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.body
+              .copyWith(color: AppColors.textSecondary),
         ),
       );
     }
@@ -348,7 +365,7 @@ class _UserList extends StatelessWidget {
           user: user,
           isBanning: state.banningUserIds.contains(user.id),
           onTap: () => context.pushNamed(
-            AppRoutes.adminUserDetailName,
+            AppRoutes.userDetailName,
             extra: user,
           ),
           onBanToggle: () => _showBanConfirmation(context, user),
@@ -377,8 +394,8 @@ class _ListFooter extends StatelessWidget {
         child: Center(
           child: Text(
             'All users loaded',
-            style:
-                AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+            style: AppTextStyles.caption
+                .copyWith(color: AppColors.textSecondary),
           ),
         ),
       );
@@ -443,13 +460,14 @@ class _ErrorBody extends StatelessWidget {
             const SizedBox(height: AppSpacing.base),
             Text(
               'Something went wrong',
-              style: AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
+              style:
+                  AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
               message,
-              style:
-                  AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.body
+                  .copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.xl),

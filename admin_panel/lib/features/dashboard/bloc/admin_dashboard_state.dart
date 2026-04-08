@@ -52,7 +52,8 @@ class AdminDashboardLoaded extends AdminDashboardState {
       recentOrders: recentOrders ?? this.recentOrders,
       selectedPeriod: selectedPeriod ?? this.selectedPeriod,
       isRevenueLoading: isRevenueLoading ?? this.isRevenueLoading,
-      revenueError: clearRevenueError ? null : (revenueError ?? this.revenueError),
+      revenueError:
+          clearRevenueError ? null : (revenueError ?? this.revenueError),
     );
   }
 

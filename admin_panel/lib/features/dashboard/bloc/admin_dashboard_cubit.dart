@@ -10,6 +10,13 @@ class AdminDashboardCubit extends Cubit<AdminDashboardState> {
       : _repository = repository,
         super(const AdminDashboardInitial());
 
+  /// Skips the network call when data is already loaded (e.g. navigating back).
+  /// The router calls this so the lazySingleton cubit doesn't refetch on every visit.
+  void ensureLoaded() {
+    if (state is AdminDashboardLoaded) return;
+    load();
+  }
+
   Future<void> load() async {
     emit(const AdminDashboardLoading());
     try {
@@ -26,8 +33,6 @@ class AdminDashboardCubit extends Cubit<AdminDashboardState> {
         selectedPeriod: 'day',
       ));
     } on ApiException catch (e) {
-      emit(AdminDashboardError(e.message));
-    } on NetworkException catch (e) {
       emit(AdminDashboardError(e.message));
     } catch (_) {
       emit(const AdminDashboardError('Something went wrong. Please try again.'));

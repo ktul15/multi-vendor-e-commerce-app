@@ -15,7 +15,7 @@ class RevenueDataPoint extends Equatable {
     return RevenueDataPoint(
       periodStart: DateTime.parse(json['periodStart'] as String),
       orderCount: json['orderCount'] as int,
-      revenue: double.parse(json['revenue'].toString()),
+      revenue: (json['revenue'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -37,14 +37,20 @@ class RevenueModel extends Equatable {
   });
 
   factory RevenueModel.fromJson(Map<String, dynamic> json) {
-    final dateRange = json['dateRange'] as Map<String, dynamic>;
+    final dateRange =
+        (json['dateRange'] as Map<String, dynamic>?) ?? <String, dynamic>{};
+    final now = DateTime.now().toUtc();
     return RevenueModel(
       period: json['period'] as String,
-      series: (json['series'] as List<dynamic>)
+      series: (json['series'] as List<dynamic>? ?? [])
           .map((e) => RevenueDataPoint.fromJson(e as Map<String, dynamic>))
           .toList(),
-      startDate: DateTime.parse(dateRange['startDate'] as String),
-      endDate: DateTime.parse(dateRange['endDate'] as String),
+      startDate: dateRange['startDate'] != null
+          ? DateTime.parse(dateRange['startDate'] as String)
+          : now,
+      endDate: dateRange['endDate'] != null
+          ? DateTime.parse(dateRange['endDate'] as String)
+          : now,
     );
   }
 

@@ -27,7 +27,8 @@ class AdminStatsModel extends Equatable {
       pendingVendors: json['pendingVendors'] as int,
       totalProducts: json['totalProducts'] as int,
       totalOrders: json['totalOrders'] as int,
-      platformRevenue: double.parse(json['platformRevenue'].toString()),
+      platformRevenue:
+          (json['platformRevenue'] as num?)?.toDouble() ?? 0.0,
     );
   }
 

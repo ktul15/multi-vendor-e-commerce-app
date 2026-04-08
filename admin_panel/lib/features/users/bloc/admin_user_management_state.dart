@@ -23,6 +23,8 @@ class AdminUserManagementLoaded extends AdminUserManagementState {
   final String searchQuery;
   final String? roleFilter;
   final bool isLoadingMore;
+  // True while a search network call is in-flight (debounce fired → API call pending).
+  final bool isSearching;
   // Each ban/unban call adds the userId here while the call is in-flight.
   // Always create a new Set instance in copyWith so Equatable detects the change.
   final Set<String> banningUserIds;
@@ -36,6 +38,7 @@ class AdminUserManagementLoaded extends AdminUserManagementState {
     this.searchQuery = '',
     this.roleFilter,
     this.isLoadingMore = false,
+    this.isSearching = false,
     this.banningUserIds = const {},
     this.transientError,
   });
@@ -48,6 +51,7 @@ class AdminUserManagementLoaded extends AdminUserManagementState {
     String? searchQuery,
     String? roleFilter,
     bool? isLoadingMore,
+    bool? isSearching,
     Set<String>? banningUserIds,
     String? transientError,
     bool clearRoleFilter = false,
@@ -59,6 +63,7 @@ class AdminUserManagementLoaded extends AdminUserManagementState {
       searchQuery: searchQuery ?? this.searchQuery,
       roleFilter: clearRoleFilter ? null : (roleFilter ?? this.roleFilter),
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      isSearching: isSearching ?? this.isSearching,
       // Always wrap in Set.from to produce a new instance for Equatable.
       banningUserIds: Set.from(banningUserIds ?? this.banningUserIds),
       transientError:
@@ -73,6 +78,7 @@ class AdminUserManagementLoaded extends AdminUserManagementState {
         searchQuery,
         roleFilter,
         isLoadingMore,
+        isSearching,
         // Use toList() so Equatable compares contents, not set identity.
         banningUserIds.toList()..sort(),
         transientError,
