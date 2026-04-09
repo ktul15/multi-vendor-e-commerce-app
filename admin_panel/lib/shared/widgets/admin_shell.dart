@@ -19,6 +19,7 @@ class AdminShell extends StatelessWidget {
     if (currentLocation.startsWith(AppRoutes.categories)) return 1;
     if (currentLocation.startsWith(AppRoutes.users)) return 2;
     if (currentLocation.startsWith(AppRoutes.vendors)) return 3;
+    if (currentLocation.startsWith(AppRoutes.products)) return 4;
     return 0; // dashboard
   }
 
@@ -74,6 +75,11 @@ class AdminShell extends StatelessWidget {
                 selectedIcon: Icon(Icons.store_rounded),
                 label: Text('Vendors'),
               ),
+              NavigationRailDestination(
+                icon: Icon(Icons.inventory_2_outlined),
+                selectedIcon: Icon(Icons.inventory_2_rounded),
+                label: Text('Products'),
+              ),
             ],
           ),
           const VerticalDivider(thickness: 1, width: 1),
@@ -93,6 +99,8 @@ class AdminShell extends StatelessWidget {
         context.goNamed(AppRoutes.usersName);
       case 3:
         context.goNamed(AppRoutes.vendorsName);
+      case 4:
+        context.goNamed(AppRoutes.productsName);
     }
   }
 }
