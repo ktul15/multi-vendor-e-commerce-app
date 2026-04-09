@@ -11,6 +11,9 @@ import '../../features/users/bloc/admin_user_management_cubit.dart';
 import '../../features/users/models/admin_user_model.dart';
 import '../../features/users/view/user_detail_page.dart';
 import '../../features/users/view/user_management_page.dart';
+import '../../features/products/bloc/product_moderation_cubit.dart';
+import '../../features/products/view/product_moderation_detail_page.dart';
+import '../../features/products/view/product_moderation_list_page.dart';
 import '../../features/vendors/bloc/vendor_cubit.dart';
 import '../../features/vendors/view/vendor_detail_page.dart';
 import '../../features/vendors/view/vendor_list_page.dart';
@@ -42,6 +45,10 @@ class AppRoutes {
   static const String vendorsName = 'vendors';
   static const String vendorDetail = ':id';        // relative — nested under /vendors
   static const String vendorDetailName = 'vendorDetail';
+  static const String products = '/products';
+  static const String productDetail = ':id';       // relative — nested under /products
+  static const String productsName = 'products';
+  static const String productDetailName = 'productDetail';
   static const String settingsName = 'settings';
 }
 
@@ -144,6 +151,27 @@ final GoRouter appRouter = GoRouter(
                 return BlocProvider.value(
                   value: sl<VendorCubit>(),
                   child: VendorDetailPage(vendorId: id),
+                );
+              },
+            ),
+          ],
+        ),
+        GoRoute(
+          name: AppRoutes.productsName,
+          path: AppRoutes.products,
+          builder: (context, state) => BlocProvider.value(
+            value: sl<ProductModerationCubit>()..ensureLoaded(),
+            child: const ProductModerationListPage(),
+          ),
+          routes: [
+            GoRoute(
+              name: AppRoutes.productDetailName,
+              path: AppRoutes.productDetail,
+              builder: (context, state) {
+                final id = state.pathParameters['id']!;
+                return BlocProvider.value(
+                  value: sl<ProductModerationCubit>(),
+                  child: ProductModerationDetailPage(productId: id),
                 );
               },
             ),

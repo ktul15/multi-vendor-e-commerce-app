@@ -3,11 +3,13 @@ import 'package:get_it/get_it.dart';
 import '../network/api_client.dart';
 import '../../features/categories/bloc/category_cubit.dart';
 import '../../features/dashboard/bloc/admin_dashboard_cubit.dart';
+import '../../features/products/bloc/product_moderation_cubit.dart';
 import '../../features/users/bloc/admin_user_management_cubit.dart';
 import '../../features/vendors/bloc/vendor_cubit.dart';
 import '../../repositories/admin_dashboard_repository.dart';
 import '../../repositories/admin_user_repository.dart';
 import '../../repositories/category_repository.dart';
+import '../../repositories/product_moderation_repository.dart';
 import '../../repositories/vendor_repository.dart';
 
 final sl = GetIt.instance;
@@ -36,6 +38,10 @@ Future<void> initDependencies() async {
     () => AdminUserRepository(dio: sl<Dio>()),
   );
 
+  sl.registerLazySingleton<ProductModerationRepository>(
+    () => ProductModerationRepository(dio: sl<Dio>()),
+  );
+
   // ── BLoCs / Cubits ────────────────────────────────────────────────────────
 
   // CategoryCubit — lazySingleton (not factory) because the router uses
@@ -62,5 +68,12 @@ Future<void> initDependencies() async {
   // the same live cubit instance via BlocProvider.value in the router.
   sl.registerLazySingleton<AdminUserManagementCubit>(
     () => AdminUserManagementCubit(repository: sl<AdminUserRepository>()),
+  );
+
+  // ProductModerationCubit — lazySingleton so the list and detail pages share
+  // the same live cubit instance via BlocProvider.value in the router.
+  sl.registerLazySingleton<ProductModerationCubit>(
+    () => ProductModerationCubit(
+        repository: sl<ProductModerationRepository>()),
   );
 }
