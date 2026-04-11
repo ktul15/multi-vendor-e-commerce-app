@@ -7,6 +7,11 @@ import '../../features/categories/view/category_form_page.dart';
 import '../../features/categories/view/category_list_page.dart';
 import '../../features/dashboard/bloc/admin_dashboard_cubit.dart';
 import '../../features/dashboard/view/dashboard_page.dart';
+import '../../features/finance/bloc/finance_cubit.dart';
+import '../../features/finance/view/finance_page.dart';
+import '../../features/orders/bloc/admin_order_cubit.dart';
+import '../../features/orders/view/order_detail_page.dart';
+import '../../features/orders/view/order_list_page.dart';
 import '../../features/users/bloc/admin_user_management_cubit.dart';
 import '../../features/users/models/admin_user_model.dart';
 import '../../features/users/view/user_detail_page.dart';
@@ -50,6 +55,13 @@ class AppRoutes {
   static const String productsName = 'products';
   static const String productDetailName = 'productDetail';
   static const String settingsName = 'settings';
+
+  static const String orders = '/orders';
+  static const String ordersName = 'orders';
+  static const String orderDetail = ':id';          // relative — nested under /orders
+  static const String orderDetailName = 'orderDetail';
+  static const String finance = '/finance';
+  static const String financeName = 'finance';
 }
 
 final GoRouter appRouter = GoRouter(
@@ -176,6 +188,35 @@ final GoRouter appRouter = GoRouter(
               },
             ),
           ],
+        ),
+        GoRoute(
+          name: AppRoutes.ordersName,
+          path: AppRoutes.orders,
+          builder: (context, state) => BlocProvider.value(
+            value: sl<AdminOrderCubit>()..ensureLoaded(),
+            child: const OrderListPage(),
+          ),
+          routes: [
+            GoRoute(
+              name: AppRoutes.orderDetailName,
+              path: AppRoutes.orderDetail,
+              builder: (context, state) {
+                final id = state.pathParameters['id']!;
+                return BlocProvider.value(
+                  value: sl<AdminOrderCubit>(),
+                  child: OrderDetailPage(orderId: id),
+                );
+              },
+            ),
+          ],
+        ),
+        GoRoute(
+          name: AppRoutes.financeName,
+          path: AppRoutes.finance,
+          builder: (context, state) => BlocProvider.value(
+            value: sl<FinanceCubit>()..ensureLoaded(),
+            child: const FinancePage(),
+          ),
         ),
         GoRoute(
           name: AppRoutes.settingsName,

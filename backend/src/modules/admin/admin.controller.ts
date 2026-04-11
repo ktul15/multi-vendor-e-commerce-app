@@ -112,6 +112,12 @@ export class AdminController {
     ApiResponse.success(res, result, 'Orders retrieved');
   });
 
+  getOrderById = catchAsync(async (req: AuthRequest, res: Response) => {
+    const { orderId } = req.params as { orderId: string };
+    const order = await adminService.getOrderById(orderId);
+    ApiResponse.success(res, order, 'Order retrieved');
+  });
+
   // ---- Revenue ----
 
   getPlatformRevenue = catchAsync(async (req: AuthRequest, res: Response) => {

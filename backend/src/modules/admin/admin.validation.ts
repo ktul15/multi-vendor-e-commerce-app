@@ -84,6 +84,10 @@ export const userIdParamSchema = z.object({
   userId: z.string().uuid(),
 });
 
+export const orderIdParamSchema = z.object({
+  orderId: z.string().uuid(),
+});
+
 export const vendorProfileIdParamSchema = z.object({
   vendorProfileId: z.string().uuid(),
 });
@@ -112,3 +116,4 @@ export type ListOrdersQueryInput = z.infer<typeof listOrdersQuerySchema>;
 export type RevenueQueryInput = z.infer<typeof revenueQuerySchema>;
 export type UpdateCommissionInput = z.infer<typeof updateCommissionSchema>;
 export type UpdateVendorCommissionInput = z.infer<typeof updateVendorCommissionSchema>;
+export type OrderIdParamInput = z.infer<typeof orderIdParamSchema>;

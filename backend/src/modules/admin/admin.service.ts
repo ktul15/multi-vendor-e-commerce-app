@@ -381,6 +381,63 @@ export class AdminService {
     };
   }
 
+  async getOrderById(orderId: string) {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: {
+        id: true,
+        orderNumber: true,
+        subtotal: true,
+        discount: true,
+        tax: true,
+        total: true,
+        notes: true,
+        createdAt: true,
+        user: { select: { id: true, name: true, email: true } },
+        vendorOrders: {
+          select: {
+            id: true,
+            status: true,
+            subtotal: true,
+            trackingNumber: true,
+            trackingCarrier: true,
+            vendorId: true,
+            vendor: {
+              select: { vendorProfile: { select: { id: true, storeName: true } } },
+            },
+            items: {
+              select: {
+                id: true,
+                quantity: true,
+                unitPrice: true,
+                totalPrice: true,
+                variant: {
+                  select: {
+                    sku: true,
+                    size: true,
+                    color: true,
+                    price: true,
+                    product: {
+                      select: { name: true, images: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        address: true,
+        payment: { select: { status: true, method: true, paidAt: true } },
+        promoCode: {
+          select: { code: true, discountType: true, discountValue: true },
+        },
+      },
+    });
+
+    if (!order) throw ApiError.notFound('Order not found');
+    return order;
+  }
+
   // ---- Revenue ----
 
   async getPlatformRevenue(query: RevenueQueryInput) {

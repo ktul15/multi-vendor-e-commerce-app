@@ -11,6 +11,7 @@ import {
   userIdParamSchema,
   vendorProfileIdParamSchema,
   productIdParamSchema,
+  orderIdParamSchema,
   updateCommissionSchema,
   updateVendorCommissionSchema,
 } from './admin.validation';
@@ -81,6 +82,11 @@ router.delete(
 
 // Orders
 router.get('/orders', validateQuery(listOrdersQuerySchema), controller.listAllOrders);
+router.get(
+  '/orders/:orderId',
+  validateParams(orderIdParamSchema),
+  controller.getOrderById
+);
 
 // Revenue reports
 router.get('/revenue', validateQuery(revenueQuerySchema), controller.getPlatformRevenue);
