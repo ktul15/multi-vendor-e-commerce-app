@@ -3,10 +3,14 @@ import 'package:get_it/get_it.dart';
 import '../network/api_client.dart';
 import '../../features/categories/bloc/category_cubit.dart';
 import '../../features/dashboard/bloc/admin_dashboard_cubit.dart';
+import '../../features/finance/bloc/finance_cubit.dart';
+import '../../features/orders/bloc/admin_order_cubit.dart';
 import '../../features/products/bloc/product_moderation_cubit.dart';
 import '../../features/users/bloc/admin_user_management_cubit.dart';
 import '../../features/vendors/bloc/vendor_cubit.dart';
 import '../../repositories/admin_dashboard_repository.dart';
+import '../../repositories/admin_finance_repository.dart';
+import '../../repositories/admin_order_repository.dart';
 import '../../repositories/admin_user_repository.dart';
 import '../../repositories/category_repository.dart';
 import '../../repositories/product_moderation_repository.dart';
@@ -42,6 +46,14 @@ Future<void> initDependencies() async {
     () => ProductModerationRepository(dio: sl<Dio>()),
   );
 
+  sl.registerLazySingleton<AdminOrderRepository>(
+    () => AdminOrderRepository(dio: sl<Dio>()),
+  );
+
+  sl.registerLazySingleton<AdminFinanceRepository>(
+    () => AdminFinanceRepository(dio: sl<Dio>()),
+  );
+
   // ── BLoCs / Cubits ────────────────────────────────────────────────────────
 
   // CategoryCubit — lazySingleton (not factory) because the router uses
@@ -75,5 +87,17 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<ProductModerationCubit>(
     () => ProductModerationCubit(
         repository: sl<ProductModerationRepository>()),
+  );
+
+  // AdminOrderCubit — lazySingleton so the list and detail pages share
+  // the same live cubit instance via BlocProvider.value in the router.
+  sl.registerLazySingleton<AdminOrderCubit>(
+    () => AdminOrderCubit(repository: sl<AdminOrderRepository>()),
+  );
+
+  // FinanceCubit — lazySingleton so revenue and commission state persists
+  // across navigation without redundant network calls.
+  sl.registerLazySingleton<FinanceCubit>(
+    () => FinanceCubit(repository: sl<AdminFinanceRepository>()),
   );
 }
