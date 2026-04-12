@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import '../network/api_client.dart';
+import '../network/token_storage.dart';
+import '../../features/auth/bloc/auth_cubit.dart';
 import '../../features/banners/bloc/banner_cubit.dart';
 import '../../features/categories/bloc/category_cubit.dart';
 import '../../features/dashboard/bloc/admin_dashboard_cubit.dart';
@@ -10,6 +12,7 @@ import '../../features/products/bloc/product_moderation_cubit.dart';
 import '../../features/promos/bloc/promo_cubit.dart';
 import '../../features/users/bloc/admin_user_management_cubit.dart';
 import '../../features/vendors/bloc/vendor_cubit.dart';
+import '../../repositories/auth_repository.dart';
 import '../../repositories/admin_dashboard_repository.dart';
 import '../../repositories/admin_finance_repository.dart';
 import '../../repositories/admin_order_repository.dart';
@@ -28,7 +31,13 @@ Future<void> initDependencies() async {
   // Single Dio instance shared across all repositories.
   sl.registerLazySingleton<Dio>(() => ApiClient.instance);
 
+  sl.registerLazySingleton<TokenStorage>(() => TokenStorage());
+
   // ── Repositories ──────────────────────────────────────────────────────────
+
+  sl.registerLazySingleton<AuthRepository>(
+    () => AuthRepository(dio: sl<Dio>(), tokenStorage: sl<TokenStorage>()),
+  );
 
   sl.registerLazySingleton<CategoryRepository>(
     () => CategoryRepository(dio: sl<Dio>()),
@@ -67,6 +76,16 @@ Future<void> initDependencies() async {
   );
 
   // ── BLoCs / Cubits ────────────────────────────────────────────────────────
+
+  // AuthCubit — lazySingleton so the same instance is shared between the
+  // router (for refreshListenable) and the widget tree (via BlocProvider.value).
+  sl.registerLazySingleton<AuthCubit>(
+    () => AuthCubit(authRepository: sl<AuthRepository>()),
+  );
+
+  // Wire the 401 interceptor to the AuthCubit so a mid-session token expiry
+  // triggers a full logout without needing a page refresh.
+  ApiClient.onUnauthenticated = () => sl<AuthCubit>().logout();
 
   // CategoryCubit — lazySingleton (not factory) because the router uses
   // BlocProvider.value across the /categories subroutes (list, create, edit)
