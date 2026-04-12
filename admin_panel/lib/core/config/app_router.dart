@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/view/login_page.dart';
+import '../../features/banners/bloc/banner_cubit.dart';
+import '../../features/banners/view/banner_form_page.dart';
+import '../../features/banners/view/banner_list_page.dart';
 import '../../features/categories/bloc/category_cubit.dart';
 import '../../features/categories/view/category_form_page.dart';
 import '../../features/categories/view/category_list_page.dart';
@@ -12,6 +15,9 @@ import '../../features/finance/view/finance_page.dart';
 import '../../features/orders/bloc/admin_order_cubit.dart';
 import '../../features/orders/view/order_detail_page.dart';
 import '../../features/orders/view/order_list_page.dart';
+import '../../features/promos/bloc/promo_cubit.dart';
+import '../../features/promos/view/promo_form_page.dart';
+import '../../features/promos/view/promo_list_page.dart';
 import '../../features/users/bloc/admin_user_management_cubit.dart';
 import '../../features/users/models/admin_user_model.dart';
 import '../../features/users/view/user_detail_page.dart';
@@ -62,6 +68,20 @@ class AppRoutes {
   static const String orderDetailName = 'orderDetail';
   static const String finance = '/finance';
   static const String financeName = 'finance';
+
+  static const String banners = '/banners';
+  static const String bannersName = 'banners';
+  static const String bannerCreate = 'create';      // relative — nested under /banners
+  static const String bannerCreateName = 'bannerCreate';
+  static const String bannerEdit = ':id/edit';      // relative — nested under /banners
+  static const String bannerEditName = 'bannerEdit';
+
+  static const String promos = '/promos';
+  static const String promosName = 'promos';
+  static const String promoCreate = 'create';       // relative — nested under /promos
+  static const String promoCreateName = 'promoCreate';
+  static const String promoEdit = ':id/edit';       // relative — nested under /promos
+  static const String promoEditName = 'promoEdit';
 }
 
 final GoRouter appRouter = GoRouter(
@@ -218,6 +238,67 @@ final GoRouter appRouter = GoRouter(
             child: const FinancePage(),
           ),
         ),
+
+        // Banners — list + nested create/edit share one lazySingleton cubit.
+        GoRoute(
+          name: AppRoutes.bannersName,
+          path: AppRoutes.banners,
+          builder: (context, state) => BlocProvider.value(
+            value: sl<BannerCubit>()..ensureLoaded(),
+            child: const BannerListPage(),
+          ),
+          routes: [
+            GoRoute(
+              name: AppRoutes.bannerCreateName,
+              path: AppRoutes.bannerCreate,
+              builder: (context, state) => BlocProvider.value(
+                value: sl<BannerCubit>(),
+                child: const BannerFormPage(),
+              ),
+            ),
+            GoRoute(
+              name: AppRoutes.bannerEditName,
+              path: AppRoutes.bannerEdit,
+              builder: (context, state) => BlocProvider.value(
+                value: sl<BannerCubit>(),
+                child: BannerFormPage(
+                  bannerId: state.pathParameters['id'],
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        // Promos — list + nested create/edit share one lazySingleton cubit.
+        GoRoute(
+          name: AppRoutes.promosName,
+          path: AppRoutes.promos,
+          builder: (context, state) => BlocProvider.value(
+            value: sl<PromoCubit>()..ensureLoaded(),
+            child: const PromoListPage(),
+          ),
+          routes: [
+            GoRoute(
+              name: AppRoutes.promoCreateName,
+              path: AppRoutes.promoCreate,
+              builder: (context, state) => BlocProvider.value(
+                value: sl<PromoCubit>(),
+                child: const PromoFormPage(),
+              ),
+            ),
+            GoRoute(
+              name: AppRoutes.promoEditName,
+              path: AppRoutes.promoEdit,
+              builder: (context, state) => BlocProvider.value(
+                value: sl<PromoCubit>(),
+                child: PromoFormPage(
+                  promoId: state.pathParameters['id'],
+                ),
+              ),
+            ),
+          ],
+        ),
+
         GoRoute(
           name: AppRoutes.settingsName,
           path: AppRoutes.settings,

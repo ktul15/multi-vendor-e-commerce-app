@@ -1,19 +1,23 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import '../network/api_client.dart';
+import '../../features/banners/bloc/banner_cubit.dart';
 import '../../features/categories/bloc/category_cubit.dart';
 import '../../features/dashboard/bloc/admin_dashboard_cubit.dart';
 import '../../features/finance/bloc/finance_cubit.dart';
 import '../../features/orders/bloc/admin_order_cubit.dart';
 import '../../features/products/bloc/product_moderation_cubit.dart';
+import '../../features/promos/bloc/promo_cubit.dart';
 import '../../features/users/bloc/admin_user_management_cubit.dart';
 import '../../features/vendors/bloc/vendor_cubit.dart';
 import '../../repositories/admin_dashboard_repository.dart';
 import '../../repositories/admin_finance_repository.dart';
 import '../../repositories/admin_order_repository.dart';
 import '../../repositories/admin_user_repository.dart';
+import '../../repositories/banner_repository.dart';
 import '../../repositories/category_repository.dart';
 import '../../repositories/product_moderation_repository.dart';
+import '../../repositories/promo_repository.dart';
 import '../../repositories/vendor_repository.dart';
 
 final sl = GetIt.instance;
@@ -52,6 +56,14 @@ Future<void> initDependencies() async {
 
   sl.registerLazySingleton<AdminFinanceRepository>(
     () => AdminFinanceRepository(dio: sl<Dio>()),
+  );
+
+  sl.registerLazySingleton<BannerRepository>(
+    () => BannerRepository(dio: sl<Dio>()),
+  );
+
+  sl.registerLazySingleton<PromoRepository>(
+    () => PromoRepository(dio: sl<Dio>()),
   );
 
   // ── BLoCs / Cubits ────────────────────────────────────────────────────────
@@ -99,5 +111,17 @@ Future<void> initDependencies() async {
   // across navigation without redundant network calls.
   sl.registerLazySingleton<FinanceCubit>(
     () => FinanceCubit(repository: sl<AdminFinanceRepository>()),
+  );
+
+  // BannerCubit — lazySingleton so list and form pages share the same instance
+  // via BlocProvider.value in the router.
+  sl.registerLazySingleton<BannerCubit>(
+    () => BannerCubit(repository: sl<BannerRepository>()),
+  );
+
+  // PromoCubit — lazySingleton so list and form pages share the same instance
+  // via BlocProvider.value in the router.
+  sl.registerLazySingleton<PromoCubit>(
+    () => PromoCubit(repository: sl<PromoRepository>()),
   );
 }
