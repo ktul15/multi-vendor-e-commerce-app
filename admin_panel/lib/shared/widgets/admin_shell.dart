@@ -22,6 +22,8 @@ class AdminShell extends StatelessWidget {
     if (currentLocation.startsWith(AppRoutes.products)) return 4;
     if (currentLocation.startsWith(AppRoutes.orders)) return 5;
     if (currentLocation.startsWith(AppRoutes.finance)) return 6;
+    if (currentLocation.startsWith(AppRoutes.banners)) return 7;
+    if (currentLocation.startsWith(AppRoutes.promos)) return 8;
     return 0; // dashboard
   }
 
@@ -32,8 +34,7 @@ class AdminShell extends StatelessWidget {
         children: [
           NavigationRail(
             selectedIndex: _selectedIndex,
-            onDestinationSelected: (index) =>
-                _onNavTap(context, index),
+            onDestinationSelected: (index) => _onNavTap(context, index),
             labelType: NavigationRailLabelType.all,
             backgroundColor: AppColors.surface,
             leading: Padding(
@@ -49,9 +50,9 @@ class AdminShell extends StatelessWidget {
                   Text(
                     'Admin',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ),
@@ -92,6 +93,16 @@ class AdminShell extends StatelessWidget {
                 selectedIcon: Icon(Icons.bar_chart_rounded),
                 label: Text('Finance'),
               ),
+              NavigationRailDestination(
+                icon: Icon(Icons.image_outlined),
+                selectedIcon: Icon(Icons.image_rounded),
+                label: Text('Banners'),
+              ),
+              NavigationRailDestination(
+                icon: Icon(Icons.discount_outlined),
+                selectedIcon: Icon(Icons.discount_rounded),
+                label: Text('Promos'),
+              ),
             ],
           ),
           const VerticalDivider(thickness: 1, width: 1),
@@ -117,6 +128,10 @@ class AdminShell extends StatelessWidget {
         context.goNamed(AppRoutes.ordersName);
       case 6:
         context.goNamed(AppRoutes.financeName);
+      case 7:
+        context.goNamed(AppRoutes.bannersName);
+      case 8:
+        context.goNamed(AppRoutes.promosName);
     }
   }
 }
