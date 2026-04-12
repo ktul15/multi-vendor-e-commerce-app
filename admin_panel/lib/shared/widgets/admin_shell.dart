@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/config/app_router.dart';
 import '../../core/theme/app_colors.dart';
+import '../../features/auth/bloc/auth_cubit.dart';
 
 /// Persistent admin shell with a [NavigationRail] sidebar.
 /// Wraps all authenticated admin screens via GoRouter's [ShellRoute].
@@ -55,6 +57,15 @@ class AdminShell extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            ),
+            trailing: Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: IconButton(
+                tooltip: 'Logout',
+                icon: const Icon(Icons.logout_rounded),
+                color: AppColors.textSecondary,
+                onPressed: () => context.read<AuthCubit>().logout(),
               ),
             ),
             destinations: const [
