@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../features/auth/bloc/auth_cubit.dart';
+import '../../features/auth/bloc/auth_state.dart';
 import '../../features/auth/view/login_page.dart';
 import '../../features/banners/bloc/banner_cubit.dart';
 import '../../features/banners/view/banner_form_page.dart';
@@ -84,8 +88,27 @@ class AppRoutes {
   static const String promoEditName = 'promoEdit';
 }
 
-final GoRouter appRouter = GoRouter(
+GoRouter buildAppRouter(AuthCubit authCubit) {
+  return GoRouter(
   initialLocation: AppRoutes.dashboard,
+  refreshListenable: GoRouterRefreshStream(authCubit.stream),
+  redirect: (context, state) {
+    final authState = authCubit.state;
+    final isOnLogin = state.matchedLocation == AppRoutes.login;
+
+    // Still loading — don't redirect
+    if (authState is AuthInitial || authState is AuthLoading) return null;
+
+    // Not authenticated — send to login (unless already there)
+    if (authState is! AuthAuthenticated) {
+      return isOnLogin ? null : AppRoutes.login;
+    }
+
+    // Authenticated — redirect away from login page
+    if (isOnLogin) return AppRoutes.dashboard;
+
+    return null;
+  },
   routes: [
     // Login is outside the admin shell (no sidebar).
     GoRoute(
@@ -308,7 +331,27 @@ final GoRouter appRouter = GoRouter(
       ],
     ),
   ],
-);
+  );
+}
+
+/// Converts a Stream into a Listenable for GoRouter's refreshListenable.
+class GoRouterRefreshStream extends ChangeNotifier {
+  GoRouterRefreshStream(Stream<dynamic> stream) {
+    // Intentional: triggers GoRouter's initial redirect evaluation before any
+    // state change has occurred, so the first navigation lands on the right
+    // page based on the current AuthState (not just on subsequent stream events).
+    notifyListeners();
+    _subscription = stream.listen((_) => notifyListeners());
+  }
+
+  late final StreamSubscription<dynamic> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}
 
 class _PlaceholderPage extends StatelessWidget {
   final String title;
