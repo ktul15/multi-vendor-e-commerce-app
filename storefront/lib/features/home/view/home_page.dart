@@ -3,6 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/config/app_router.dart';
 import '../../../core/config/injection_container.dart';
+import '../../../features/cart/bloc/cart_cubit.dart';
+import '../../../features/cart/bloc/cart_state.dart';
+import '../../../features/notifications/bloc/notification_cubit.dart';
+import '../../../features/notifications/bloc/notification_state.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -20,8 +24,12 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<HomeCubit>()..loadHome(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => sl<HomeCubit>()..loadHome()),
+        BlocProvider.value(value: sl<CartCubit>()),
+        BlocProvider.value(value: sl<NotificationCubit>()),
+      ],
       child: const _HomeView(),
     );
   }
@@ -104,9 +112,7 @@ class _HomeAppBar extends StatelessWidget {
             ),
           ),
           IconButton(
-            onPressed: () {
-              // TODO(#26): navigate to SearchScreen
-            },
+            onPressed: () => context.pushNamed(AppRoutes.searchName),
             icon: const Icon(Icons.search_rounded),
             style: IconButton.styleFrom(
               backgroundColor: AppColors.surface,
@@ -114,15 +120,63 @@ class _HomeAppBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          IconButton(
-            onPressed: () {
-              // TODO(cart issue): navigate to CartScreen
+          BlocBuilder<NotificationCubit, NotificationState>(
+            builder: (context, notifState) {
+              final count = notifState is NotificationLoaded
+                  ? notifState.unreadCount
+                  : 0;
+              return Badge(
+                isLabelVisible: count > 0,
+                label: Text('$count'),
+                child: IconButton(
+                  onPressed: () =>
+                      context.pushNamed(AppRoutes.notificationsName),
+                  icon: const Icon(Icons.notifications_outlined),
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.surface,
+                    foregroundColor: AppColors.textPrimary,
+                  ),
+                ),
+              );
             },
-            icon: const Icon(Icons.shopping_cart_outlined),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          IconButton(
+            onPressed: () => context.pushNamed(AppRoutes.wishlistName),
+            icon: const Icon(Icons.favorite_outline),
             style: IconButton.styleFrom(
               backgroundColor: AppColors.surface,
               foregroundColor: AppColors.textPrimary,
             ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          IconButton(
+            onPressed: () => context.pushNamed(AppRoutes.ordersName),
+            icon: const Icon(Icons.receipt_long_outlined),
+            style: IconButton.styleFrom(
+              backgroundColor: AppColors.surface,
+              foregroundColor: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          BlocBuilder<CartCubit, CartState>(
+            builder: (context, cartState) {
+              final count = cartState is CartLoaded
+                  ? cartState.cart.itemCount
+                  : 0;
+              return Badge(
+                isLabelVisible: count > 0,
+                label: Text('$count'),
+                child: IconButton(
+                  onPressed: () => context.pushNamed(AppRoutes.cartName),
+                  icon: const Icon(Icons.shopping_cart_outlined),
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.surface,
+                    foregroundColor: AppColors.textPrimary,
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -156,9 +210,7 @@ class _LoadedView extends StatelessWidget {
         const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
 
         if (displayCategories.isNotEmpty) ...[
-          const SliverToBoxAdapter(
-            child: _SectionTitle('Categories'),
-          ),
+          const SliverToBoxAdapter(child: _SectionTitle('Categories')),
           const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
           // SliverGrid avoids shrinkWrap + GridView performance pitfall
           SliverPadding(
@@ -185,8 +237,9 @@ class _LoadedView extends StatelessWidget {
             child: ProductSection(
               title: '🔥 Trending',
               products: trendingProducts,
-              onSeeAll: () => context.push(
-                '${AppRoutes.products}?title=Trending',
+              onSeeAll: () => context.pushNamed(
+                AppRoutes.productsName,
+                queryParameters: {'title': 'Trending'},
               ),
             ),
           ),
@@ -198,8 +251,9 @@ class _LoadedView extends StatelessWidget {
             child: ProductSection(
               title: '✨ New Arrivals',
               products: newArrivals,
-              onSeeAll: () => context.push(
-                '${AppRoutes.products}?title=New+Arrivals',
+              onSeeAll: () => context.pushNamed(
+                AppRoutes.productsName,
+                queryParameters: {'title': 'New Arrivals'},
               ),
             ),
           ),
@@ -278,23 +332,19 @@ class _ErrorView extends StatelessWidget {
     return ListView(
       children: [
         SizedBox(
-          height: MediaQuery.of(context).size.height -
+          height:
+              MediaQuery.of(context).size.height -
               MediaQuery.of(context).padding.top -
               MediaQuery.of(context).padding.bottom -
               kToolbarHeight,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.wifi_off_rounded,
-                size: 72,
-                color: Colors.grey,
-              ),
+              const Icon(Icons.wifi_off_rounded, size: 72, color: Colors.grey),
               const SizedBox(height: AppSpacing.base),
               Text(
                 'Something went wrong',
-                style:
-                    AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
+                style: AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
               ),
               const SizedBox(height: AppSpacing.sm),
               Padding(

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:storefront/core/network/http_client.dart';
 import 'package:storefront/core/network/token_storage.dart';
 import 'package:storefront/repositories/auth_repository.dart';
 
@@ -8,17 +9,21 @@ class MockDio extends Mock implements Dio {}
 
 class MockTokenStorage extends Mock implements TokenStorage {}
 
+class MockHttpClient extends Mock implements HttpClient {}
+
 void main() {
   late MockDio mockDio;
   late MockTokenStorage mockTokenStorage;
   late AuthRepository authRepository;
+  late MockHttpClient mockHttpClient;
 
   setUp(() {
     mockDio = MockDio();
+    mockHttpClient = MockHttpClient();
     mockTokenStorage = MockTokenStorage();
     authRepository = AuthRepository(
-      dio: mockDio,
       tokenStorage: mockTokenStorage,
+      client: mockHttpClient,
     );
   });
 

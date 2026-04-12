@@ -23,17 +23,30 @@ export const env = {
     // Stripe
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || '',
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || '',
+    STRIPE_CONNECT_WEBHOOK_SECRET: process.env.STRIPE_CONNECT_WEBHOOK_SECRET || '',
+
+    // Stripe Connect
+    PLATFORM_COMMISSION_RATE: process.env.PLATFORM_COMMISSION_RATE || '10.00',
+    STRIPE_CONNECT_RETURN_URL:
+        process.env.STRIPE_CONNECT_RETURN_URL || 'http://localhost:3001/stripe/return',
+    STRIPE_CONNECT_REFRESH_URL:
+        process.env.STRIPE_CONNECT_REFRESH_URL || 'http://localhost:3001/stripe/refresh',
 
     // Cloudinary
     CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || '',
     CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || '',
     CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || '',
 
+    // Firebase (FCM push notifications)
+    GOOGLE_APPLICATION_CREDENTIALS:
+        process.env.GOOGLE_APPLICATION_CREDENTIALS || '',
+
     // Email
     SMTP_HOST: process.env.SMTP_HOST || '',
     SMTP_PORT: parseInt(process.env.SMTP_PORT || '587', 10),
     SMTP_USER: process.env.SMTP_USER || '',
     SMTP_PASS: process.env.SMTP_PASS || '',
+    SMTP_FROM: process.env.SMTP_FROM || process.env.SMTP_USER || '',
 
     // CORS
     STOREFRONT_URL: process.env.STOREFRONT_URL || 'http://localhost:3000',

@@ -7,6 +7,15 @@
 .buildlog/
 .history
 
+# IDE
+.idea/
+.vscode/
+
+# Claude Code
+.claude/
+**/.claude/
+**/.claire/
+
 
 
 # Flutter repo-specific
@@ -109,6 +118,9 @@ coverage/
 
 # Symbols
 app.*.symbols
+
+# Environment files
+*.env
 
 # Exceptions to above rules.
 !**/ios/**/default.mode1v3

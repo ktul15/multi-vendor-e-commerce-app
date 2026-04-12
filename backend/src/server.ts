@@ -2,6 +2,7 @@ import app from './app';
 import { env } from './config/env';
 import { prisma } from './config/prisma';
 import { connectRedis, disconnectRedis } from './config/redis';
+import { initializeFirebase } from './utils/fcm';
 import { logger } from './utils/logger';
 
 const startServer = async (): Promise<void> => {
@@ -12,6 +13,9 @@ const startServer = async (): Promise<void> => {
 
         // Connect to Redis
         await connectRedis();
+
+        // Initialize Firebase Admin SDK (FCM push notifications)
+        initializeFirebase();
 
         app.listen(env.PORT, () => {
             logger.info(`🚀 Server running on port ${env.PORT}`);

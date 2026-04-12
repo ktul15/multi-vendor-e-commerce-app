@@ -144,15 +144,15 @@ describe('Product API - Filters, Sort, Pagination (Issue #21)', () => {
 
         // Ascending Price
         const resPriceAsc = await request(app).get('/api/v1/products?sort=price_asc');
-        expect(resPriceAsc.body.data.items[0].basePrice).toBe(99.99);
+        expect(resPriceAsc.body.data.items[0].basePrice).toBe("99.99");
 
         // Descending Price
         const resPriceDesc = await request(app).get('/api/v1/products?sort=price_desc');
-        expect(resPriceDesc.body.data.items[0].basePrice).toBe(1099.99);
+        expect(resPriceDesc.body.data.items[0].basePrice).toBe("1099.99");
 
         // Descending Rating
         const resRating = await request(app).get('/api/v1/products?sort=rating');
-        expect(resRating.body.data.items[0].avgRating).toBe(4.9);
+        expect(resRating.body.data.items[0].avgRating).toBe("4.9");
 
         // Popular (reviewCount desc)
         const resPopular = await request(app).get('/api/v1/products?sort=popular');
@@ -220,6 +220,6 @@ describe('Product API - Filters, Sort, Pagination (Issue #21)', () => {
         // Sort on /search endpoint
         const resSorted = await request(app).get('/api/v1/products/search?q=camera&sort=price_asc');
         expect(resSorted.status).toBe(200);
-        expect(resSorted.body.data.items[0].basePrice).toBe(399.99); // Midrange cheaper than Flagship
+        expect(resSorted.body.data.items[0].basePrice).toBe("399.99"); // Midrange cheaper than Flagship
     });
 });

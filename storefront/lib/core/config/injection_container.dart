@@ -4,14 +4,33 @@ import '../network/api_client.dart';
 import '../network/dio_http_client.dart';
 import '../network/http_client.dart';
 import '../network/token_storage.dart';
+import '../storage/recent_searches_storage.dart';
 import '../../repositories/auth_repository.dart';
 import '../../repositories/home_repository.dart';
 import '../../repositories/product_detail_repository.dart';
 import '../../repositories/product_list_repository.dart';
+import '../../repositories/address_repository.dart';
+import '../../repositories/cart_repository.dart';
+import '../../repositories/order_repository.dart';
+import '../../repositories/notification_repository.dart';
+import '../../repositories/review_repository.dart';
+import '../../repositories/search_repository.dart';
+import '../../repositories/wishlist_repository.dart';
+import '../../features/address_management/bloc/address_management_cubit.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
+import '../../features/cart/bloc/cart_cubit.dart';
+import '../../features/checkout/bloc/checkout_bloc.dart';
+import '../../features/notifications/bloc/notification_cubit.dart';
+import '../../features/order_detail/bloc/order_detail_cubit.dart';
+import '../../features/order_history/bloc/order_list_cubit.dart';
+import '../services/push_notification_service.dart';
+import '../stripe/flutter_stripe_service.dart';
+import '../stripe/stripe_service.dart';
 import '../../features/home/bloc/home_cubit.dart';
 import '../../features/product_detail/bloc/product_detail_cubit.dart';
 import '../../features/product_list/bloc/product_list_cubit.dart';
+import '../../features/search/bloc/search_cubit.dart';
+import '../../features/wishlist/bloc/wishlist_cubit.dart';
 
 /// Global service locator instance.
 final sl = GetIt.instance;
@@ -56,6 +75,52 @@ Future<void> initDependencies() async {
     () => ProductDetailRepository(client: sl<HttpClient>()),
   );
 
+  sl.registerLazySingleton<SearchRepository>(
+    () => SearchRepository(client: sl<HttpClient>()),
+  );
+
+  sl.registerLazySingleton<CartRepository>(
+    () => CartRepository(client: sl<HttpClient>()),
+  );
+
+  sl.registerLazySingleton<AddressRepository>(
+    () => AddressRepository(client: sl<HttpClient>()),
+  );
+
+  sl.registerLazySingleton<OrderRepository>(
+    () => OrderRepository(client: sl<HttpClient>()),
+  );
+
+  sl.registerLazySingleton<NotificationRepository>(
+    () => NotificationRepository(client: sl<HttpClient>()),
+  );
+
+  sl.registerLazySingleton<ReviewRepository>(
+    () => ReviewRepository(client: sl<HttpClient>()),
+  );
+
+  sl.registerLazySingleton<WishlistRepository>(
+    () => WishlistRepository(client: sl<HttpClient>()),
+  );
+
+  // ── Services ──────────────────────────────
+
+  sl.registerLazySingleton<StripeService>(
+    () => const FlutterStripeService(),
+  );
+
+  sl.registerLazySingleton<PushNotificationService>(
+    () => PushNotificationService(
+      notificationRepository: sl<NotificationRepository>(),
+    ),
+  );
+
+  // ── Core storage ──────────────────────────
+
+  sl.registerLazySingleton<RecentSearchesStorage>(
+    () => RecentSearchesStorage(),
+  );
+
   // ── BLoCs / Cubits ────────────────────────
 
   // AuthBloc (lazy singleton — shared across the app; used by GoRouter
@@ -77,5 +142,56 @@ Future<void> initDependencies() async {
   // ProductDetailCubit (factory — new instance per product page visit)
   sl.registerFactory<ProductDetailCubit>(
     () => ProductDetailCubit(repository: sl<ProductDetailRepository>()),
+  );
+
+  // CartCubit (lazySingleton — shared global state: home badge, product detail, cart page)
+  sl.registerLazySingleton<CartCubit>(
+    () => CartCubit(repository: sl<CartRepository>()),
+  );
+
+  // NotificationCubit (lazySingleton — shared global state: home badge, notification center)
+  sl.registerLazySingleton<NotificationCubit>(
+    () => NotificationCubit(
+      repository: sl<NotificationRepository>(),
+      pushService: sl<PushNotificationService>(),
+    ),
+  );
+
+  // SearchCubit (factory — new instance per search screen visit)
+  sl.registerFactory<SearchCubit>(
+    () => SearchCubit(
+      repository: sl<SearchRepository>(),
+      storage: sl<RecentSearchesStorage>(),
+    ),
+  );
+
+  // AddressManagementCubit (factory — fresh instance per screen visit)
+  sl.registerFactory<AddressManagementCubit>(
+    () => AddressManagementCubit(repository: sl<AddressRepository>()),
+  );
+
+  // OrderListCubit (factory — new instance per screen visit)
+  sl.registerFactory<OrderListCubit>(
+    () => OrderListCubit(repository: sl<OrderRepository>()),
+  );
+
+  // OrderDetailCubit (factory — new instance per detail view)
+  sl.registerFactory<OrderDetailCubit>(
+    () => OrderDetailCubit(repository: sl<OrderRepository>()),
+  );
+
+  // WishlistCubit (lazySingleton — shared global state: product detail heart, wishlist page)
+  sl.registerLazySingleton<WishlistCubit>(
+    () => WishlistCubit(repository: sl<WishlistRepository>()),
+  );
+
+  // CheckoutBloc (factory — fresh instance per checkout session)
+  sl.registerFactory<CheckoutBloc>(
+    () => CheckoutBloc(
+      addressRepository: sl<AddressRepository>(),
+      orderRepository: sl<OrderRepository>(),
+      stripeService: sl<StripeService>(),
+      cartCubit: sl<CartCubit>(),
+    ),
   );
 }
