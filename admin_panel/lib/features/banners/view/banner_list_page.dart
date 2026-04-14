@@ -6,6 +6,10 @@ import '../../../core/theme/app_colors.dart';
 import '../bloc/banner_cubit.dart';
 import '../bloc/banner_state.dart';
 import '../models/banner_model.dart';
+import '../../../shared/widgets/skeleton_box.dart';
+import '../../../shared/widgets/error_state.dart';
+import '../../../shared/widgets/empty_state.dart';
+import '../widgets/banner_list_skeleton.dart';
 import '../widgets/banner_preview_dialog.dart';
 
 class BannerListPage extends StatelessWidget {
@@ -60,19 +64,24 @@ class BannerListPage extends StatelessWidget {
           }
         },
         builder: (context, state) {
-          if (state is BannerLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            );
+          if (state is BannerInitial || state is BannerLoading) {
+            return const SkeletonContainer(child: BannerListSkeleton());
           }
 
           if (state is BannerError) {
-            return _ErrorView(message: state.message);
+            return ErrorState(
+              message: state.message,
+              onRetry: () => context.read<BannerCubit>().load(),
+            );
           }
 
           if (state is BannerLoaded) {
             if (state.items.isEmpty && !state.isRefreshing) {
-              return const _EmptyView();
+              return const EmptyState(
+                icon: Icons.image_outlined,
+                title: 'No banners yet',
+                subtitle: 'Add your first banner to get started.',
+              );
             }
             return _LoadedView(loaded: state);
           }
@@ -446,69 +455,3 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-// ── Empty / Error states ──────────────────────────────────────────────────────
-
-class _EmptyView extends StatelessWidget {
-  const _EmptyView();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.image_outlined,
-              size: 72, color: AppColors.textSecondary.withAlpha(100)),
-          const SizedBox(height: 16),
-          Text('No banners yet',
-              style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          Text(
-            'Add your first banner to get started.',
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: AppColors.textSecondary),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  final String message;
-
-  const _ErrorView({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.error_outline_rounded,
-              size: 72, color: AppColors.error),
-          const SizedBox(height: 16),
-          Text('Failed to load banners',
-              style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          Text(
-            message,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: AppColors.textSecondary),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: () => context.read<BannerCubit>().load(),
-            icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Retry'),
-          ),
-        ],
-      ),
-    );
-  }
-}

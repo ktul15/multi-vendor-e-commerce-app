@@ -6,7 +6,10 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../bloc/earnings_cubit.dart';
 import '../bloc/earnings_state.dart';
+import '../../../shared/widgets/skeleton_box.dart';
+import '../../../shared/widgets/error_state.dart';
 import '../../../shared/widgets/revenue_chart.dart';
+import '../widgets/earnings_skeleton.dart';
 import '../widgets/top_products_table.dart';
 import '../../dashboard/widgets/summary_cards.dart';
 
@@ -42,21 +45,12 @@ class _EarningsView extends StatelessWidget {
         },
         builder: (context, state) {
           if (state is EarningsLoading || state is EarningsInitial) {
-            return const Center(child: CircularProgressIndicator());
+            return const SkeletonContainer(child: EarningsSkeleton());
           }
           if (state is EarningsError) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(state.message),
-                  const SizedBox(height: AppSpacing.md),
-                  ElevatedButton(
-                    onPressed: () => context.read<EarningsCubit>().load(),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
+            return ErrorState(
+              message: state.message,
+              onRetry: () => context.read<EarningsCubit>().load(),
             );
           }
 

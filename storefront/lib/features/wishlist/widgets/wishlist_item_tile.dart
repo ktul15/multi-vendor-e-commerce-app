@@ -38,7 +38,7 @@ class WishlistItemTile extends StatelessWidget {
                       width: 90,
                       height: 90,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const _ImagePlaceholder(),
+                      errorBuilder: (_, _, _) => const _ImagePlaceholder(),
                     )
                   : const _ImagePlaceholder(),
             ),

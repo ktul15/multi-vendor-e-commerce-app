@@ -6,6 +6,7 @@ import '../../../core/config/injection_container.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../shared/widgets/skeleton_box.dart';
 import '../bloc/search_cubit.dart';
 import '../bloc/search_state.dart';
 import '../../../features/product_list/widgets/product_list_item.dart';
@@ -282,104 +283,50 @@ class _IdleView extends StatelessWidget {
 
 // ── Loading skeleton ──────────────────────────────────────────────────────────
 
-class _LoadingView extends StatefulWidget {
+class _LoadingView extends StatelessWidget {
   const _LoadingView();
 
   @override
-  State<_LoadingView> createState() => _LoadingViewState();
-}
-
-class _LoadingViewState extends State<_LoadingView>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _animController;
-  late final Animation<double> _animation;
-
-  @override
-  void initState() {
-    super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )..repeat(reverse: true);
-    _animation = Tween<double>(begin: 0.3, end: 0.7).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _animController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      itemCount: 6,
-      itemBuilder: (context, _) => _SkeletonItem(animation: _animation),
+    return SkeletonContainer(
+      child: ListView.builder(
+        itemCount: 6,
+        itemBuilder: (context, _) => const _SkeletonItem(),
+      ),
     );
   }
 }
 
 class _SkeletonItem extends StatelessWidget {
-  final Animation<double> animation;
-
-  const _SkeletonItem({required this.animation});
+  const _SkeletonItem();
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: animation,
-      child: Card(
-        margin: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.base,
-          vertical: AppSpacing.xs,
-        ),
-        child: SizedBox(
-          height: 110,
-          child: Row(
-            children: [
-              Container(
-                width: 110,
-                height: 110,
-                color: AppColors.border,
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Container(
-                        height: 14,
-                        decoration: BoxDecoration(
-                          color: AppColors.border,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      Container(
-                        height: 14,
-                        width: 120,
-                        decoration: BoxDecoration(
-                          color: AppColors.border,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      Container(
-                        height: 14,
-                        width: 80,
-                        decoration: BoxDecoration(
-                          color: AppColors.border,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ],
-                  ),
+    return Card(
+      margin: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.base,
+        vertical: AppSpacing.xs,
+      ),
+      child: SizedBox(
+        height: 110,
+        child: Row(
+          children: [
+            const SkeletonBox(width: 110, height: 110, radius: 0),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: const [
+                    SkeletonBox(width: double.infinity, height: 14),
+                    SkeletonBox(width: 120, height: 14),
+                    SkeletonBox(width: 80, height: 14),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

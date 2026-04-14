@@ -7,6 +7,9 @@ import '../../../core/theme/app_text_styles.dart';
 import '../bloc/admin_dashboard_cubit.dart';
 import '../bloc/admin_dashboard_state.dart';
 import '../models/admin_stats_model.dart';
+import '../../../shared/widgets/skeleton_box.dart';
+import '../../../shared/widgets/error_state.dart';
+import '../widgets/dashboard_skeleton.dart';
 import '../widgets/recent_orders_table.dart';
 import '../widgets/revenue_chart.dart';
 import '../widgets/stat_card.dart';
@@ -51,15 +54,17 @@ class DashboardPage extends StatelessWidget {
             elevation: 0,
             scrolledUnderElevation: 1,
             title: const Text('Overview'),
-            titleTextStyle:
-                AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
+            titleTextStyle: AppTextStyles.h5.copyWith(
+              color: AppColors.textPrimary,
+            ),
           ),
           body: switch (state) {
-            AdminDashboardInitial() ||
-            AdminDashboardLoading() =>
-              const Center(child: CircularProgressIndicator()),
-            AdminDashboardError(:final message) =>
-              _ErrorBody(message: message),
+            AdminDashboardInitial() || AdminDashboardLoading() =>
+              const SkeletonContainer(child: DashboardSkeleton()),
+            AdminDashboardError(:final message) => ErrorState(
+                message: message,
+                onRetry: () => context.read<AdminDashboardCubit>().refresh(),
+              ),
             AdminDashboardLoaded() => _LoadedBody(state: state),
           },
         );
@@ -166,43 +171,3 @@ class _StatCards extends StatelessWidget {
   }
 }
 
-// ── Error body ────────────────────────────────────────────────────────────────
-
-class _ErrorBody extends StatelessWidget {
-  final String message;
-
-  const _ErrorBody({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.wifi_off_rounded, size: 72, color: Colors.grey),
-            const SizedBox(height: AppSpacing.base),
-            Text(
-              'Something went wrong',
-              style: AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              message,
-              style:
-                  AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            ElevatedButton.icon(
-              onPressed: () => context.read<AdminDashboardCubit>().refresh(),
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Try Again'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

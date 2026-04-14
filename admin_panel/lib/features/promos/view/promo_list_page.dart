@@ -4,9 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/config/app_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/skeleton_box.dart';
+import '../../../shared/widgets/error_state.dart';
+import '../../../shared/widgets/empty_state.dart';
 import '../bloc/promo_cubit.dart';
 import '../bloc/promo_state.dart';
 import '../models/promo_model.dart';
+import '../widgets/promo_list_skeleton.dart';
 
 class PromoListPage extends StatefulWidget {
   const PromoListPage({super.key});
@@ -98,14 +102,15 @@ class _PromoListPageState extends State<PromoListPage> {
           }
         },
         builder: (context, state) {
-          if (state is PromoLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            );
+          if (state is PromoInitial || state is PromoLoading) {
+            return const SkeletonContainer(child: PromoListSkeleton());
           }
 
           if (state is PromoError) {
-            return _ErrorView(message: state.message);
+            return ErrorState(
+              message: state.message,
+              onRetry: () => context.read<PromoCubit>().load(),
+            );
           }
 
           if (state is PromoLoaded) {
@@ -114,7 +119,11 @@ class _PromoListPageState extends State<PromoListPage> {
                 state.searchQuery == null &&
                 state.isActiveFilter == null &&
                 state.discountTypeFilter == null) {
-              return const _EmptyView();
+              return const EmptyState(
+                icon: Icons.discount_outlined,
+                title: 'No promo codes yet',
+                subtitle: 'Add your first promo code to get started.',
+              );
             }
             return _LoadedView(
               loaded: state,
@@ -513,69 +522,3 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-// ── Empty / Error states ──────────────────────────────────────────────────────
-
-class _EmptyView extends StatelessWidget {
-  const _EmptyView();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.discount_outlined,
-              size: 72, color: AppColors.textSecondary.withAlpha(100)),
-          const SizedBox(height: 16),
-          Text('No promo codes yet',
-              style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          Text(
-            'Add your first promo code to get started.',
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: AppColors.textSecondary),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  final String message;
-
-  const _ErrorView({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.error_outline_rounded,
-              size: 72, color: AppColors.error),
-          const SizedBox(height: 16),
-          Text('Failed to load promo codes',
-              style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          Text(
-            message,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: AppColors.textSecondary),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: () => context.read<PromoCubit>().load(),
-            icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Retry'),
-          ),
-        ],
-      ),
-    );
-  }
-}

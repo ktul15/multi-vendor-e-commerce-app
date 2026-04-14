@@ -5,10 +5,14 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/models/address_model.dart';
+import '../../../shared/widgets/empty_state.dart';
+import '../../../shared/widgets/error_state.dart';
+import '../../../shared/widgets/skeleton_box.dart';
 import '../bloc/address_management_cubit.dart';
 import '../bloc/address_management_state.dart';
 import '../widgets/address_card.dart';
 import '../widgets/address_form_sheet.dart';
+import '../widgets/address_skeleton.dart';
 
 class AddressManagementPage extends StatelessWidget {
   const AddressManagementPage({super.key});
@@ -42,10 +46,9 @@ class _AddressManagementView extends StatelessWidget {
       body: BlocBuilder<AddressManagementCubit, AddressManagementState>(
         builder: (context, state) {
           return switch (state) {
-            AddressManagementLoading() => const Center(
-                child: CircularProgressIndicator(),
-              ),
-            AddressManagementError(:final message) => _ErrorBody(
+            AddressManagementLoading() =>
+              SkeletonContainer(child: const AddressSkeleton()),
+            AddressManagementError(:final message) => ErrorState(
                 message: message,
                 onRetry: () =>
                     context.read<AddressManagementCubit>().loadAddresses(),
@@ -115,7 +118,11 @@ class _LoadedBody extends StatelessWidget {
 
         if (state.addresses.isEmpty)
           const SliverFillRemaining(
-            child: _EmptyState(),
+            child: EmptyState(
+              icon: Icons.location_off_outlined,
+              title: 'No saved addresses',
+              subtitle: 'Tap + to add your first address.',
+            ),
           )
         else
           SliverList(
@@ -182,75 +189,3 @@ class _LoadedBody extends StatelessWidget {
   }
 }
 
-// ── Sub-widgets ───────────────────────────────────────────────────────────────
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.location_off_outlined,
-              size: 64,
-              color: AppColors.textSecondary.withAlpha(128),
-            ),
-            const SizedBox(height: AppSpacing.base),
-            Text(
-              'No saved addresses',
-              style: AppTextStyles.h5.copyWith(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Tap + to add one.',
-              style:
-                  AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ErrorBody extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-
-  const _ErrorBody({required this.message, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: AppColors.error),
-            const SizedBox(height: AppSpacing.base),
-            Text('Something went wrong', style: AppTextStyles.h5),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              message,
-              style:
-                  AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            ElevatedButton(
-              onPressed: onRetry,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
