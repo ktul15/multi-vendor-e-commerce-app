@@ -5,10 +5,12 @@ import '../../../core/config/app_router.dart';
 import '../../../core/config/injection_container.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../shared/widgets/empty_state.dart';
+import '../../../shared/widgets/skeleton_box.dart';
 import '../bloc/notification_cubit.dart';
 import '../bloc/notification_state.dart';
 import '../widgets/notification_tile.dart';
+import '../widgets/notifications_skeleton.dart';
 
 class NotificationCenterPage extends StatefulWidget {
   const NotificationCenterPage({super.key});
@@ -66,41 +68,20 @@ class _NotificationCenterPageState extends State<NotificationCenterPage> {
         body: BlocBuilder<NotificationCubit, NotificationState>(
           builder: (context, state) {
             if (state is NotificationInitial) {
-              return const Center(child: CircularProgressIndicator());
+              return SkeletonContainer(child: const NotificationsSkeleton());
             }
 
             final loaded = state as NotificationLoaded;
 
             if (loaded.isLoading) {
-              return const Center(child: CircularProgressIndicator());
+              return SkeletonContainer(child: const NotificationsSkeleton());
             }
 
             if (loaded.notifications.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.notifications_none_outlined,
-                      size: 72,
-                      color: AppColors.textSecondary.withAlpha(128),
-                    ),
-                    const SizedBox(height: AppSpacing.base),
-                    Text(
-                      'No notifications yet',
-                      style: AppTextStyles.h5.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      'You\'ll be notified about order updates here',
-                      style: AppTextStyles.body.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
+              return const EmptyState(
+                icon: Icons.notifications_none_outlined,
+                title: 'No notifications yet',
+                subtitle: 'You\'ll be notified about order updates here',
               );
             }
 

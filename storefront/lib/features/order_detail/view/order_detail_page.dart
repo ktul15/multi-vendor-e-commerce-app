@@ -8,9 +8,12 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/models/order_detail_model.dart';
 import '../../order_history/widgets/order_status_badge.dart';
+import '../../../shared/widgets/error_state.dart';
+import '../../../shared/widgets/skeleton_box.dart';
 import '../bloc/order_detail_cubit.dart';
 import '../bloc/order_detail_state.dart';
 import '../widgets/order_address_section.dart';
+import '../widgets/order_detail_skeleton.dart';
 import '../widgets/order_items_section.dart';
 import '../widgets/order_payment_section.dart';
 import '../widgets/order_status_timeline.dart';
@@ -53,59 +56,20 @@ class _OrderDetailView extends StatelessWidget {
       },
       child: BlocBuilder<OrderDetailCubit, OrderDetailState>(
         builder: (context, state) => switch (state) {
-          OrderDetailInitial() || OrderDetailLoading() => const _LoadingView(),
-          OrderDetailError(:final message, :final orderId) =>
-            _ErrorView(message: message, orderId: orderId),
+          OrderDetailInitial() || OrderDetailLoading() => Scaffold(
+              appBar: AppBar(title: const Text('Order Details')),
+              body: SkeletonContainer(child: const OrderDetailSkeleton()),
+            ),
+          OrderDetailError(:final message, :final orderId) => Scaffold(
+              appBar: AppBar(title: const Text('Order Details')),
+              body: ErrorState(
+                message: message,
+                onRetry: () =>
+                    context.read<OrderDetailCubit>().loadOrder(orderId),
+              ),
+            ),
           OrderDetailLoaded() => _LoadedView(state: state),
         },
-      ),
-    );
-  }
-}
-
-// ── Loading ──────────────────────────────────────────────────────────────────
-
-class _LoadingView extends StatelessWidget {
-  const _LoadingView();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
-    );
-  }
-}
-
-// ── Error ────────────────────────────────────────────────────────────────────
-
-class _ErrorView extends StatelessWidget {
-  final String message;
-  final String orderId;
-
-  const _ErrorView({required this.message, required this.orderId});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Order Details')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-              const SizedBox(height: AppSpacing.base),
-              Text(message, style: AppTextStyles.body, textAlign: TextAlign.center),
-              const SizedBox(height: AppSpacing.base),
-              FilledButton(
-                onPressed: () =>
-                    context.read<OrderDetailCubit>().loadOrder(orderId),
-                child: const Text('Try Again'),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

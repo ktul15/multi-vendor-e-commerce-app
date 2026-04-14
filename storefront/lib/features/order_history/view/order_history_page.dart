@@ -4,9 +4,13 @@ import '../../../core/config/injection_container.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../shared/widgets/empty_state.dart';
+import '../../../shared/widgets/error_state.dart';
+import '../../../shared/widgets/skeleton_box.dart';
 import '../bloc/order_list_cubit.dart';
 import '../bloc/order_list_state.dart';
 import '../widgets/order_card.dart';
+import '../widgets/order_history_skeleton.dart';
 
 class OrderHistoryPage extends StatelessWidget {
   const OrderHistoryPage({super.key});
@@ -93,12 +97,18 @@ class _OrderHistoryViewState extends State<_OrderHistoryView> {
               builder: (context, state) => switch (state) {
                 OrderListInitial() ||
                 OrderListLoading() =>
-                  const Center(child: CircularProgressIndicator()),
-                OrderListError(:final message) =>
-                  _ErrorBody(message: message),
+                  SkeletonContainer(child: const OrderHistorySkeleton()),
+                OrderListError(:final message) => ErrorState(
+                    message: message,
+                    onRetry: () => context.read<OrderListCubit>().refresh(),
+                  ),
                 OrderListLoaded(:final orders, :final isLoadingMore) =>
                   orders.isEmpty
-                      ? const _EmptyBody()
+                      ? const EmptyState(
+                          icon: Icons.receipt_long_outlined,
+                          title: 'No orders yet',
+                          subtitle: 'Your order history will appear here',
+                        )
                       : RefreshIndicator(
                           color: AppColors.primary,
                           onRefresh: () =>
@@ -189,75 +199,3 @@ class _FilterTabBar extends StatelessWidget {
   }
 }
 
-// ── Empty state ──────────────────────────────────────────────────────────────
-
-class _EmptyBody extends StatelessWidget {
-  const _EmptyBody();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.receipt_long_outlined,
-            size: 72,
-            color: AppColors.textSecondary.withAlpha(128),
-          ),
-          const SizedBox(height: AppSpacing.base),
-          Text(
-            'No orders yet',
-            style: AppTextStyles.h5.copyWith(color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            'Your order history will appear here',
-            style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Error state ──────────────────────────────────────────────────────────────
-
-class _ErrorBody extends StatelessWidget {
-  final String message;
-
-  const _ErrorBody({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.wifi_off_rounded, size: 72, color: Colors.grey),
-            const SizedBox(height: AppSpacing.base),
-            Text(
-              'Something went wrong',
-              style: AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              message,
-              style:
-                  AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            ElevatedButton.icon(
-              onPressed: () => context.read<OrderListCubit>().refresh(),
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Try Again'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

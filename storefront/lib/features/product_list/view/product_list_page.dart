@@ -8,6 +8,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/models/product_filters.dart';
 import '../../../shared/widgets/product_card.dart';
+import '../../../shared/widgets/skeleton_box.dart';
 import '../bloc/product_list_cubit.dart';
 import '../bloc/product_list_state.dart';
 import '../widgets/filter_bottom_sheet.dart';
@@ -300,94 +301,61 @@ class _ListView extends StatelessWidget {
 
 // ── Loading / error / empty states ────────────────────────────────────────────
 
-class _LoadingView extends StatefulWidget {
+class _LoadingView extends StatelessWidget {
   const _LoadingView();
 
   @override
-  State<_LoadingView> createState() => _LoadingViewState();
-}
-
-class _LoadingViewState extends State<_LoadingView>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _opacity;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )..repeat(reverse: true);
-    _opacity = Tween<double>(begin: 0.25, end: 0.6).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(AppSpacing.base),
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: AppSpacing.sm,
-        mainAxisSpacing: AppSpacing.sm,
-        childAspectRatio: 0.7,
+    return SkeletonContainer(
+      child: GridView.builder(
+        padding: const EdgeInsets.all(AppSpacing.base),
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: AppSpacing.sm,
+          mainAxisSpacing: AppSpacing.sm,
+          childAspectRatio: 0.7,
+        ),
+        itemCount: 6,
+        itemBuilder: (context, index) => const _SkeletonCard(),
       ),
-      itemCount: 6,
-      itemBuilder: (context, index) => _SkeletonCard(animation: _opacity),
     );
   }
 }
 
-/// All skeleton cards share a single [animation] driven by [_LoadingViewState]
-/// so they pulse in perfect sync.
 class _SkeletonCard extends StatelessWidget {
-  final Animation<double> animation;
-
-  const _SkeletonCard({required this.animation});
+  const _SkeletonCard();
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: animation,
-      child: Card(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 3,
-              child: Container(color: Colors.grey[300], width: double.infinity),
+    return Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 3,
+            child: SkeletonBox(
+              width: double.infinity,
+              height: double.infinity,
+              radius: 0,
             ),
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.sm),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Container(
-                        height: 14,
-                        width: double.infinity,
-                        color: Colors.grey[300]),
-                    Container(
-                        height: 14, width: 80, color: Colors.grey[300]),
-                    Container(
-                        height: 12, width: 60, color: Colors.grey[300]),
-                  ],
-                ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: const [
+                  SkeletonBox(width: double.infinity, height: 14),
+                  SkeletonBox(width: 80, height: 14),
+                  SkeletonBox(width: 60, height: 12),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

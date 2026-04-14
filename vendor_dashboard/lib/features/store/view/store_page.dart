@@ -5,8 +5,11 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/models/vendor_profile.dart';
+import '../../../shared/widgets/skeleton_box.dart';
+import '../../../shared/widgets/error_state.dart';
 import '../bloc/store_cubit.dart';
 import '../bloc/store_state.dart';
+import '../widgets/store_skeleton.dart';
 
 class StorePage extends StatelessWidget {
   const StorePage({super.key});
@@ -86,21 +89,12 @@ class _StoreViewState extends State<_StoreView> {
         },
         builder: (context, state) {
           if (state is StoreLoading || state is StoreInitial) {
-            return const Center(child: CircularProgressIndicator());
+            return const SkeletonContainer(child: StoreSkeleton());
           }
           if (state is StoreError) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(state.message),
-                  const SizedBox(height: AppSpacing.md),
-                  ElevatedButton(
-                    onPressed: () => context.read<StoreCubit>().load(),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
+            return ErrorState(
+              message: state.message,
+              onRetry: () => context.read<StoreCubit>().load(),
             );
           }
 

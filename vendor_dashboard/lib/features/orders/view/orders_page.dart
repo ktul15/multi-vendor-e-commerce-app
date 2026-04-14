@@ -7,6 +7,9 @@ import '../../../core/theme/app_text_styles.dart';
 import '../bloc/orders_cubit.dart';
 import '../bloc/orders_state.dart';
 import '../../../shared/models/vendor_order.dart';
+import '../../../shared/widgets/skeleton_box.dart';
+import '../../../shared/widgets/error_state.dart';
+import '../widgets/orders_skeleton.dart';
 import '../widgets/orders_table.dart';
 import '../widgets/update_status_dialog.dart';
 
@@ -121,20 +124,10 @@ class _OrdersView extends StatelessWidget {
                       padding: const EdgeInsets.all(AppSpacing.md),
                       child: switch (state) {
                         OrdersLoading() || OrdersInitial() =>
-                          const Center(child: CircularProgressIndicator()),
-                        OrdersError(:final message) => Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(message),
-                                const SizedBox(height: AppSpacing.md),
-                                ElevatedButton(
-                                  onPressed: () =>
-                                      context.read<OrdersCubit>().load(),
-                                  child: const Text('Retry'),
-                                ),
-                              ],
-                            ),
+                          const SkeletonContainer(child: OrdersSkeleton()),
+                        OrdersError(:final message) => ErrorState(
+                            message: message,
+                            onRetry: () => context.read<OrdersCubit>().load(),
                           ),
                         OrdersLoaded(:final orders) => OrdersTable(
                             orders: orders,

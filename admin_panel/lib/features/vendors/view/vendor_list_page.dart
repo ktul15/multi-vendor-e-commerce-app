@@ -8,6 +8,9 @@ import '../../../core/theme/app_colors.dart';
 import '../bloc/vendor_cubit.dart';
 import '../bloc/vendor_state.dart';
 import '../models/vendor_model.dart';
+import '../../../shared/widgets/skeleton_box.dart';
+import '../../../shared/widgets/error_state.dart';
+import '../widgets/vendor_list_skeleton.dart';
 import '../widgets/vendor_status_badge.dart';
 
 class VendorListPage extends StatefulWidget {
@@ -56,10 +59,12 @@ class _VendorListPageState extends State<VendorListPage> {
       body: BlocBuilder<VendorCubit, VendorState>(
         builder: (context, state) {
           return switch (state) {
-            VendorInitial() || VendorLoading() => const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
+            VendorInitial() || VendorLoading() =>
+              const SkeletonContainer(child: VendorListSkeleton()),
+            VendorError(:final message) => ErrorState(
+                message: message,
+                onRetry: () => context.read<VendorCubit>().load(),
               ),
-            VendorError(:final message) => _ErrorView(message: message),
             VendorLoaded() => _LoadedBody(
                 state: state,
                 searchController: _searchController,
@@ -580,42 +585,3 @@ class _ConfirmDialog extends StatelessWidget {
   }
 }
 
-// ── Error view ────────────────────────────────────────────────────────────────
-
-class _ErrorView extends StatelessWidget {
-  final String message;
-
-  const _ErrorView({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.error_outline_rounded, size: 72, color: AppColors.error),
-          const SizedBox(height: 16),
-          Text(
-            'Failed to load vendors',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            message,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: AppColors.textSecondary),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: () => context.read<VendorCubit>().load(),
-            icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Retry'),
-          ),
-        ],
-      ),
-    );
-  }
-}
