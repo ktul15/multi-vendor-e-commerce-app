@@ -178,6 +178,22 @@ class _HomeAppBar extends StatelessWidget {
               );
             },
           ),
+          const SizedBox(width: AppSpacing.sm),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            style: IconButton.styleFrom(
+              backgroundColor: AppColors.surface,
+              foregroundColor: AppColors.textPrimary,
+            ),
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'settings', child: Text('Settings')),
+            ],
+            onSelected: (value) {
+              if (value == 'settings') {
+                context.pushNamed(AppRoutes.settingsName);
+              }
+            },
+          ),
         ],
       ),
     );

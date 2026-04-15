@@ -10,6 +10,8 @@ import 'core/services/push_notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/bloc/auth_bloc.dart';
 import 'features/auth/bloc/auth_event.dart';
+import 'features/settings/bloc/theme_cubit.dart';
+import 'features/settings/bloc/theme_state.dart'; // ThemeLoaded
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,20 +35,31 @@ class StorefrontApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<AuthBloc>()..add(AuthCheckRequested()),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => sl<ThemeCubit>()),
+        BlocProvider(create: (_) => sl<AuthBloc>()..add(AuthCheckRequested())),
+      ],
       child: Builder(
         builder: (context) {
           final authBloc = context.read<AuthBloc>();
           final router = appRouter(authBloc);
 
-          return MaterialApp.router(
-            title: AppEnv.appName,
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.light,
-            darkTheme: AppTheme.dark,
-            themeMode: ThemeMode.system,
-            routerConfig: router,
+          return BlocBuilder<ThemeCubit, ThemeState>(
+            builder: (context, themeState) {
+              // loadTheme() is awaited in initDependencies before runApp,
+              // so themeState is always ThemeLoaded here.
+              final themeMode = (themeState as ThemeLoaded).mode;
+
+              return MaterialApp.router(
+                title: AppEnv.appName,
+                debugShowCheckedModeBanner: false,
+                theme: AppTheme.light,
+                darkTheme: AppTheme.dark,
+                themeMode: themeMode,
+                routerConfig: router,
+              );
+            },
           );
         },
       ),
