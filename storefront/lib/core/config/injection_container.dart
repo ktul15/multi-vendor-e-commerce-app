@@ -5,6 +5,8 @@ import '../network/dio_http_client.dart';
 import '../network/http_client.dart';
 import '../network/token_storage.dart';
 import '../storage/recent_searches_storage.dart';
+import '../storage/theme_storage.dart';
+import '../../features/settings/bloc/theme_cubit.dart';
 import '../../repositories/auth_repository.dart';
 import '../../repositories/home_repository.dart';
 import '../../repositories/product_detail_repository.dart';
@@ -120,6 +122,16 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<RecentSearchesStorage>(
     () => RecentSearchesStorage(),
   );
+
+  // ThemeCubit (singleton — drives the root MaterialApp themeMode, must persist
+  // across all routes; same rationale as AuthBloc). loadTheme() is awaited here
+  // so the preference is loaded before runApp and ThemeLoaded is the only
+  // observable state during the app lifetime.
+  final themeStorage = ThemeStorage();
+  final themeCubit = ThemeCubit(storage: themeStorage);
+  await themeCubit.loadTheme();
+  sl.registerSingleton<ThemeStorage>(themeStorage);
+  sl.registerSingleton<ThemeCubit>(themeCubit);
 
   // ── BLoCs / Cubits ────────────────────────
 

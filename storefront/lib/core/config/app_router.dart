@@ -20,6 +20,7 @@ import '../../features/order_history/view/order_history_page.dart';
 import '../../features/reviews/view/review_list_page.dart';
 import '../../features/reviews/view/write_review_page.dart';
 import '../../features/search/view/search_page.dart';
+import '../../features/settings/view/settings_page.dart';
 import '../../features/wishlist/view/wishlist_page.dart';
 import '../../shared/models/order_model.dart';
 import '../../shared/models/product_filters.dart';
@@ -39,6 +40,7 @@ class AppRoutes {
   static const String search = '/search';
   static const String cart = '/cart';
   static const String profile = '/profile';
+  static const String settings = '/settings';
   static const String addresses = '/addresses';
   static const String orders = '/orders';
   static const String orderDetail = '/orders/:id';
@@ -59,6 +61,7 @@ class AppRoutes {
   static const String searchName = 'search';
   static const String cartName = 'cart';
   static const String profileName = 'profile';
+  static const String settingsName = 'settings';
   static const String addressesName = 'addresses';
   static const String ordersName = 'orders';
   static const String orderDetailName = 'orderDetail';
@@ -149,6 +152,11 @@ GoRouter appRouter(AuthBloc authBloc) {
         name: AppRoutes.cartName,
         path: AppRoutes.cart,
         builder: (context, state) => const CartPage(),
+      ),
+      GoRoute(
+        name: AppRoutes.settingsName,
+        path: AppRoutes.settings,
+        builder: (context, state) => const SettingsPage(),
       ),
       GoRoute(
         name: AppRoutes.addressesName,
