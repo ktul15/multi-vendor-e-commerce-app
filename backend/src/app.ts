@@ -12,6 +12,7 @@ const app: Application = express();
 // ---------------------
 // Security & Parsing
 // ---------------------
+// Strict Helmet for all routes
 app.use(helmet());
 app.use(
   cors({
@@ -73,6 +74,48 @@ if (env.isDev) {
   app.use(morgan('dev'));
 } else {
   app.use(morgan('combined'));
+}
+
+// ---------------------
+// API Documentation (dev only)
+// ---------------------
+if (env.isDev) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const swaggerUi = require('swagger-ui-express');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { buildSwaggerSpec } = require('./config/swagger');
+  const swaggerSpec = buildSwaggerSpec();
+
+  // Relax CSP and COEP only for the docs route — Swagger UI needs inline scripts
+  // and loads assets from cdn.jsdelivr.net. Keeping this scoped prevents the
+  // looser policy from affecting API JSON responses served to clients.
+  app.use(
+    '/api/docs',
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
+          styleSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
+          imgSrc: ["'self'", 'data:', 'cdn.jsdelivr.net'],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+    }),
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec, {
+      customSiteTitle: 'Multi-Vendor E-Commerce API Docs',
+      swaggerOptions: {
+        persistAuthorization: true,
+        tryItOutEnabled: true,
+        displayRequestDuration: true,
+      },
+    })
+  );
+  app.get('/api/docs.json', (_req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
+  });
 }
 
 // ---------------------
