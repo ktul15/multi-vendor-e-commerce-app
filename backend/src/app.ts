@@ -15,11 +15,31 @@ const app: Application = express();
 app.use(helmet());
 app.use(
   cors({
-    origin: [
-      env.STOREFRONT_URL,
-      env.VENDOR_DASHBOARD_URL,
-      env.ADMIN_DASHBOARD_URL,
-    ],
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+
+      const allowedOrigins = [
+        env.STOREFRONT_URL,
+        env.VENDOR_DASHBOARD_URL,
+        env.ADMIN_DASHBOARD_URL,
+      ];
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // In development, allow any localhost/127.0.0.1 port (Flutter web often uses random ports)
+      if (
+        env.isDev &&
+        (origin.startsWith('http://localhost:') ||
+          origin.startsWith('http://127.0.0.1:'))
+      ) {
+        return callback(null, true);
+      }
+
+      callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
   })
 );

@@ -9,6 +9,11 @@ import 'features/auth/bloc/auth_cubit.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initDependencies();
+
+  // Await checkAuth before running the app so token is fully restored
+  // and router correctly redirects immediately upon first frame.
+  await sl<AuthCubit>().checkAuth();
+
   runApp(const AdminPanelApp());
 }
 
@@ -21,7 +26,7 @@ class AdminPanelApp extends StatelessWidget {
     // Using create: would let flutter_bloc close() the cubit on dispose, leaving
     // a closed instance in GetIt that throws on the next emit().
     return BlocProvider.value(
-      value: sl<AuthCubit>()..checkAuth(),
+      value: sl<AuthCubit>(),
       child: Builder(
         builder: (context) {
           final authCubit = context.read<AuthCubit>();

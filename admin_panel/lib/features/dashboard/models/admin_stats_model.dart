@@ -27,19 +27,20 @@ class AdminStatsModel extends Equatable {
       pendingVendors: json['pendingVendors'] as int,
       totalProducts: json['totalProducts'] as int,
       totalOrders: json['totalOrders'] as int,
-      platformRevenue:
-          (json['platformRevenue'] as num?)?.toDouble() ?? 0.0,
+      platformRevenue: json['platformRevenue'] is String
+          ? double.tryParse(json['platformRevenue'] as String) ?? 0.0
+          : (json['platformRevenue'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
   @override
   List<Object?> get props => [
-        totalUsers,
-        bannedUsers,
-        totalVendors,
-        pendingVendors,
-        totalProducts,
-        totalOrders,
-        platformRevenue,
-      ];
+    totalUsers,
+    bannedUsers,
+    totalVendors,
+    pendingVendors,
+    totalProducts,
+    totalOrders,
+    platformRevenue,
+  ];
 }

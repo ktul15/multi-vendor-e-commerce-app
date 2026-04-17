@@ -20,8 +20,20 @@ final _currencyFormat = NumberFormat.currency(
   decimalDigits: 2,
 );
 
-class DashboardPage extends StatelessWidget {
+class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
+
+  @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Only fetch data if it hasn't been loaded yet.
+    context.read<AdminDashboardCubit>().ensureLoaded();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,9 +74,9 @@ class DashboardPage extends StatelessWidget {
             AdminDashboardInitial() || AdminDashboardLoading() =>
               const SkeletonContainer(child: DashboardSkeleton()),
             AdminDashboardError(:final message) => ErrorState(
-                message: message,
-                onRetry: () => context.read<AdminDashboardCubit>().refresh(),
-              ),
+              message: message,
+              onRetry: () => context.read<AdminDashboardCubit>().refresh(),
+            ),
             AdminDashboardLoaded() => _LoadedBody(state: state),
           },
         );
@@ -132,7 +144,6 @@ class _StatCards extends StatelessWidget {
                 iconColor: AppColors.info,
               ),
             ),
-            const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: StatCard(
                 title: 'Vendors',
@@ -155,7 +166,6 @@ class _StatCards extends StatelessWidget {
                 iconColor: AppColors.warning,
               ),
             ),
-            const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: StatCard(
                 title: 'Revenue',
@@ -170,4 +180,3 @@ class _StatCards extends StatelessWidget {
     );
   }
 }
-
