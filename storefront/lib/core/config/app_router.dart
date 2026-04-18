@@ -73,6 +73,21 @@ class AppRoutes {
   static const String wishlistName = 'wishlist';
 }
 
+/// Paths accessible without authentication (deep-link friendly).
+///
+/// Auth pages are always public so unauthenticated users can sign in.
+/// Product detail (/product/:id) and product reviews (/product/:id/reviews)
+/// are publicly viewable — share links should work without an account.
+/// Write-review (/product/:id/review/write) requires auth and is NOT listed
+/// here, so unauthenticated users are redirected to login first.
+bool _isPublicPath(String location) {
+  return location == AppRoutes.login ||
+      location == AppRoutes.register ||
+      location == AppRoutes.forgotPassword ||
+      // Match /product/<id> but not /product/<id>/review/write
+      RegExp(r'^/product/[^/]+(\/reviews)?$').hasMatch(location);
+}
+
 /// GoRouter configuration with auth-aware redirects.
 GoRouter appRouter(AuthBloc authBloc) {
   return GoRouter(
@@ -80,19 +95,21 @@ GoRouter appRouter(AuthBloc authBloc) {
     refreshListenable: GoRouterRefreshStream(authBloc.stream),
     redirect: (context, state) {
       final authState = authBloc.state;
+      final location = state.matchedLocation;
       final isOnAuthPage =
-          state.matchedLocation == AppRoutes.login ||
-          state.matchedLocation == AppRoutes.register ||
-          state.matchedLocation == AppRoutes.forgotPassword;
+          location == AppRoutes.login ||
+          location == AppRoutes.register ||
+          location == AppRoutes.forgotPassword;
 
       // Still loading — don't redirect
       if (authState is AuthInitial || authState is AuthLoading) {
         return null;
       }
 
-      // Not authenticated — redirect to login (unless already on auth page)
+      // Not authenticated — allow public paths (login, register, product detail)
+      // and redirect everything else to login.
       if (authState is! AuthAuthenticated) {
-        return isOnAuthPage ? null : AppRoutes.login;
+        return _isPublicPath(location) ? null : AppRoutes.login;
       }
 
       // Authenticated — redirect away from auth pages
