@@ -8,6 +8,9 @@ import '../../../core/theme/app_colors.dart';
 import '../bloc/product_moderation_cubit.dart';
 import '../bloc/product_moderation_state.dart';
 import '../models/admin_product_model.dart';
+import '../../../shared/widgets/skeleton_box.dart';
+import '../../../shared/widgets/error_state.dart';
+import '../widgets/product_moderation_skeleton.dart';
 import '../widgets/product_status_badge.dart';
 
 class ProductModerationListPage extends StatefulWidget {
@@ -61,11 +64,12 @@ class _ProductModerationListPageState
           return switch (state) {
             ProductModerationInitial() ||
             ProductModerationLoading() =>
-              const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
+              const SkeletonContainer(child: ProductModerationSkeleton()),
+            ProductModerationError(:final message) => ErrorState(
+                message: message,
+                onRetry: () =>
+                    context.read<ProductModerationCubit>().load(),
               ),
-            ProductModerationError(:final message) =>
-              _ErrorView(message: message),
             ProductModerationLoaded() => _LoadedBody(
                 state: state,
                 searchController: _searchController,
@@ -621,46 +625,3 @@ class _ConfirmDialog extends StatelessWidget {
   }
 }
 
-// ── Error view ────────────────────────────────────────────────────────────────
-
-class _ErrorView extends StatelessWidget {
-  final String message;
-
-  const _ErrorView({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.error_outline_rounded,
-            size: 72,
-            color: AppColors.error,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Failed to load products',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            message,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: AppColors.textSecondary),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: () => context.read<ProductModerationCubit>().load(),
-            icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Retry'),
-          ),
-        ],
-      ),
-    );
-  }
-}

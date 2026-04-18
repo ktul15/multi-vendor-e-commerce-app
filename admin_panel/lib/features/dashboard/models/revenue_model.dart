@@ -15,7 +15,9 @@ class RevenueDataPoint extends Equatable {
     return RevenueDataPoint(
       periodStart: DateTime.parse(json['periodStart'] as String),
       orderCount: json['orderCount'] as int,
-      revenue: (json['revenue'] as num?)?.toDouble() ?? 0.0,
+      revenue: json['revenue'] is String
+          ? double.tryParse(json['revenue'] as String) ?? 0.0
+          : (json['revenue'] as num?)?.toDouble() ?? 0.0,
     );
   }
 

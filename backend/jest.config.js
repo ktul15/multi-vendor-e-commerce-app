@@ -20,5 +20,12 @@ module.exports = {
         '!src/server.ts',
     ],
     coverageDirectory: 'coverage',
+    coverageThreshold: {
+        // Lines must stay ≥70% per issue #61.
+        // Branch coverage is lower (~49%) because many modules (cloudinary, FCM, email, banners,
+        // vendor-payout transfers, etc.) are infrastructure-level and not exercised in the current
+        // test suite. Raise the branch floor incrementally as coverage improves.
+        global: { lines: 70 },
+    },
     testTimeout: 15000,
 };

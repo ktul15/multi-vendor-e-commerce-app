@@ -6,9 +6,12 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../features/dashboard/models/revenue_model.dart';
 import '../../../features/dashboard/widgets/revenue_chart.dart';
+import '../../../shared/widgets/skeleton_box.dart';
+import '../../../shared/widgets/error_state.dart';
 import '../bloc/finance_cubit.dart';
 import '../bloc/finance_state.dart';
 import '../models/commission_model.dart';
+import '../widgets/finance_skeleton.dart';
 
 final _currencyFormat = NumberFormat.currency(symbol: '\$');
 
@@ -144,8 +147,11 @@ class _FinancePageState extends State<FinancePage> {
           body: switch (state) {
             FinanceInitial() ||
             FinanceLoading() =>
-              const Center(child: CircularProgressIndicator()),
-            FinanceError(:final message) => _ErrorBody(message: message),
+              const SkeletonContainer(child: FinanceSkeleton()),
+            FinanceError(:final message) => ErrorState(
+                message: message,
+                onRetry: () => context.read<FinanceCubit>().load(),
+              ),
             FinanceLoaded() => _FinanceBody(
                 state: state,
                 onShowDatePicker: () => _showDateRangePicker(state),
@@ -480,41 +486,3 @@ class _CommissionCard extends StatelessWidget {
   }
 }
 
-// ── Error body ────────────────────────────────────────────────────────────────
-
-class _ErrorBody extends StatelessWidget {
-  final String message;
-
-  const _ErrorBody({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline_rounded,
-                size: 72, color: AppColors.error),
-            const SizedBox(height: AppSpacing.base),
-            Text('Failed to load finance data', style: AppTextStyles.h5),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              message,
-              style:
-                  AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            FilledButton.icon(
-              onPressed: () => context.read<FinanceCubit>().load(),
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Try Again'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

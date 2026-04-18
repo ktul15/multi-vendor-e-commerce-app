@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../repositories/admin_dashboard_repository.dart';
@@ -7,8 +8,8 @@ class AdminDashboardCubit extends Cubit<AdminDashboardState> {
   final AdminDashboardRepository _repository;
 
   AdminDashboardCubit({required AdminDashboardRepository repository})
-      : _repository = repository,
-        super(const AdminDashboardInitial());
+    : _repository = repository,
+      super(const AdminDashboardInitial());
 
   /// Skips the network call when data is already loaded (e.g. navigating back).
   /// The router calls this so the lazySingleton cubit doesn't refetch on every visit.
@@ -26,16 +27,22 @@ class AdminDashboardCubit extends Cubit<AdminDashboardState> {
         _repository.getRecentOrders(),
       ).wait;
 
-      emit(AdminDashboardLoaded(
-        stats: results.$1,
-        revenue: results.$2,
-        recentOrders: results.$3,
-        selectedPeriod: 'day',
-      ));
-    } on ApiException catch (e) {
+      emit(
+        AdminDashboardLoaded(
+          stats: results.$1,
+          revenue: results.$2,
+          recentOrders: results.$3,
+          selectedPeriod: 'day',
+        ),
+      );
+    } on ApiException catch (e, stack) {
+      debugPrint('AdminDashboardCubit ApiException: $e\\n$stack');
       emit(AdminDashboardError(e.message));
-    } catch (_) {
-      emit(const AdminDashboardError('Something went wrong. Please try again.'));
+    } catch (e, stack) {
+      debugPrint('AdminDashboardCubit Generic Error: $e\\n$stack');
+      emit(
+        const AdminDashboardError('Something went wrong. Please try again.'),
+      );
     }
   }
 
@@ -59,10 +66,12 @@ class AdminDashboardCubit extends Cubit<AdminDashboardState> {
     } catch (_) {
       final s = state;
       if (s is AdminDashboardLoaded) {
-        emit(s.copyWith(
-          isRevenueLoading: false,
-          revenueError: 'Failed to load revenue data',
-        ));
+        emit(
+          s.copyWith(
+            isRevenueLoading: false,
+            revenueError: 'Failed to load revenue data',
+          ),
+        );
       }
     }
   }

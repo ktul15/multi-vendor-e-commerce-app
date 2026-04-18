@@ -20,6 +20,7 @@ import '../../features/order_history/view/order_history_page.dart';
 import '../../features/reviews/view/review_list_page.dart';
 import '../../features/reviews/view/write_review_page.dart';
 import '../../features/search/view/search_page.dart';
+import '../../features/settings/view/settings_page.dart';
 import '../../features/wishlist/view/wishlist_page.dart';
 import '../../shared/models/order_model.dart';
 import '../../shared/models/product_filters.dart';
@@ -39,6 +40,7 @@ class AppRoutes {
   static const String search = '/search';
   static const String cart = '/cart';
   static const String profile = '/profile';
+  static const String settings = '/settings';
   static const String addresses = '/addresses';
   static const String orders = '/orders';
   static const String orderDetail = '/orders/:id';
@@ -59,6 +61,7 @@ class AppRoutes {
   static const String searchName = 'search';
   static const String cartName = 'cart';
   static const String profileName = 'profile';
+  static const String settingsName = 'settings';
   static const String addressesName = 'addresses';
   static const String ordersName = 'orders';
   static const String orderDetailName = 'orderDetail';
@@ -70,6 +73,21 @@ class AppRoutes {
   static const String wishlistName = 'wishlist';
 }
 
+/// Paths accessible without authentication (deep-link friendly).
+///
+/// Auth pages are always public so unauthenticated users can sign in.
+/// Product detail (/product/:id) and product reviews (/product/:id/reviews)
+/// are publicly viewable — share links should work without an account.
+/// Write-review (/product/:id/review/write) requires auth and is NOT listed
+/// here, so unauthenticated users are redirected to login first.
+bool _isPublicPath(String location) {
+  return location == AppRoutes.login ||
+      location == AppRoutes.register ||
+      location == AppRoutes.forgotPassword ||
+      // Match /product/<id> but not /product/<id>/review/write
+      RegExp(r'^/product/[^/]+(\/reviews)?$').hasMatch(location);
+}
+
 /// GoRouter configuration with auth-aware redirects.
 GoRouter appRouter(AuthBloc authBloc) {
   return GoRouter(
@@ -77,19 +95,21 @@ GoRouter appRouter(AuthBloc authBloc) {
     refreshListenable: GoRouterRefreshStream(authBloc.stream),
     redirect: (context, state) {
       final authState = authBloc.state;
+      final location = state.matchedLocation;
       final isOnAuthPage =
-          state.matchedLocation == AppRoutes.login ||
-          state.matchedLocation == AppRoutes.register ||
-          state.matchedLocation == AppRoutes.forgotPassword;
+          location == AppRoutes.login ||
+          location == AppRoutes.register ||
+          location == AppRoutes.forgotPassword;
 
       // Still loading — don't redirect
       if (authState is AuthInitial || authState is AuthLoading) {
         return null;
       }
 
-      // Not authenticated — redirect to login (unless already on auth page)
+      // Not authenticated — allow public paths (login, register, product detail)
+      // and redirect everything else to login.
       if (authState is! AuthAuthenticated) {
-        return isOnAuthPage ? null : AppRoutes.login;
+        return _isPublicPath(location) ? null : AppRoutes.login;
       }
 
       // Authenticated — redirect away from auth pages
@@ -149,6 +169,11 @@ GoRouter appRouter(AuthBloc authBloc) {
         name: AppRoutes.cartName,
         path: AppRoutes.cart,
         builder: (context, state) => const CartPage(),
+      ),
+      GoRoute(
+        name: AppRoutes.settingsName,
+        path: AppRoutes.settings,
+        builder: (context, state) => const SettingsPage(),
       ),
       GoRoute(
         name: AppRoutes.addressesName,

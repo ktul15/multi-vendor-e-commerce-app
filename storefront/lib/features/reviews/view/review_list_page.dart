@@ -9,9 +9,11 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../repositories/review_repository.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/bloc/auth_state.dart';
+import '../../../shared/widgets/skeleton_box.dart';
 import '../bloc/review_list_cubit.dart';
 import '../bloc/review_list_state.dart';
 import '../widgets/rating_breakdown.dart';
+import '../widgets/review_list_skeleton.dart';
 import '../widgets/review_tile.dart';
 
 class ReviewListPage extends StatefulWidget {
@@ -87,7 +89,7 @@ class _ReviewListPageState extends State<ReviewListPage> {
             if (state case ReviewListLoaded loaded) {
               return _buildLoaded(context, loaded);
             }
-            return const Center(child: CircularProgressIndicator());
+            return SkeletonContainer(child: const ReviewListSkeleton());
           },
         ),
       ),

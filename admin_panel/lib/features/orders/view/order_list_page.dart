@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/config/app_router.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
 import '../bloc/admin_order_cubit.dart';
 import '../bloc/admin_order_state.dart';
+import '../../../shared/widgets/skeleton_box.dart';
+import '../../../shared/widgets/error_state.dart';
+import '../widgets/order_list_skeleton.dart';
 import '../widgets/order_status_badge.dart';
 
 class OrderListPage extends StatefulWidget {
@@ -85,10 +87,11 @@ class _OrderListPageState extends State<OrderListPage> {
           body: switch (state) {
             AdminOrderInitial() ||
             AdminOrderLoading() =>
-              const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
+              const SkeletonContainer(child: OrderListSkeleton()),
+            AdminOrderError(:final message) => ErrorState(
+                message: message,
+                onRetry: () => context.read<AdminOrderCubit>().load(),
               ),
-            AdminOrderError(:final message) => _ErrorView(message: message),
             AdminOrderLoaded() => _LoadedBody(
                 state: state,
                 onDoWithSnackbar: _doWithSnackbar,
@@ -419,45 +422,4 @@ class _PaginationBar extends StatelessWidget {
   }
 }
 
-// ── Error view ────────────────────────────────────────────────────────────────
-
-class _ErrorView extends StatelessWidget {
-  final String message;
-
-  const _ErrorView({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.error_outline_rounded,
-            size: 72,
-            color: AppColors.error,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Failed to load orders',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            message,
-            style: AppTextStyles.body
-                .copyWith(color: AppColors.textSecondary),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: () => context.read<AdminOrderCubit>().load(),
-            icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Try Again'),
-          ),
-        ],
-      ),
-    );
-  }
-}
 

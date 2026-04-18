@@ -12,14 +12,35 @@ const app: Application = express();
 // ---------------------
 // Security & Parsing
 // ---------------------
+// Strict Helmet for all routes
 app.use(helmet());
 app.use(
   cors({
-    origin: [
-      env.STOREFRONT_URL,
-      env.VENDOR_DASHBOARD_URL,
-      env.ADMIN_DASHBOARD_URL,
-    ],
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+
+      const allowedOrigins = [
+        env.STOREFRONT_URL,
+        env.VENDOR_DASHBOARD_URL,
+        env.ADMIN_DASHBOARD_URL,
+      ];
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // In development, allow any localhost/127.0.0.1 port (Flutter web often uses random ports)
+      if (
+        env.isDev &&
+        (origin.startsWith('http://localhost:') ||
+          origin.startsWith('http://127.0.0.1:'))
+      ) {
+        return callback(null, true);
+      }
+
+      callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
   })
 );
@@ -53,6 +74,48 @@ if (env.isDev) {
   app.use(morgan('dev'));
 } else {
   app.use(morgan('combined'));
+}
+
+// ---------------------
+// API Documentation (dev only)
+// ---------------------
+if (env.isDev) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const swaggerUi = require('swagger-ui-express');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { buildSwaggerSpec } = require('./config/swagger');
+  const swaggerSpec = buildSwaggerSpec();
+
+  // Relax CSP and COEP only for the docs route — Swagger UI needs inline scripts
+  // and loads assets from cdn.jsdelivr.net. Keeping this scoped prevents the
+  // looser policy from affecting API JSON responses served to clients.
+  app.use(
+    '/api/docs',
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
+          styleSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
+          imgSrc: ["'self'", 'data:', 'cdn.jsdelivr.net'],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+    }),
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec, {
+      customSiteTitle: 'Multi-Vendor E-Commerce API Docs',
+      swaggerOptions: {
+        persistAuthorization: true,
+        tryItOutEnabled: true,
+        displayRequestDuration: true,
+      },
+    })
+  );
+  app.get('/api/docs.json', (_req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
+  });
 }
 
 // ---------------------

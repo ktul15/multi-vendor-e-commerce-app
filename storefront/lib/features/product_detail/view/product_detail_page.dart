@@ -9,6 +9,7 @@ import '../../wishlist/bloc/wishlist_state.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../shared/widgets/skeleton_box.dart';
 import '../bloc/product_detail_cubit.dart';
 import '../bloc/product_detail_state.dart';
 import '../../reviews/widgets/star_rating_display.dart';
@@ -496,78 +497,37 @@ class _ReviewsSection extends StatelessWidget {
 
 // ── Loading skeleton ──────────────────────────────────────────────────────────
 
-class _LoadingView extends StatefulWidget {
+class _LoadingView extends StatelessWidget {
   const _LoadingView();
-
-  @override
-  State<_LoadingView> createState() => _LoadingViewState();
-}
-
-class _LoadingViewState extends State<_LoadingView>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _opacity;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )..repeat(reverse: true);
-    _opacity = Tween<double>(begin: 0.25, end: 0.6).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(backgroundColor: AppColors.surface),
-      body: FadeTransition(
-        opacity: _opacity,
+      body: SkeletonContainer(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(height: 320, color: Colors.grey[300]),
+            const SkeletonBox(width: double.infinity, height: 320, radius: 0),
             Padding(
               padding: const EdgeInsets.all(AppSpacing.base),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                      height: 14, width: 120, color: Colors.grey[300]),
-                  const SizedBox(height: AppSpacing.md),
-                  Container(
-                      height: 22,
-                      width: double.infinity,
-                      color: Colors.grey[300]),
-                  const SizedBox(height: AppSpacing.sm),
-                  Container(
-                      height: 22, width: 200, color: Colors.grey[300]),
-                  const SizedBox(height: AppSpacing.base),
-                  Container(
-                      height: 28, width: 100, color: Colors.grey[300]),
-                  const SizedBox(height: AppSpacing.xl),
-                  Container(
-                      height: 14,
-                      width: double.infinity,
-                      color: Colors.grey[300]),
-                  const SizedBox(height: AppSpacing.sm),
-                  Container(
-                      height: 14,
-                      width: double.infinity,
-                      color: Colors.grey[300]),
-                  const SizedBox(height: AppSpacing.sm),
-                  Container(
-                      height: 14, width: 240, color: Colors.grey[300]),
+                children: const [
+                  SkeletonBox(width: 120, height: 14),
+                  SizedBox(height: AppSpacing.md),
+                  SkeletonBox(width: double.infinity, height: 22),
+                  SizedBox(height: AppSpacing.sm),
+                  SkeletonBox(width: 200, height: 22),
+                  SizedBox(height: AppSpacing.base),
+                  SkeletonBox(width: 100, height: 28),
+                  SizedBox(height: AppSpacing.xl),
+                  SkeletonBox(width: double.infinity, height: 14),
+                  SizedBox(height: AppSpacing.sm),
+                  SkeletonBox(width: double.infinity, height: 14),
+                  SizedBox(height: AppSpacing.sm),
+                  SkeletonBox(width: 240, height: 14),
                 ],
               ),
             ),

@@ -11,6 +11,9 @@ import '../bloc/cart_cubit.dart';
 import '../bloc/cart_state.dart';
 import '../widgets/cart_summary_card.dart';
 import '../widgets/cart_vendor_section.dart';
+import '../../../shared/widgets/error_state.dart';
+import '../../../shared/widgets/skeleton_box.dart';
+import '../widgets/cart_skeleton.dart';
 import '../widgets/empty_cart.dart';
 import '../widgets/promo_code_input.dart';
 
@@ -46,14 +49,18 @@ class _CartView extends StatelessWidget {
       },
       builder: (context, state) {
         return switch (state) {
-          CartInitial() || CartLoading() => const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
+          CartInitial() || CartLoading() => Scaffold(
+              appBar: AppBar(title: const Text('My Cart')),
+              body: SkeletonContainer(child: const CartSkeleton()),
             ),
           CartError(:final previousCart, :final message)
               when previousCart == null =>
-            _ErrorScaffold(
-              message: message,
-              onRetry: () => context.read<CartCubit>().loadCart(),
+            Scaffold(
+              appBar: AppBar(title: const Text('My Cart')),
+              body: ErrorState(
+                message: message,
+                onRetry: () => context.read<CartCubit>().loadCart(),
+              ),
             ),
           CartError(:final previousCart) => _CartScaffold(
               cart: previousCart!,
@@ -207,44 +214,3 @@ class _CartScaffold extends StatelessWidget {
   }
 }
 
-// ── Error scaffold ────────────────────────────────────────────────────────────
-
-class _ErrorScaffold extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-
-  const _ErrorScaffold({required this.message, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('My Cart')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: AppColors.error),
-            const SizedBox(height: AppSpacing.base),
-            Text('Something went wrong', style: AppTextStyles.h5),
-            const SizedBox(height: AppSpacing.sm),
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-              child: Text(
-                message,
-                style: AppTextStyles.body
-                    .copyWith(color: AppColors.textSecondary),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            ElevatedButton(
-              onPressed: onRetry,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

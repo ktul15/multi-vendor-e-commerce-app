@@ -5,6 +5,9 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../bloc/dashboard_cubit.dart';
 import '../bloc/dashboard_state.dart';
+import '../../../shared/widgets/skeleton_box.dart';
+import '../../../shared/widgets/error_state.dart';
+import '../widgets/dashboard_skeleton.dart';
 import '../widgets/summary_cards.dart';
 import '../widgets/revenue_chart.dart';
 import '../widgets/recent_orders_table.dart';
@@ -29,24 +32,13 @@ class _DashboardView extends StatelessWidget {
     return BlocBuilder<DashboardCubit, DashboardState>(
       builder: (context, state) {
         if (state is DashboardLoading || state is DashboardInitial) {
-          return const Center(child: CircularProgressIndicator());
+          return const SkeletonContainer(child: DashboardSkeleton());
         }
 
         if (state is DashboardError) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                const SizedBox(height: AppSpacing.md),
-                Text(state.message),
-                const SizedBox(height: AppSpacing.md),
-                ElevatedButton(
-                  onPressed: () => context.read<DashboardCubit>().load(),
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
+          return ErrorState(
+            message: state.message,
+            onRetry: () => context.read<DashboardCubit>().load(),
           );
         }
 

@@ -1,0 +1,1 @@
+import { PrismaClient } from './src/generated/prisma/client'; const prisma = new PrismaClient(); prisma.user.findUnique({where:{email:'admin@ecommerce.com'}}).then(console.log).finally(() => prisma.$disconnect());

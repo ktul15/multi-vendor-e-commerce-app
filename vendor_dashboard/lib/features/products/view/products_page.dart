@@ -9,6 +9,9 @@ import '../../../features/auth/bloc/auth_state.dart';
 import '../../../shared/models/product.dart';
 import '../bloc/products_cubit.dart';
 import '../bloc/products_state.dart';
+import '../../../shared/widgets/skeleton_box.dart';
+import '../../../shared/widgets/error_state.dart';
+import '../widgets/products_skeleton.dart';
 import '../widgets/products_table.dart';
 import '../widgets/product_form_dialog.dart';
 
@@ -143,20 +146,10 @@ class _ProductsView extends StatelessWidget {
                       padding: const EdgeInsets.all(AppSpacing.md),
                       child: switch (state) {
                         ProductsLoading() || ProductsInitial() =>
-                          const Center(child: CircularProgressIndicator()),
-                        ProductsError(:final message) => Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(message),
-                                const SizedBox(height: AppSpacing.md),
-                                ElevatedButton(
-                                  onPressed: () =>
-                                      context.read<ProductsCubit>().load(),
-                                  child: const Text('Retry'),
-                                ),
-                              ],
-                            ),
+                          const SkeletonContainer(child: ProductsSkeleton()),
+                        ProductsError(:final message) => ErrorState(
+                            message: message,
+                            onRetry: () => context.read<ProductsCubit>().load(),
                           ),
                         ProductsLoaded(:final products, :final hasMore, :final total) =>
                           Column(
