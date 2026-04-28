@@ -11,6 +11,9 @@ module.exports = {
         '^@utils/(.*)$': '<rootDir>/src/utils/$1',
         '^@types/(.*)$': '<rootDir>/src/types/$1',
     },
+    // Temporary: run tests serially to prevent race conditions between integration test files
+    // that each call category.deleteMany(). Remove once each suite cleans up only its own records.
+    maxWorkers: 1,
     clearMocks: true,
     collectCoverageFrom: [
         'src/**/*.ts',
