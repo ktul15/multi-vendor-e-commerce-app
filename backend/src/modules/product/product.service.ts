@@ -1,9 +1,19 @@
 import { prisma } from '../../config/prisma';
 import { ApiError } from '../../utils/apiError';
 import { CreateProductInput, UpdateProductInput, AddVariantInput, UpdateVariantInput, GetProductQueryInput } from './product.validation';
-import { Prisma } from '../../generated/prisma/client';
+import { Prisma, VendorProfileStatus } from '../../generated/prisma/client';
 
 export class ProductService {
+    private async assertVendorApproved(vendorId: string): Promise<void> {
+        const profile = await prisma.vendorProfile.findUnique({
+            where: { userId: vendorId },
+            select: { status: true },
+        });
+        if (!profile || profile.status !== VendorProfileStatus.APPROVED) {
+            throw ApiError.forbidden('Your vendor account must be approved before you can manage products.');
+        }
+    }
+
     /**
      * Get products with pagination, sorting, search and filtering.
      */
@@ -95,6 +105,7 @@ export class ProductService {
      * Create a product. Vendor ID is pulled from the authenticated token.
      */
     async createProduct(vendorId: string, data: CreateProductInput) {
+        await this.assertVendorApproved(vendorId);
         // Verify category exists
         const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
         if (!category) {
@@ -125,6 +136,7 @@ export class ProductService {
      * Update an existing product. Only the owner VENDOR can update it.
      */
     async updateProduct(id: string, vendorId: string, data: UpdateProductInput) {
+        await this.assertVendorApproved(vendorId);
         const product = await prisma.product.findUnique({ where: { id } });
 
         if (!product) {
@@ -132,7 +144,7 @@ export class ProductService {
         }
 
         if (product.vendorId !== vendorId) {
-            throw new ApiError(403, 'You do not have permission to update this product');
+            throw ApiError.forbidden('You do not have permission to update this product');
         }
 
         if (data.categoryId) {
@@ -152,6 +164,7 @@ export class ProductService {
      * Delete a product. Only owner VENDOR can delete it.
      */
     async deleteProduct(id: string, vendorId: string) {
+        await this.assertVendorApproved(vendorId);
         const product = await prisma.product.findUnique({ where: { id } });
 
         if (!product) {
@@ -159,7 +172,7 @@ export class ProductService {
         }
 
         if (product.vendorId !== vendorId) {
-            throw new ApiError(403, 'You do not have permission to delete this product');
+            throw ApiError.forbidden('You do not have permission to delete this product');
         }
 
         // Deleting the product will automatically delete variants due to onDelete: Cascade in Prisma schema
@@ -172,6 +185,7 @@ export class ProductService {
      * Add a variant to a product. Only owner VENDOR.
      */
     async addVariant(productId: string, vendorId: string, data: AddVariantInput) {
+        await this.assertVendorApproved(vendorId);
         const product = await prisma.product.findUnique({ where: { id: productId } });
 
         if (!product) {
@@ -179,7 +193,7 @@ export class ProductService {
         }
 
         if (product.vendorId !== vendorId) {
-            throw new ApiError(403, 'You do not have permission to modify this product');
+            throw ApiError.forbidden('You do not have permission to modify this product');
         }
 
         const existingSku = await prisma.variant.findUnique({ where: { sku: data.sku } });
@@ -199,10 +213,15 @@ export class ProductService {
      * Update a specific variant. Only owner VENDOR.
      */
     async updateVariant(productId: string, variantId: string, vendorId: string, data: UpdateVariantInput) {
+        await this.assertVendorApproved(vendorId);
         const product = await prisma.product.findUnique({ where: { id: productId } });
 
-        if (!product || product.vendorId !== vendorId) {
-            throw new ApiError(403, 'You do not have permission to modify this product');
+        if (!product) {
+            throw new ApiError(404, 'Product not found');
+        }
+
+        if (product.vendorId !== vendorId) {
+            throw ApiError.forbidden('You do not have permission to modify this product');
         }
 
         const variant = await prisma.variant.findUnique({ where: { id: variantId } });

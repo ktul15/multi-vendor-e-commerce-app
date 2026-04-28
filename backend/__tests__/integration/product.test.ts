@@ -7,11 +7,13 @@ let vendorToken: string;
 let vendorId: string;
 let categoryId: string;
 let customerToken: string;
+let pendingVendorToken: string;
 
 beforeAll(async () => {
     // 1. Clear state
     await prisma.variant.deleteMany({});
     await prisma.product.deleteMany({});
+    await prisma.vendorProfile.deleteMany({});
     await prisma.category.deleteMany({});
 
     // 2. Setup standard users
@@ -29,6 +31,25 @@ beforeAll(async () => {
         }
     });
     vendorId = vendorUser.id;
+
+    // Give the approved vendor an APPROVED VendorProfile
+    await prisma.vendorProfile.upsert({
+        where: { userId: vendorId },
+        update: { status: 'APPROVED' },
+        create: { userId: vendorId, storeName: 'Test Store', status: 'APPROVED' },
+    });
+
+    // Create a pending vendor
+    const pendingVendorUser = await prisma.user.upsert({
+        where: { email: 'pending-vendor@ecommerce.com' },
+        update: { password, role: 'VENDOR' },
+        create: { name: 'Pending Vendor', email: 'pending-vendor@ecommerce.com', password, role: 'VENDOR', isVerified: true },
+    });
+    await prisma.vendorProfile.upsert({
+        where: { userId: pendingVendorUser.id },
+        update: { status: 'PENDING' },
+        create: { userId: pendingVendorUser.id, storeName: 'Pending Store', status: 'PENDING' },
+    });
 
     await prisma.user.upsert({
         where: { email: 'customer@ecommerce.com' },
@@ -57,11 +78,16 @@ beforeAll(async () => {
 
     const customerRes = await request(app).post('/api/v1/auth/login').send({ email: 'customer@ecommerce.com', password: 'test1234' });
     customerToken = `Bearer ${customerRes.body.data.tokens.accessToken}`;
+
+    const pendingVendorRes = await request(app).post('/api/v1/auth/login').send({ email: 'pending-vendor@ecommerce.com', password: 'test1234' });
+    expect(pendingVendorRes.status).toBe(200);
+    pendingVendorToken = `Bearer ${pendingVendorRes.body.data.tokens.accessToken}`;
 });
 
 afterAll(async () => {
     await prisma.variant.deleteMany({});
     await prisma.product.deleteMany({});
+    await prisma.vendorProfile.deleteMany({});
     await prisma.category.deleteMany({});
     await prisma.$disconnect();
 });
@@ -198,5 +224,71 @@ describe('Product API (Issue #20)', () => {
             const variantExists = await prisma.variant.findUnique({ where: { id: variantId } });
             expect(variantExists).toBeNull();
         });
+    });
+});
+
+describe('Vendor approval guard (Issue #71)', () => {
+    // A product owned by the approved vendor — used to test update/delete/variant endpoints
+    let guardProductId: string;
+    let guardVariantId: string;
+
+    beforeAll(async () => {
+        const product = await prisma.product.create({
+            data: {
+                vendorId,
+                categoryId,
+                name: 'Guard Test Product',
+                description: 'Used to test approval guard on write endpoints.',
+                basePrice: 5.00,
+                variants: { create: [{ sku: 'GUARD-SKU-01', price: 5.00, stock: 1 }] },
+            },
+            include: { variants: true },
+        });
+        guardProductId = product.id;
+        guardVariantId = product.variants[0].id;
+    });
+
+    const expects403Approved = (res: { status: number; body: { message: string } }) => {
+        expect(res.status).toBe(403);
+        expect(res.body.message).toContain('approved');
+    };
+
+    it('should block PENDING vendor from createProduct', async () => {
+        const res = await request(app)
+            .post('/api/v1/products')
+            .set('Authorization', pendingVendorToken)
+            .send({ categoryId, name: 'Unauthorized Product', description: 'Should be blocked by approval guard.', basePrice: 9.99 });
+        expects403Approved(res);
+    });
+
+    it('should block PENDING vendor from updateProduct', async () => {
+        const res = await request(app)
+            .put(`/api/v1/products/${guardProductId}`)
+            .set('Authorization', pendingVendorToken)
+            .send({ basePrice: 1.00 });
+        expects403Approved(res);
+    });
+
+    it('should block PENDING vendor from deleteProduct', async () => {
+        const res = await request(app)
+            .delete(`/api/v1/products/${guardProductId}`)
+            .set('Authorization', pendingVendorToken);
+        expects403Approved(res);
+    });
+
+    it('should block PENDING vendor from addVariant', async () => {
+        const res = await request(app)
+            .post(`/api/v1/products/${guardProductId}/variants`)
+            .set('Authorization', pendingVendorToken)
+            .send({ sku: 'PENDING-SKU', price: 5.00, stock: 1 });
+        expects403Approved(res);
+    });
+
+    it('should block PENDING vendor from updateVariant', async () => {
+        const res = await request(app)
+            .put(`/api/v1/products/${guardProductId}/variants/${guardVariantId}`)
+            .set('Authorization', pendingVendorToken)
+            .send({ stock: 99 });
+        expects403Approved(res);
     });
 });
