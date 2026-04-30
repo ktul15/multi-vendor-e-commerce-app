@@ -1,14 +1,14 @@
 import app from './app';
 import { env } from './config/env';
-import { prisma } from './config/prisma';
+import { prisma, pgPool } from './config/prisma';
 import { connectRedis, disconnectRedis } from './config/redis';
 import { initializeFirebase } from './utils/fcm';
 import { logger } from './utils/logger';
 
 const startServer = async (): Promise<void> => {
     try {
-        // Connect to PostgreSQL via Prisma
-        await prisma.$connect();
+        // $connect() is a no-op with pg.Pool — run a probe query to verify the DB is reachable
+        await prisma.$queryRaw`SELECT 1`;
         logger.info('🗄️  Database connected (PostgreSQL + Prisma)');
 
         // Connect to Redis
@@ -40,13 +40,16 @@ process.on('uncaughtException', (error: Error) => {
     process.exit(1);
 });
 
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-    logger.info('SIGTERM received. Shutting down gracefully...');
+const gracefulShutdown = async (signal: string): Promise<void> => {
+    logger.info(`${signal} received. Shutting down gracefully...`);
     await disconnectRedis();
     await prisma.$disconnect();
+    await pgPool?.end();
     process.exit(0);
-});
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 startServer();
 

@@ -4,7 +4,7 @@
   "description": "Node.js + Express + TypeScript backend for Multi-Vendor E-Commerce App",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only --clear src/server.ts",
+    "dev": "ts-node-dev --transpile-only --clear src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "lint": "eslint src/",
