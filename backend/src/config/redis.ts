@@ -27,6 +27,10 @@ redis.on('connect', () => {
  * Connect to Redis. Called during server startup.
  */
 export const connectRedis = async (): Promise<void> => {
+    if (redis.status === 'ready' || redis.status === 'connecting') {
+        logger.info('Redis already connected/connecting — skipping explicit connect');
+        return;
+    }
     await redis.connect();
 };
 
