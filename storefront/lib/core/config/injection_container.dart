@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:get_it/get_it.dart';
 import '../network/api_client.dart';
 import '../network/dio_http_client.dart';
@@ -28,6 +29,7 @@ import '../../features/order_history/bloc/order_list_cubit.dart';
 import '../services/push_notification_service.dart';
 import '../stripe/flutter_stripe_service.dart';
 import '../stripe/stripe_service.dart';
+import '../stripe/unsupported_stripe_service.dart';
 import '../../features/home/bloc/home_cubit.dart';
 import '../../features/product_detail/bloc/product_detail_cubit.dart';
 import '../../features/product_list/bloc/product_list_cubit.dart';
@@ -108,7 +110,9 @@ Future<void> initDependencies() async {
   // ── Services ──────────────────────────────
 
   sl.registerLazySingleton<StripeService>(
-    () => const FlutterStripeService(),
+    () => kIsWeb
+        ? const UnsupportedStripeService()
+        : const FlutterStripeService(),
   );
 
   sl.registerLazySingleton<PushNotificationService>(

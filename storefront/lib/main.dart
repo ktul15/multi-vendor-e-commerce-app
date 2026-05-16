@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -9,6 +10,7 @@ import 'core/config/app_env.dart';
 import 'core/config/injection_container.dart';
 import 'core/services/push_notification_service.dart';
 import 'core/theme/app_theme.dart';
+import 'firebase_options.dart';
 import 'features/auth/bloc/auth_bloc.dart';
 import 'features/auth/bloc/auth_event.dart';
 import 'features/auth/bloc/auth_state.dart';
@@ -20,12 +22,14 @@ void main() async {
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   // Initialize Firebase before anything else
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   // Initialize Stripe before running the app.
-  Stripe.publishableKey = AppEnv.stripePublishableKey;
-  await Stripe.instance.applySettings();
+  if (!kIsWeb) {
+    Stripe.publishableKey = AppEnv.stripePublishableKey;
+    await Stripe.instance.applySettings();
+  }
 
   // Initialize all dependencies via GetIt
   await initDependencies();
