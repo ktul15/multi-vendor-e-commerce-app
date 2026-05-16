@@ -51,6 +51,11 @@ export class AddressService {
     async deleteAddress(userId: string, id: string): Promise<void> {
         const existing = await prisma.address.findFirst({ where: { id, userId } });
         if (!existing) throw ApiError.notFound('Address not found');
+
+        if (existing.isDefault) {
+            throw ApiError.badRequest('Default address cannot be deleted. Set another address as default first.');
+        }
+
         await prisma.address.delete({ where: { id } });
     }
 

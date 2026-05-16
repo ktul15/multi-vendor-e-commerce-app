@@ -12,12 +12,14 @@ import '../../../shared/models/address_model.dart';
 class AddressCard extends StatelessWidget {
   final AddressModel address;
   final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final VoidCallback? onDelete;
 
   /// Called when the user taps "Set Default". Pass null when
   /// [address.isDefault] is already true to hide the button.
   final VoidCallback? onSetDefault;
 
+  /// Called when the user taps "Delete". Pass null when deletion is not allowed.
+  ///
   /// Disables all action buttons while a mutation is in-flight.
   final bool isBusy;
 
@@ -74,8 +76,9 @@ class AddressCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               address.fullName,
-                              style: AppTextStyles.body
-                                  .copyWith(fontWeight: FontWeight.w600),
+                              style: AppTextStyles.body.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                           if (address.isDefault) ...[
@@ -87,8 +90,9 @@ class AddressCard extends StatelessWidget {
                               ),
                               decoration: BoxDecoration(
                                 color: AppColors.primary.withAlpha(25),
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.full),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.full,
+                                ),
                               ),
                               child: Text(
                                 'Default',
@@ -104,14 +108,16 @@ class AddressCard extends StatelessWidget {
                       const SizedBox(height: AppSpacing.xs),
                       Text(
                         address.phone,
-                        style: AppTextStyles.caption
-                            .copyWith(color: AppColors.textSecondary),
+                        style: AppTextStyles.caption.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
                         address.singleLine,
-                        style: AppTextStyles.caption
-                            .copyWith(color: AppColors.textSecondary),
+                        style: AppTextStyles.caption.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ],
                   ),
@@ -141,8 +147,9 @@ class AddressCard extends StatelessWidget {
                         label: const Text('Set Default'),
                         style: TextButton.styleFrom(
                           foregroundColor: AppColors.primary,
-                          textStyle: AppTextStyles.caption
-                              .copyWith(fontWeight: FontWeight.w600),
+                          textStyle: AppTextStyles.caption.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                       const Spacer(),
@@ -154,8 +161,9 @@ class AddressCard extends StatelessWidget {
                       label: const Text('Edit'),
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.textSecondary,
-                        textStyle: AppTextStyles.caption
-                            .copyWith(fontWeight: FontWeight.w600),
+                        textStyle: AppTextStyles.caption.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                     TextButton.icon(
@@ -164,8 +172,9 @@ class AddressCard extends StatelessWidget {
                       label: const Text('Delete'),
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.error,
-                        textStyle: AppTextStyles.caption
-                            .copyWith(fontWeight: FontWeight.w600),
+                        textStyle: AppTextStyles.caption.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
