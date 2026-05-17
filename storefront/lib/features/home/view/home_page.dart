@@ -95,107 +95,155 @@ class _HomeAppBar extends StatelessWidget {
         AppSpacing.base,
         AppSpacing.sm,
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final useStackedHeader = constraints.maxWidth < 560;
+          final title = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _greeting(),
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              Text(
+                'Discover Products',
+                style: AppTextStyles.h4,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          );
+          final actions = _HomeActions(
+            spacing: useStackedHeader ? 0 : AppSpacing.sm,
+          );
+
+          if (useStackedHeader) {
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  _greeting(),
-                  style: AppTextStyles.caption.copyWith(
-                    color: AppColors.textSecondary,
+                title,
+                const SizedBox(height: AppSpacing.md),
+                SizedBox(
+                  width: double.infinity,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: actions,
                   ),
                 ),
-                Text('Discover Products', style: AppTextStyles.h4),
               ],
-            ),
-          ),
-          IconButton(
-            onPressed: () => context.pushNamed(AppRoutes.searchName),
-            icon: const Icon(Icons.search_rounded),
-            style: IconButton.styleFrom(
-              backgroundColor: AppColors.surface,
-              foregroundColor: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          BlocBuilder<NotificationCubit, NotificationState>(
-            builder: (context, notifState) {
-              final count = notifState is NotificationLoaded
-                  ? notifState.unreadCount
-                  : 0;
-              return Badge(
-                isLabelVisible: count > 0,
-                label: Text('$count'),
-                child: IconButton(
-                  onPressed: () =>
-                      context.pushNamed(AppRoutes.notificationsName),
-                  icon: const Icon(Icons.notifications_outlined),
-                  style: IconButton.styleFrom(
-                    backgroundColor: AppColors.surface,
-                    foregroundColor: AppColors.textPrimary,
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          IconButton(
-            onPressed: () => context.pushNamed(AppRoutes.wishlistName),
-            icon: const Icon(Icons.favorite_outline),
-            style: IconButton.styleFrom(
-              backgroundColor: AppColors.surface,
-              foregroundColor: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          IconButton(
-            onPressed: () => context.pushNamed(AppRoutes.ordersName),
-            icon: const Icon(Icons.receipt_long_outlined),
-            style: IconButton.styleFrom(
-              backgroundColor: AppColors.surface,
-              foregroundColor: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          BlocBuilder<CartCubit, CartState>(
-            builder: (context, cartState) {
-              final count = cartState is CartLoaded
-                  ? cartState.cart.itemCount
-                  : 0;
-              return Badge(
-                isLabelVisible: count > 0,
-                label: Text('$count'),
-                child: IconButton(
-                  onPressed: () => context.pushNamed(AppRoutes.cartName),
-                  icon: const Icon(Icons.shopping_cart_outlined),
-                  style: IconButton.styleFrom(
-                    backgroundColor: AppColors.surface,
-                    foregroundColor: AppColors.textPrimary,
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            style: IconButton.styleFrom(
-              backgroundColor: AppColors.surface,
-              foregroundColor: AppColors.textPrimary,
-            ),
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'settings', child: Text('Settings')),
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: title),
+              const SizedBox(width: AppSpacing.base),
+              actions,
             ],
-            onSelected: (value) {
-              if (value == 'settings') {
-                context.pushNamed(AppRoutes.settingsName);
-              }
-            },
-          ),
-        ],
+          );
+        },
       ),
+    );
+  }
+}
+
+class _HomeActions extends StatelessWidget {
+  final double spacing;
+
+  const _HomeActions({required this.spacing});
+
+  @override
+  Widget build(BuildContext context) {
+    final gap = SizedBox(width: spacing);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          onPressed: () => context.pushNamed(AppRoutes.searchName),
+          icon: const Icon(Icons.search_rounded),
+          style: IconButton.styleFrom(
+            backgroundColor: AppColors.surface,
+            foregroundColor: AppColors.textPrimary,
+          ),
+        ),
+        gap,
+        BlocBuilder<NotificationCubit, NotificationState>(
+          builder: (context, notifState) {
+            final count = notifState is NotificationLoaded
+                ? notifState.unreadCount
+                : 0;
+            return Badge(
+              isLabelVisible: count > 0,
+              label: Text('$count'),
+              child: IconButton(
+                onPressed: () => context.pushNamed(AppRoutes.notificationsName),
+                icon: const Icon(Icons.notifications_outlined),
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColors.surface,
+                  foregroundColor: AppColors.textPrimary,
+                ),
+              ),
+            );
+          },
+        ),
+        gap,
+        IconButton(
+          onPressed: () => context.pushNamed(AppRoutes.wishlistName),
+          icon: const Icon(Icons.favorite_outline),
+          style: IconButton.styleFrom(
+            backgroundColor: AppColors.surface,
+            foregroundColor: AppColors.textPrimary,
+          ),
+        ),
+        gap,
+        IconButton(
+          onPressed: () => context.pushNamed(AppRoutes.ordersName),
+          icon: const Icon(Icons.receipt_long_outlined),
+          style: IconButton.styleFrom(
+            backgroundColor: AppColors.surface,
+            foregroundColor: AppColors.textPrimary,
+          ),
+        ),
+        gap,
+        BlocBuilder<CartCubit, CartState>(
+          builder: (context, cartState) {
+            final count = cartState is CartLoaded
+                ? cartState.cart.itemCount
+                : 0;
+            return Badge(
+              isLabelVisible: count > 0,
+              label: Text('$count'),
+              child: IconButton(
+                onPressed: () => context.pushNamed(AppRoutes.cartName),
+                icon: const Icon(Icons.shopping_cart_outlined),
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColors.surface,
+                  foregroundColor: AppColors.textPrimary,
+                ),
+              ),
+            );
+          },
+        ),
+        gap,
+        PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert),
+          style: IconButton.styleFrom(
+            backgroundColor: AppColors.surface,
+            foregroundColor: AppColors.textPrimary,
+          ),
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: 'settings', child: Text('Settings')),
+          ],
+          onSelected: (value) {
+            if (value == 'settings') {
+              context.pushNamed(AppRoutes.settingsName);
+            }
+          },
+        ),
+      ],
     );
   }
 }
