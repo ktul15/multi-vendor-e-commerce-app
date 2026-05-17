@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'dashboard_json_parsers.dart';
 
 class RevenueDataPoint extends Equatable {
   final DateTime periodStart;
@@ -14,10 +15,8 @@ class RevenueDataPoint extends Equatable {
   factory RevenueDataPoint.fromJson(Map<String, dynamic> json) {
     return RevenueDataPoint(
       periodStart: DateTime.parse(json['periodStart'] as String),
-      orderCount: json['orderCount'] as int,
-      revenue: json['revenue'] is String
-          ? double.tryParse(json['revenue'] as String) ?? 0.0
-          : (json['revenue'] as num?)?.toDouble() ?? 0.0,
+      orderCount: readDashboardInt(json['orderCount']),
+      revenue: readDashboardDouble(json['revenue']),
     );
   }
 
