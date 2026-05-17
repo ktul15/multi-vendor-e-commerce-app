@@ -33,9 +33,9 @@ export const env = {
         process.env.STRIPE_CONNECT_REFRESH_URL || 'http://localhost:3001/stripe/refresh',
 
     // Cloudinary
-    CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || '',
-    CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || '',
-    CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || '',
+    CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME?.trim() || '',
+    CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY?.trim() || '',
+    CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET?.trim() || '',
 
     // Firebase (FCM push notifications)
     GOOGLE_APPLICATION_CREDENTIALS:

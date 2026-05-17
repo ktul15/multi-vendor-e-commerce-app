@@ -30,10 +30,17 @@ export const uploadImage = (buffer: Buffer, folder: string): Promise<UploadResul
                 {
                     folder,
                     resource_type: 'image',
-                    transformation: [{ quality: 'auto', fetch_format: 'auto' }],
                 },
                 (error, result: UploadApiResponse | undefined) => {
                     if (error || !result) {
+                        if (error instanceof Error && error.message.includes('Invalid Signature')) {
+                            reject(
+                                ApiError.internal(
+                                    'Cloudinary upload failed. Check CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET are from the same Cloudinary account.'
+                                )
+                            );
+                            return;
+                        }
                         reject(error ?? new Error('Cloudinary upload failed'));
                         return;
                     }
