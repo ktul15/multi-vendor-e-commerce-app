@@ -42,18 +42,19 @@ class _OrderListPageState extends State<OrderListPage> {
           : null,
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: Theme.of(context)
-              .colorScheme
-              .copyWith(primary: AppColors.primary),
+          colorScheme: Theme.of(
+            context,
+          ).colorScheme.copyWith(primary: AppColors.primary),
         ),
         child: child!,
       ),
     );
     if (picked != null && mounted) {
       await _doWithSnackbar(
-        () => context
-            .read<AdminOrderCubit>()
-            .applyDateRange(picked.start, picked.end),
+        () => context.read<AdminOrderCubit>().applyDateRange(
+          picked.start,
+          picked.end,
+        ),
       );
     }
   }
@@ -85,18 +86,17 @@ class _OrderListPageState extends State<OrderListPage> {
           backgroundColor: Colors.transparent,
           appBar: AppBar(title: const Text('Orders')),
           body: switch (state) {
-            AdminOrderInitial() ||
-            AdminOrderLoading() =>
+            AdminOrderInitial() || AdminOrderLoading() =>
               const SkeletonContainer(child: OrderListSkeleton()),
             AdminOrderError(:final message) => ErrorState(
-                message: message,
-                onRetry: () => context.read<AdminOrderCubit>().load(),
-              ),
+              message: message,
+              onRetry: () => context.read<AdminOrderCubit>().load(),
+            ),
             AdminOrderLoaded() => _LoadedBody(
-                state: state,
-                onDoWithSnackbar: _doWithSnackbar,
-                onShowDatePicker: () => _showDateRangePicker(state),
-              ),
+              state: state,
+              onDoWithSnackbar: _doWithSnackbar,
+              onShowDatePicker: () => _showDateRangePicker(state),
+            ),
           },
         );
       },
@@ -251,8 +251,10 @@ class _FilterBar extends StatelessWidget {
                 side: BorderSide(
                   color: hasDateFilter ? AppColors.primary : AppColors.border,
                 ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
               ),
             ),
             if (hasDateFilter)
@@ -299,8 +301,8 @@ class _OrderTable extends StatelessWidget {
                 Text(
                   'No orders found',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -311,61 +313,79 @@ class _OrderTable extends StatelessWidget {
 
     final dateFormat = DateFormat('MMM d, yyyy');
 
-    return Card(
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          columnSpacing: 28,
-          headingRowColor: WidgetStateProperty.all(AppColors.background),
-          columns: const [
-            DataColumn(label: Text('Order #')),
-            DataColumn(label: Text('Customer')),
-            DataColumn(label: Text('Status')),
-            DataColumn(label: Text('Total'), numeric: true),
-            DataColumn(label: Text('Date')),
-          ],
-          rows: state.items.map((order) {
-            return DataRow(
-              cells: [
-                DataCell(
-                  InkWell(
-                    onTap: () => context.goNamed(
-                      AppRoutes.orderDetailName,
-                      pathParameters: {'id': order.id},
-                    ),
-                    child: Text(
-                      order.orderNumber,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
-                        decoration: TextDecoration.underline,
-                        decorationColor: AppColors.primary,
-                      ),
-                    ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final tableMinWidth = constraints.hasBoundedWidth
+            ? constraints.maxWidth
+            : 0.0;
+
+        return SizedBox(
+          width: double.infinity,
+          child: Card(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minWidth: tableMinWidth),
+                child: DataTable(
+                  columnSpacing: 28,
+                  headingRowColor: WidgetStateProperty.all(
+                    AppColors.background,
                   ),
+                  columns: const [
+                    DataColumn(label: Text('Order #')),
+                    DataColumn(label: Text('Customer')),
+                    DataColumn(label: Text('Status')),
+                    DataColumn(label: Text('Total'), numeric: true),
+                    DataColumn(label: Text('Date')),
+                  ],
+                  rows: state.items.map((order) {
+                    return DataRow(
+                      cells: [
+                        DataCell(
+                          InkWell(
+                            onTap: () => context.goNamed(
+                              AppRoutes.orderDetailName,
+                              pathParameters: {'id': order.id},
+                            ),
+                            child: Text(
+                              order.orderNumber,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                                decoration: TextDecoration.underline,
+                                decorationColor: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        ),
+                        DataCell(Text(order.customerName)),
+                        DataCell(OrderStatusBadge(status: order.status)),
+                        DataCell(
+                          Text(
+                            NumberFormat.currency(
+                              symbol: '\$',
+                            ).format(order.total),
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                        DataCell(
+                          Text(
+                            dateFormat.format(order.createdAt.toLocal()),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
                 ),
-                DataCell(Text(order.customerName)),
-                DataCell(OrderStatusBadge(status: order.status)),
-                DataCell(
-                  Text(
-                    NumberFormat.currency(symbol: '\$').format(order.total),
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                ),
-                DataCell(
-                  Text(
-                    dateFormat.format(order.createdAt.toLocal()),
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-              ],
-            );
-          }).toList(),
-        ),
-      ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -376,10 +396,7 @@ class _PaginationBar extends StatelessWidget {
   final AdminOrderLoaded state;
   final Future<void> Function(Future<String?> Function()) onDoWithSnackbar;
 
-  const _PaginationBar({
-    required this.state,
-    required this.onDoWithSnackbar,
-  });
+  const _PaginationBar({required this.state, required this.onDoWithSnackbar});
 
   @override
   Widget build(BuildContext context) {
@@ -390,9 +407,9 @@ class _PaginationBar extends StatelessWidget {
       children: [
         Text(
           'Showing ${state.fromItem}–${state.toItem} of ${state.meta.total}',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
         ),
         const SizedBox(width: 16),
         IconButton(
@@ -400,8 +417,8 @@ class _PaginationBar extends StatelessWidget {
           icon: const Icon(Icons.chevron_left_rounded),
           onPressed: state.hasPrevPage && !state.isRefreshing
               ? () => onDoWithSnackbar(
-                    () => context.read<AdminOrderCubit>().prevPage(),
-                  )
+                  () => context.read<AdminOrderCubit>().prevPage(),
+                )
               : null,
         ),
         Text(
@@ -413,13 +430,11 @@ class _PaginationBar extends StatelessWidget {
           icon: const Icon(Icons.chevron_right_rounded),
           onPressed: state.hasNextPage && !state.isRefreshing
               ? () => onDoWithSnackbar(
-                    () => context.read<AdminOrderCubit>().nextPage(),
-                  )
+                  () => context.read<AdminOrderCubit>().nextPage(),
+                )
               : null,
         ),
       ],
     );
   }
 }
-
-

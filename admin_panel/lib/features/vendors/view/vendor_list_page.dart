@@ -43,10 +43,7 @@ class _VendorListPageState extends State<VendorListPage> {
     final error = await action();
     if (error != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error),
-          backgroundColor: AppColors.error,
-        ),
+        SnackBar(content: Text(error), backgroundColor: AppColors.error),
       );
     }
   }
@@ -59,18 +56,19 @@ class _VendorListPageState extends State<VendorListPage> {
       body: BlocBuilder<VendorCubit, VendorState>(
         builder: (context, state) {
           return switch (state) {
-            VendorInitial() || VendorLoading() =>
-              const SkeletonContainer(child: VendorListSkeleton()),
+            VendorInitial() || VendorLoading() => const SkeletonContainer(
+              child: VendorListSkeleton(),
+            ),
             VendorError(:final message) => ErrorState(
-                message: message,
-                onRetry: () => context.read<VendorCubit>().load(),
-              ),
+              message: message,
+              onRetry: () => context.read<VendorCubit>().load(),
+            ),
             VendorLoaded() => _LoadedBody(
-                state: state,
-                searchController: _searchController,
-                onSearchChanged: _onSearchChanged,
-                onDoWithSnackbar: _doWithSnackbar,
-              ),
+              state: state,
+              searchController: _searchController,
+              onSearchChanged: _onSearchChanged,
+              onDoWithSnackbar: _doWithSnackbar,
+            ),
           };
         },
       ),
@@ -118,10 +116,7 @@ class _LoadedBody extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                _VendorTable(
-                  state: state,
-                  onDoWithSnackbar: onDoWithSnackbar,
-                ),
+                _VendorTable(state: state, onDoWithSnackbar: onDoWithSnackbar),
                 const SizedBox(height: 12),
                 _PaginationBar(
                   state: state,
@@ -221,8 +216,7 @@ class _StatusFilterBar extends StatelessWidget {
               fontWeight: statusFilter == s ? FontWeight.w600 : FontWeight.w400,
             ),
             side: BorderSide(
-              color:
-                  statusFilter == s ? AppColors.primary : AppColors.border,
+              color: statusFilter == s ? AppColors.primary : AppColors.border,
             ),
             backgroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -238,10 +232,7 @@ class _VendorTable extends StatelessWidget {
   final VendorLoaded state;
   final Future<void> Function(Future<String?> Function()) onDoWithSnackbar;
 
-  const _VendorTable({
-    required this.state,
-    required this.onDoWithSnackbar,
-  });
+  const _VendorTable({required this.state, required this.onDoWithSnackbar});
 
   @override
   Widget build(BuildContext context) {
@@ -261,8 +252,8 @@ class _VendorTable extends StatelessWidget {
                 Text(
                   'No vendors found',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -271,112 +262,129 @@ class _VendorTable extends StatelessWidget {
       );
     }
 
-    return Card(
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          columnSpacing: 28,
-          headingRowColor: WidgetStateProperty.all(AppColors.background),
-          columns: const [
-            DataColumn(label: Text('Store')),
-            DataColumn(label: Text('Owner')),
-            DataColumn(label: Text('Status')),
-            DataColumn(label: Text('Commission')),
-            DataColumn(label: Text('Joined')),
-            DataColumn(label: Text('Actions')),
-          ],
-          rows: state.items.map((vendor) {
-            final isActioning = state.actioningIds.contains(vendor.id);
-            return DataRow(
-              cells: [
-                // Store name — tappable to open detail
-                DataCell(
-                  InkWell(
-                    onTap: () => context.goNamed(
-                      AppRoutes.vendorDetailName,
-                      pathParameters: {'id': vendor.id},
-                    ),
-                    child: Text(
-                      vendor.storeName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
-                        decoration: TextDecoration.underline,
-                        decorationColor: AppColors.primary,
-                      ),
-                    ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final tableMinWidth = constraints.hasBoundedWidth
+            ? constraints.maxWidth
+            : 0.0;
+
+        return SizedBox(
+          width: double.infinity,
+          child: Card(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minWidth: tableMinWidth),
+                child: DataTable(
+                  columnSpacing: 28,
+                  headingRowColor: WidgetStateProperty.all(
+                    AppColors.background,
                   ),
-                ),
-                // Owner
-                DataCell(
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        vendor.owner.name,
-                        style: const TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                      Text(
-                        vendor.owner.email,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Status badge
-                DataCell(VendorStatusBadge(status: vendor.status)),
-                // Commission
-                DataCell(
-                  Text(
-                    vendor.commissionRate != null
-                        ? '${(vendor.commissionRate! * 100).toStringAsFixed(1)}%'
-                        : 'Platform default',
-                    style: TextStyle(
-                      color: vendor.commissionRate != null
-                          ? AppColors.textPrimary
-                          : AppColors.textSecondary,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-                // Joined date
-                DataCell(
-                  Text(
-                    vendor.formattedJoinDate,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-                // Action buttons
-                DataCell(
-                  isActioning
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.primary,
+                  columns: const [
+                    DataColumn(label: Text('Store')),
+                    DataColumn(label: Text('Owner')),
+                    DataColumn(label: Text('Status')),
+                    DataColumn(label: Text('Commission')),
+                    DataColumn(label: Text('Joined')),
+                    DataColumn(label: Text('Actions')),
+                  ],
+                  rows: state.items.map((vendor) {
+                    final isActioning = state.actioningIds.contains(vendor.id);
+                    return DataRow(
+                      cells: [
+                        // Store name — tappable to open detail
+                        DataCell(
+                          InkWell(
+                            onTap: () => context.goNamed(
+                              AppRoutes.vendorDetailName,
+                              pathParameters: {'id': vendor.id},
+                            ),
+                            child: Text(
+                              vendor.storeName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                                decoration: TextDecoration.underline,
+                                decorationColor: AppColors.primary,
+                              ),
+                            ),
                           ),
-                        )
-                      : _ActionButtons(
-                          vendor: vendor,
-                          onDoWithSnackbar: onDoWithSnackbar,
                         ),
+                        // Owner
+                        DataCell(
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                vendor.owner.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              Text(
+                                vendor.owner.email,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Status badge
+                        DataCell(VendorStatusBadge(status: vendor.status)),
+                        // Commission
+                        DataCell(
+                          Text(
+                            vendor.commissionRate != null
+                                ? '${(vendor.commissionRate! * 100).toStringAsFixed(1)}%'
+                                : 'Platform default',
+                            style: TextStyle(
+                              color: vendor.commissionRate != null
+                                  ? AppColors.textPrimary
+                                  : AppColors.textSecondary,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        // Joined date
+                        DataCell(
+                          Text(
+                            vendor.formattedJoinDate,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                        // Action buttons
+                        DataCell(
+                          isActioning
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.primary,
+                                  ),
+                                )
+                              : _ActionButtons(
+                                  vendor: vendor,
+                                  onDoWithSnackbar: onDoWithSnackbar,
+                                ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
                 ),
-              ],
-            );
-          }).toList(),
-        ),
-      ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
-
 }
 
 // ── Per-row action buttons ────────────────────────────────────────────────────
@@ -385,10 +393,7 @@ class _ActionButtons extends StatelessWidget {
   final VendorModel vendor;
   final Future<void> Function(Future<String?> Function()) onDoWithSnackbar;
 
-  const _ActionButtons({
-    required this.vendor,
-    required this.onDoWithSnackbar,
-  });
+  const _ActionButtons({required this.vendor, required this.onDoWithSnackbar});
 
   @override
   Widget build(BuildContext context) {
@@ -490,8 +495,7 @@ class _ActionButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
         minimumSize: const Size(0, 32),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        textStyle:
-            const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
       ),
       child: Text(label),
     );
@@ -504,10 +508,7 @@ class _PaginationBar extends StatelessWidget {
   final VendorLoaded state;
   final Future<void> Function(Future<String?> Function()) onDoWithSnackbar;
 
-  const _PaginationBar({
-    required this.state,
-    required this.onDoWithSnackbar,
-  });
+  const _PaginationBar({required this.state, required this.onDoWithSnackbar});
 
   @override
   Widget build(BuildContext context) {
@@ -518,9 +519,9 @@ class _PaginationBar extends StatelessWidget {
       children: [
         Text(
           'Showing ${state.fromItem}–${state.toItem} of ${state.total}',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
         ),
         const SizedBox(width: 16),
         IconButton(
@@ -528,8 +529,8 @@ class _PaginationBar extends StatelessWidget {
           icon: const Icon(Icons.chevron_left_rounded),
           onPressed: state.hasPrevPage && !state.isRefreshing
               ? () => onDoWithSnackbar(
-                    () => context.read<VendorCubit>().prevPage(),
-                  )
+                  () => context.read<VendorCubit>().prevPage(),
+                )
               : null,
         ),
         Text(
@@ -541,8 +542,8 @@ class _PaginationBar extends StatelessWidget {
           icon: const Icon(Icons.chevron_right_rounded),
           onPressed: state.hasNextPage && !state.isRefreshing
               ? () => onDoWithSnackbar(
-                    () => context.read<VendorCubit>().nextPage(),
-                  )
+                  () => context.read<VendorCubit>().nextPage(),
+                )
               : null,
         ),
       ],
@@ -584,4 +585,3 @@ class _ConfirmDialog extends StatelessWidget {
     );
   }
 }
-
