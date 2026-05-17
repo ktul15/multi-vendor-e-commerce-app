@@ -2,7 +2,11 @@ import { Router } from 'express';
 import { CategoryController } from './category.controller';
 import { authenticate, authorize } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
-import { createCategorySchema, updateCategorySchema } from './category.validation';
+import upload, { withUpload } from '../../middleware/upload';
+import {
+  createCategorySchema,
+  updateCategorySchema,
+} from './category.validation';
 import { Role } from '../../generated/prisma/client';
 
 const router = Router();
@@ -85,9 +89,10 @@ router.use(authenticate, authorize(Role.ADMIN));
  *         description: Forbidden — ADMIN role required
  */
 router.post(
-    '/',
-    validate(createCategorySchema),
-    categoryController.createCategory
+  '/',
+  withUpload(upload.single('image')),
+  validate(createCategorySchema),
+  categoryController.createCategory
 );
 
 /**
@@ -140,9 +145,10 @@ router.post(
  *         description: Category not found
  */
 router.put(
-    '/:id',
-    validate(updateCategorySchema),
-    categoryController.updateCategory
+  '/:id',
+  withUpload(upload.single('image')),
+  validate(updateCategorySchema),
+  categoryController.updateCategory
 );
 
 /**
@@ -169,9 +175,6 @@ router.put(
  *       404:
  *         description: Category not found
  */
-router.delete(
-    '/:id',
-    categoryController.deleteCategory
-);
+router.delete('/:id', categoryController.deleteCategory);
 
 export default router;
