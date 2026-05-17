@@ -42,6 +42,7 @@ class _CategoryListPageState extends State<CategoryListPage> {
         actions: [
           // Table / Tree toggle
           SegmentedButton<int>(
+            showSelectedIcon: false,
             segments: const [
               ButtonSegment(
                 value: 0,
@@ -56,9 +57,7 @@ class _CategoryListPageState extends State<CategoryListPage> {
             ],
             selected: {_viewIndex},
             onSelectionChanged: (s) => setState(() => _viewIndex = s.first),
-            style: ButtonStyle(
-              visualDensity: VisualDensity.compact,
-            ),
+            style: ButtonStyle(visualDensity: VisualDensity.compact),
           ),
           const SizedBox(width: 8),
           // Add category button
@@ -122,14 +121,8 @@ class _CategoryListPageState extends State<CategoryListPage> {
             color: AppColors.primary,
             onRefresh: () => context.read<CategoryCubit>().loadCategories(),
             child: _viewIndex == 0
-                ? _TableView(
-                    categories: categories,
-                    onEdit: _onEdit,
-                  )
-                : _TreeView(
-                    categories: categories,
-                    onEdit: _onEdit,
-                  ),
+                ? _TableView(categories: categories, onEdit: _onEdit)
+                : _TreeView(categories: categories, onEdit: _onEdit),
           );
         },
       ),
@@ -154,7 +147,7 @@ class _TableView extends StatelessWidget {
       for (final cat in nodes) ...[
         (cat: cat, depth: depth),
         ..._flatten(cat.children, depth + 1),
-      ]
+      ],
     ];
   }
 
@@ -162,131 +155,158 @@ class _TableView extends StatelessWidget {
   Widget build(BuildContext context) {
     final flat = _flatten(categories, 0);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Card(
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-            columnSpacing: 32,
-            columns: const [
-              DataColumn(label: Text('Name')),
-              DataColumn(label: Text('Slug')),
-              DataColumn(label: Text('Parent')),
-              DataColumn(label: Text('Image')),
-              DataColumn(label: Text('Actions')),
-            ],
-            rows: flat.map((entry) {
-              final cat = entry.cat;
-              final indent = entry.depth * 16.0;
-              return DataRow(cells: [
-                // Name (indented to show hierarchy)
-                DataCell(
-                  Padding(
-                    padding: EdgeInsets.only(left: indent),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (entry.depth > 0) ...[
-                          Icon(Icons.subdirectory_arrow_right_rounded,
-                              size: 16, color: AppColors.textSecondary),
-                          const SizedBox(width: 4),
-                        ],
-                        Text(
-                          cat.name,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                // Slug
-                DataCell(
-                  Text(
-                    cat.slug,
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 13,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
-                ),
-                // Parent
-                DataCell(
-                  Text(
-                    cat.parentId == null ? '—' : 'Has parent',
-                    style: TextStyle(
-                      color: cat.parentId == null
-                          ? AppColors.textSecondary
-                          : AppColors.primary,
-                    ),
-                  ),
-                ),
-                // Image
-                DataCell(
-                  cat.image != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: Image.network(
-                            cat.image!,
-                            width: 36,
-                            height: 36,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Icon(
-                              Icons.broken_image_outlined,
-                              size: 20,
-                              color: AppColors.textSecondary,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final tableMinWidth = constraints.maxWidth - 48;
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: SizedBox(
+            width: double.infinity,
+            child: Card(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: tableMinWidth),
+                  child: DataTable(
+                    columnSpacing: 32,
+                    columns: const [
+                      DataColumn(label: Text('Name')),
+                      DataColumn(label: Text('Slug')),
+                      DataColumn(label: Text('Parent')),
+                      DataColumn(label: Text('Image')),
+                      DataColumn(label: Text('Actions')),
+                    ],
+                    rows: flat.map((entry) {
+                      final cat = entry.cat;
+                      final indent = entry.depth * 16.0;
+                      return DataRow(
+                        cells: [
+                          // Name (indented to show hierarchy)
+                          DataCell(
+                            Padding(
+                              padding: EdgeInsets.only(left: indent),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (entry.depth > 0) ...[
+                                    Icon(
+                                      Icons.subdirectory_arrow_right_rounded,
+                                      size: 16,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                    const SizedBox(width: 4),
+                                  ],
+                                  Text(
+                                    cat.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        )
-                      : const Icon(
-                          Icons.image_not_supported_outlined,
-                          size: 20,
-                          color: AppColors.textSecondary,
-                        ),
-                ),
-                // Actions
-                DataCell(
-                  BlocBuilder<CategoryCubit, CategoryState>(
-                    buildWhen: (p, n) =>
-                        (p is CategoryLoaded) != (n is CategoryLoaded) ||
-                        (p is CategoryLoaded &&
-                            n is CategoryLoaded &&
-                            p.isMutating != n.isMutating),
-                    builder: (context, state) {
-                      final isMutating =
-                          state is CategoryLoaded && state.isMutating;
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            tooltip: 'Edit',
-                            icon: const Icon(Icons.edit_outlined, size: 18),
-                            onPressed:
-                                isMutating ? null : () => onEdit(cat),
-                          ),
-                          IconButton(
-                            tooltip: 'Delete',
-                            icon: Icon(
-                              Icons.delete_outline_rounded,
-                              size: 18,
-                              color: isMutating ? null : AppColors.error,
+                          // Slug
+                          DataCell(
+                            Text(
+                              cat.slug,
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 13,
+                                fontFamily: 'monospace',
+                              ),
                             ),
-                            onPressed: isMutating
-                                ? null
-                                : () => _onDelete(context, cat),
+                          ),
+                          // Parent
+                          DataCell(
+                            Text(
+                              cat.parentId == null ? '—' : 'Has parent',
+                              style: TextStyle(
+                                color: cat.parentId == null
+                                    ? AppColors.textSecondary
+                                    : AppColors.primary,
+                              ),
+                            ),
+                          ),
+                          // Image
+                          DataCell(
+                            cat.image != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: Image.network(
+                                      cat.image!,
+                                      width: 36,
+                                      height: 36,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              const Icon(
+                                                Icons.broken_image_outlined,
+                                                size: 20,
+                                                color: AppColors.textSecondary,
+                                              ),
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.image_not_supported_outlined,
+                                    size: 20,
+                                    color: AppColors.textSecondary,
+                                  ),
+                          ),
+                          // Actions
+                          DataCell(
+                            BlocBuilder<CategoryCubit, CategoryState>(
+                              buildWhen: (p, n) =>
+                                  (p is CategoryLoaded) !=
+                                      (n is CategoryLoaded) ||
+                                  (p is CategoryLoaded &&
+                                      n is CategoryLoaded &&
+                                      p.isMutating != n.isMutating),
+                              builder: (context, state) {
+                                final isMutating =
+                                    state is CategoryLoaded && state.isMutating;
+                                return Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      tooltip: 'Edit',
+                                      icon: const Icon(
+                                        Icons.edit_outlined,
+                                        size: 18,
+                                      ),
+                                      onPressed: isMutating
+                                          ? null
+                                          : () => onEdit(cat),
+                                    ),
+                                    IconButton(
+                                      tooltip: 'Delete',
+                                      icon: Icon(
+                                        Icons.delete_outline_rounded,
+                                        size: 18,
+                                        color: isMutating
+                                            ? null
+                                            : AppColors.error,
+                                      ),
+                                      onPressed: isMutating
+                                          ? null
+                                          : () => _onDelete(context, cat),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
                           ),
                         ],
                       );
-                    },
+                    }).toList(),
                   ),
                 ),
-              ]);
-            }).toList(),
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -296,8 +316,7 @@ class _TableView extends StatelessWidget {
       categoryName: cat.name,
     );
     if (confirmed != true || !context.mounted) return;
-    final error =
-        await context.read<CategoryCubit>().deleteCategory(cat.id);
+    final error = await context.read<CategoryCubit>().deleteCategory(cat.id);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -336,4 +355,3 @@ class _TreeView extends StatelessWidget {
     );
   }
 }
-
