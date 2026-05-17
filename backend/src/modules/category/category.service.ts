@@ -39,6 +39,10 @@ export class CategoryService {
    * Auto-generates a unique slug from the name.
    */
   async createCategory(data: CreateCategoryInput, file?: Express.Multer.File) {
+    if (!file) {
+      throw ApiError.badRequest('Category image is required');
+    }
+
     const baseSlug = slugify(data.name, { lower: true, strict: true });
     let slug = baseSlug;
     let counter = 1;

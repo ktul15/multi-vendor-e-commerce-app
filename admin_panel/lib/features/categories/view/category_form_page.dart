@@ -123,6 +123,16 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
 
   Future<void> _onSave() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!widget.isEditing && _pickedImageBytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a category image'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
 
     final name = _nameController.text.trim();
@@ -289,7 +299,7 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
                           Text(
                             widget.isEditing
                                 ? 'Category Image (leave unchanged to keep current)'
-                                : 'Category Image',
+                                : 'Category Image *',
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: AppColors.textSecondary),
                           ),
