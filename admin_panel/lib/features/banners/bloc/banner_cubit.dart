@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../repositories/banner_repository.dart';
@@ -7,8 +9,8 @@ class BannerCubit extends Cubit<BannerState> {
   final BannerRepository _repository;
 
   BannerCubit({required BannerRepository repository})
-      : _repository = repository,
-        super(const BannerInitial());
+    : _repository = repository,
+      super(const BannerInitial());
 
   // ── Initial load ──────────────────────────────────────────────────────────
 
@@ -39,11 +41,7 @@ class BannerCubit extends Cubit<BannerState> {
     final current = state;
     if (current is! BannerLoaded) return null;
     if (current.isActiveFilter == isActive) return null;
-    return _fetchPage(
-      page: 1,
-      isActive: isActive,
-      newIsActiveFilter: isActive,
-    );
+    return _fetchPage(page: 1, isActive: isActive, newIsActiveFilter: isActive);
   }
 
   Future<String?> nextPage() async {
@@ -84,7 +82,8 @@ class BannerCubit extends Cubit<BannerState> {
   /// Creates a banner. Returns null on success, error message on failure.
   Future<String?> createBanner({
     required String title,
-    required String imagePath,
+    required Uint8List imageBytes,
+    required String imageFilename,
     String? linkUrl,
     int position = 0,
     bool isActive = true,
@@ -95,7 +94,8 @@ class BannerCubit extends Cubit<BannerState> {
     try {
       await _repository.createBanner(
         title: title,
-        imagePath: imagePath,
+        imageBytes: imageBytes,
+        imageFilename: imageFilename,
         linkUrl: linkUrl,
         position: position,
         isActive: isActive,
@@ -117,7 +117,8 @@ class BannerCubit extends Cubit<BannerState> {
   Future<String?> updateBanner(
     String id, {
     String? title,
-    String? imagePath,
+    Uint8List? imageBytes,
+    String? imageFilename,
     String? linkUrl,
     bool clearLinkUrl = false,
     int? position,
@@ -130,7 +131,8 @@ class BannerCubit extends Cubit<BannerState> {
       await _repository.updateBanner(
         id,
         title: title,
-        imagePath: imagePath,
+        imageBytes: imageBytes,
+        imageFilename: imageFilename,
         linkUrl: linkUrl,
         clearLinkUrl: clearLinkUrl,
         position: position,
@@ -181,10 +183,7 @@ class BannerCubit extends Cubit<BannerState> {
     reordered.insert(newIndex, moved);
 
     // Emit optimistic update immediately so the UI feels responsive.
-    emit(current.copyWith(
-      items: reordered,
-      isSubmitting: true,
-    ));
+    emit(current.copyWith(items: reordered, isSubmitting: true));
 
     // Send PUT requests for each item whose position changed.
     String? firstError;
@@ -236,13 +235,15 @@ class BannerCubit extends Cubit<BannerState> {
       final s = state;
       if (s is! BannerLoaded) return null;
 
-      emit(s.copyWith(
-        items: result.items,
-        meta: result.meta,
-        isActiveFilter: newIsActiveFilter,
-        clearIsActiveFilter: newIsActiveFilter == null,
-        isRefreshing: false,
-      ));
+      emit(
+        s.copyWith(
+          items: result.items,
+          meta: result.meta,
+          isActiveFilter: newIsActiveFilter,
+          clearIsActiveFilter: newIsActiveFilter == null,
+          isRefreshing: false,
+        ),
+      );
       return null;
     } on ApiException catch (e) {
       final s = state;
@@ -264,11 +265,13 @@ class BannerCubit extends Cubit<BannerState> {
       );
       final s = state;
       if (s is BannerLoaded) {
-        emit(s.copyWith(
-          items: result.items,
-          meta: result.meta,
-          isSubmitting: false,
-        ));
+        emit(
+          s.copyWith(
+            items: result.items,
+            meta: result.meta,
+            isSubmitting: false,
+          ),
+        );
       }
     } on ApiException catch (e) {
       final s = state;
@@ -278,10 +281,12 @@ class BannerCubit extends Cubit<BannerState> {
     } catch (_) {
       final s = state;
       if (s is BannerLoaded) {
-        emit(s.copyWith(
-          isSubmitting: false,
-          transientError: 'Something went wrong. Please try again.',
-        ));
+        emit(
+          s.copyWith(
+            isSubmitting: false,
+            transientError: 'Something went wrong. Please try again.',
+          ),
+        );
       }
     }
   }

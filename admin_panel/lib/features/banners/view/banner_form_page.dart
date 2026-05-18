@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -28,8 +28,8 @@ class _BannerFormPageState extends State<BannerFormPage> {
   late final TextEditingController _linkUrlController;
   late final TextEditingController _positionController;
 
-  // Picked file path (create) or null (keeping existing image on edit).
-  String? _pickedImagePath;
+  Uint8List? _pickedImageBytes;
+  String? _pickedImageName;
   // Existing image URL shown on edit form.
   String? _existingImageUrl;
   bool _isActive = true;
@@ -105,19 +105,34 @@ class _BannerFormPageState extends State<BannerFormPage> {
   }
 
   Future<void> _pickImage() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      allowMultiple: false,
-    );
-    if (result == null || result.files.single.path == null) return;
-    setState(() => _pickedImagePath = result.files.single.path!);
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp'],
+        allowMultiple: false,
+        withData: true,
+      );
+      if (result == null || result.files.single.bytes == null) return;
+      setState(() {
+        _pickedImageBytes = result.files.single.bytes!;
+        _pickedImageName = result.files.single.name;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to pick image: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   Future<void> _onSave() async {
     if (!_formKey.currentState!.validate()) return;
 
     // Create requires an image.
-    if (!widget.isEditing && _pickedImagePath == null) {
+    if (!widget.isEditing && _pickedImageBytes == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select a banner image'),
@@ -136,22 +151,24 @@ class _BannerFormPageState extends State<BannerFormPage> {
     String? error;
     if (widget.isEditing) {
       error = await context.read<BannerCubit>().updateBanner(
-            widget.bannerId!,
-            title: title,
-            imagePath: _pickedImagePath,
-            linkUrl: linkUrl.isEmpty ? null : linkUrl,
-            clearLinkUrl: _hadLinkUrl && linkUrl.isEmpty,
-            position: position,
-            isActive: _isActive,
-          );
+        widget.bannerId!,
+        title: title,
+        imageBytes: _pickedImageBytes,
+        imageFilename: _pickedImageName,
+        linkUrl: linkUrl.isEmpty ? null : linkUrl,
+        clearLinkUrl: _hadLinkUrl && linkUrl.isEmpty,
+        position: position,
+        isActive: _isActive,
+      );
     } else {
       error = await context.read<BannerCubit>().createBanner(
-            title: title,
-            imagePath: _pickedImagePath!,
-            linkUrl: linkUrl.isEmpty ? null : linkUrl,
-            position: position,
-            isActive: _isActive,
-          );
+        title: title,
+        imageBytes: _pickedImageBytes!,
+        imageFilename: _pickedImageName ?? 'banner-image',
+        linkUrl: linkUrl.isEmpty ? null : linkUrl,
+        position: position,
+        isActive: _isActive,
+      );
     }
 
     if (!mounted) return;
@@ -159,10 +176,7 @@ class _BannerFormPageState extends State<BannerFormPage> {
 
     if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error),
-          backgroundColor: AppColors.error,
-        ),
+        SnackBar(content: Text(error), backgroundColor: AppColors.error),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -236,14 +250,13 @@ class _BannerFormPageState extends State<BannerFormPage> {
                             widget.isEditing
                                 ? 'Banner Image (leave unchanged to keep current)'
                                 : 'Banner Image *',
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: AppColors.textSecondary,
-                                    ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: AppColors.textSecondary),
                           ),
                           const SizedBox(height: 8),
                           _ImagePickerSection(
-                            pickedPath: _pickedImagePath,
+                            pickedBytes: _pickedImageBytes,
+                            pickedName: _pickedImageName,
                             existingUrl: _existingImageUrl,
                             onPick: _pickImage,
                           ),
@@ -297,8 +310,7 @@ class _BannerFormPageState extends State<BannerFormPage> {
                             children: [
                               Switch(
                                 value: _isActive,
-                                onChanged: (v) =>
-                                    setState(() => _isActive = v),
+                                onChanged: (v) => setState(() => _isActive = v),
                               ),
                               const SizedBox(width: 8),
                               Text(
@@ -347,12 +359,14 @@ class _BannerFormPageState extends State<BannerFormPage> {
 // ── Image picker section ──────────────────────────────────────────────────────
 
 class _ImagePickerSection extends StatelessWidget {
-  final String? pickedPath;
+  final Uint8List? pickedBytes;
+  final String? pickedName;
   final String? existingUrl;
   final VoidCallback onPick;
 
   const _ImagePickerSection({
-    required this.pickedPath,
+    required this.pickedBytes,
+    required this.pickedName,
     required this.existingUrl,
     required this.onPick,
   });
@@ -363,44 +377,47 @@ class _ImagePickerSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Preview area
-        if (pickedPath != null || existingUrl != null)
+        if (pickedBytes != null || existingUrl != null)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: pickedPath != null
-                  ? Image.file(
-                      File(pickedPath!),
+              child: pickedBytes != null
+                  ? Image.memory(
+                      pickedBytes!,
                       height: 120,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => _placeholder(),
+                      errorBuilder: (context, error, stackTrace) =>
+                          _placeholder(),
                     )
                   : Image.network(
                       existingUrl!,
                       height: 120,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => _placeholder(),
+                      errorBuilder: (context, error, stackTrace) =>
+                          _placeholder(),
                     ),
             ),
           ),
         OutlinedButton.icon(
           onPressed: onPick,
           icon: const Icon(Icons.upload_file_rounded, size: 18),
-          label: Text(pickedPath != null || existingUrl != null
-              ? 'Change Image'
-              : 'Choose Image'),
+          label: Text(
+            pickedBytes != null || existingUrl != null
+                ? 'Change Image'
+                : 'Choose Image',
+          ),
         ),
-        if (pickedPath != null)
+        if (pickedName != null)
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              pickedPath!.split('/').last,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: AppColors.textSecondary),
+              pickedName!,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -416,8 +433,10 @@ class _ImagePickerSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: const Center(
-        child: Icon(Icons.broken_image_outlined,
-            color: AppColors.textSecondary),
+        child: Icon(
+          Icons.broken_image_outlined,
+          color: AppColors.textSecondary,
+        ),
       ),
     );
   }
