@@ -181,7 +181,7 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
                     _InfoRow(
                       label: 'Commission Rate',
                       value: vendor.commissionRate != null
-                          ? '${(vendor.commissionRate! * 100).toStringAsFixed(1)}%'
+                          ? '${vendor.commissionRate!.toStringAsFixed(1)}%'
                           : 'Platform default',
                     ),
                     _InfoRow(

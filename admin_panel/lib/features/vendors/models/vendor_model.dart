@@ -1,5 +1,11 @@
 import 'package:equatable/equatable.dart';
 
+double? _readNullableDouble(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value.toString());
+}
+
 class VendorOwnerModel extends Equatable {
   final String id;
   final String name;
@@ -46,12 +52,11 @@ class VendorModel extends Equatable {
   });
 
   factory VendorModel.fromJson(Map<String, dynamic> json) {
-    final cr = json['commissionRate'];
     return VendorModel(
       id: json['id'] as String,
       storeName: json['storeName'] as String,
       status: json['status'] as String,
-      commissionRate: cr != null ? (cr as num).toDouble() : null,
+      commissionRate: _readNullableDouble(json['commissionRate']),
       stripeOnboardingStatus: json['stripeOnboardingStatus'] as String,
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
           DateTime.now(),
