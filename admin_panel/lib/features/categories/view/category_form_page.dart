@@ -25,8 +25,6 @@ class CategoryFormPage extends StatefulWidget {
 }
 
 class _CategoryFormPageState extends State<CategoryFormPage> {
-  static const String _rootParentValue = '__root__';
-
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
 
@@ -265,33 +263,11 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
                           const SizedBox(height: 20),
 
                           // ── Parent category ────────────────────────────
-                          // `value` is deprecated in Flutter 3.33 but
-                          // `initialValue` does not support controlled state.
-                          // Track Flutter migration to DropdownMenu.
-                          DropdownButtonFormField<String>(
-                            // ignore: deprecated_member_use
-                            value: _selectedParentId ?? _rootParentValue,
-                            decoration: const InputDecoration(
-                              labelText: 'Parent Category',
-                              hintText: 'None (root category)',
-                            ),
-                            items: [
-                              const DropdownMenuItem<String>(
-                                value: _rootParentValue,
-                                child: Text('None (root category)'),
-                              ),
-                              ...parentOptions.map(
-                                (cat) => DropdownMenuItem<String>(
-                                  value: cat.id,
-                                  child: _ParentDropdownItem(cat: cat),
-                                ),
-                              ),
-                            ],
-                            onChanged: (v) => setState(
-                              () => _selectedParentId = v == _rootParentValue
-                                  ? null
-                                  : v,
-                            ),
+                          _ParentCategorySelector(
+                            selectedParentId: _selectedParentId,
+                            options: parentOptions,
+                            onChanged: (id) =>
+                                setState(() => _selectedParentId = id),
                           ),
                           const SizedBox(height: 20),
 
@@ -462,28 +438,129 @@ class _CategoryImagePickerSection extends StatelessWidget {
   }
 }
 
-// ── Dropdown item showing indented hierarchy ───────────────────────────────────
+// ── Parent category selector ─────────────────────────────────────────────────
 
-class _ParentDropdownItem extends StatelessWidget {
-  final CategoryModel cat;
+class _ParentCategorySelector extends StatelessWidget {
+  static const String _rootParentValue = '__root__';
 
-  const _ParentDropdownItem({required this.cat});
+  final String? selectedParentId;
+  final List<CategoryModel> options;
+  final ValueChanged<String?> onChanged;
+
+  const _ParentCategorySelector({
+    required this.selectedParentId,
+    required this.options,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (cat.parentId != null) ...[
-          const Icon(
-            Icons.subdirectory_arrow_right_rounded,
-            size: 14,
-            color: AppColors.textSecondary,
+    final selectedName = _selectedName();
+
+    return InkWell(
+      onTap: () => _showPicker(context),
+      borderRadius: BorderRadius.circular(8),
+      child: InputDecorator(
+        decoration: const InputDecoration(
+          labelText: 'Parent Category',
+          hintText: 'None (root category)',
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                selectedName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.arrow_drop_down_rounded,
+              color: AppColors.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _selectedName() {
+    if (selectedParentId == null) return 'None (root category)';
+    for (final option in options) {
+      if (option.id == selectedParentId) return option.name;
+    }
+    return 'None (root category)';
+  }
+
+  Future<void> _showPicker(BuildContext context) async {
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        final maxHeight = MediaQuery.sizeOf(context).height * 0.65;
+
+        return AlertDialog(
+          title: const Text('Parent Category'),
+          contentPadding: const EdgeInsets.fromLTRB(0, 12, 0, 8),
+          content: SizedBox(
+            width: 560,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: maxHeight),
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  _ParentCategoryOptionTile(
+                    label: 'None (root category)',
+                    selected: selectedParentId == null,
+                    onTap: () => Navigator.of(context).pop(_rootParentValue),
+                  ),
+                  for (final option in options)
+                    _ParentCategoryOptionTile(
+                      label: option.name,
+                      isChild: option.parentId != null,
+                      selected: option.id == selectedParentId,
+                      onTap: () => Navigator.of(context).pop(option.id),
+                    ),
+                ],
+              ),
+            ),
           ),
-          const SizedBox(width: 4),
-        ],
-        Text(cat.name, overflow: TextOverflow.ellipsis),
-      ],
+        );
+      },
+    );
+
+    if (selected == null) return;
+    onChanged(selected == _rootParentValue ? null : selected);
+  }
+}
+
+class _ParentCategoryOptionTile extends StatelessWidget {
+  final String label;
+  final bool isChild;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ParentCategoryOptionTile({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.isChild = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      selected: selected,
+      selectedTileColor: AppColors.primary.withValues(alpha: 0.10),
+      leading: isChild
+          ? const Icon(
+              Icons.subdirectory_arrow_right_rounded,
+              size: 18,
+              color: AppColors.textSecondary,
+            )
+          : const SizedBox(width: 18),
+      title: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+      onTap: onTap,
     );
   }
 }
