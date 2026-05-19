@@ -42,22 +42,32 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     });
   }
 
+  void _loadDetailIfReady(AdminOrderState state) {
+    if (state is! AdminOrderLoaded ||
+        state.isDetailLoading ||
+        state.detailError != null ||
+        state.selectedOrderDetail?.id == widget.orderId) {
+      return;
+    }
+
+    context.read<AdminOrderCubit>().loadOrderDetail(widget.orderId);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<AdminOrderCubit, AdminOrderState>(
-      builder: (context, state) {
-        return switch (state) {
-          AdminOrderInitial() ||
-          AdminOrderLoading() =>
-            _loadingScaffold(),
-          AdminOrderError(:final message) => _errorScaffold(
-              message,
-              // The list failed to load — retry by reloading the list,
-              // which will keep us on this route once orders are available.
-              onRetry: () => context.read<AdminOrderCubit>().load(),
-            ),
-          AdminOrderLoaded() => _buildFromLoaded(state),
-        };
+    return BlocConsumer<AdminOrderCubit, AdminOrderState>(
+      listenWhen: (previous, current) =>
+          previous is! AdminOrderLoaded && current is AdminOrderLoaded,
+      listener: (context, state) => _loadDetailIfReady(state),
+      builder: (context, state) => switch (state) {
+        AdminOrderInitial() || AdminOrderLoading() => _loadingScaffold(),
+        AdminOrderError(:final message) => _errorScaffold(
+          message,
+          // The list failed to load — retry by reloading the list,
+          // which will keep us on this route once orders are available.
+          onRetry: () => context.read<AdminOrderCubit>().load(),
+        ),
+        AdminOrderLoaded() => _buildFromLoaded(state),
       },
     );
   }
@@ -84,8 +94,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Order Detail'),
-        titleTextStyle:
-            AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
+        titleTextStyle: AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
       ),
       body: const Center(child: CircularProgressIndicator()),
     );
@@ -96,8 +105,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Order Detail'),
-        titleTextStyle:
-            AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
+        titleTextStyle: AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
       ),
       body: Center(
         child: Padding(
@@ -105,18 +113,19 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline_rounded,
-                  size: 64, color: AppColors.error),
-              const SizedBox(height: AppSpacing.base),
-              Text(
-                'Something went wrong',
-                style: AppTextStyles.h5,
+              const Icon(
+                Icons.error_outline_rounded,
+                size: 64,
+                color: AppColors.error,
               ),
+              const SizedBox(height: AppSpacing.base),
+              Text('Something went wrong', style: AppTextStyles.h5),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 message,
-                style: AppTextStyles.body
-                    .copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.body.copyWith(
+                  color: AppColors.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.xl),
@@ -150,8 +159,7 @@ class _OrderDetailView extends StatelessWidget {
         elevation: 0,
         scrolledUnderElevation: 1,
         title: Text(order.orderNumber),
-        titleTextStyle:
-            AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
+        titleTextStyle: AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
       ),
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.base),
@@ -224,8 +232,7 @@ class _OrderDetailView extends StatelessWidget {
                 _DetailRow(
                   label: 'Paid At',
                   value: order.payment!.paidAt != null
-                      ? _dateTimeFormat
-                          .format(order.payment!.paidAt!.toLocal())
+                      ? _dateTimeFormat.format(order.payment!.paidAt!.toLocal())
                       : 'Pending',
                   valueColor: order.payment!.paidAt != null
                       ? AppColors.success
@@ -245,7 +252,9 @@ class _OrderDetailView extends StatelessWidget {
                 _DetailRow(label: 'City', value: order.address!.city),
                 _DetailRow(label: 'State', value: order.address!.state),
                 _DetailRow(
-                    label: 'Postal Code', value: order.address!.postalCode),
+                  label: 'Postal Code',
+                  value: order.address!.postalCode,
+                ),
                 _DetailRow(label: 'Country', value: order.address!.country),
               ],
             ),
@@ -259,8 +268,9 @@ class _OrderDetailView extends StatelessWidget {
               children: [
                 _DetailRow(label: 'Code', value: order.promoCode!.code),
                 _DetailRow(
-                    label: 'Discount Type',
-                    value: order.promoCode!.discountType),
+                  label: 'Discount Type',
+                  value: order.promoCode!.discountType,
+                ),
                 _DetailRow(
                   label: 'Discount Value',
                   value: order.promoCode!.discountType == 'PERCENTAGE'
@@ -379,8 +389,7 @@ class _OrderItemRow extends StatelessWidget {
             children: [
               Text(
                 item.productName,
-                style: AppTextStyles.body
-                    .copyWith(fontWeight: FontWeight.w500),
+                style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w500),
               ),
               Text(
                 [
@@ -388,8 +397,9 @@ class _OrderItemRow extends StatelessWidget {
                   if (item.size != null) item.size!,
                   if (item.color != null) item.color!,
                 ].join(' · '),
-                style: AppTextStyles.caption
-                    .copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
             ],
           ),
@@ -399,13 +409,13 @@ class _OrderItemRow extends StatelessWidget {
           children: [
             Text(
               '${item.quantity}× ${_currencyFormat.format(item.price)}',
-              style: AppTextStyles.caption
-                  .copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.caption.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
             Text(
               _currencyFormat.format(item.subtotal),
-              style: AppTextStyles.body
-                  .copyWith(fontWeight: FontWeight.w500),
+              style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w500),
             ),
           ],
         ),
