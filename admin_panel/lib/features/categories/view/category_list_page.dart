@@ -27,7 +27,7 @@ class _CategoryListPageState extends State<CategoryListPage> {
   int _viewIndex = 0;
 
   void _onEdit(CategoryModel category) {
-    context.pushNamed(
+    context.goNamed(
       AppRoutes.categoryEditName,
       pathParameters: {'id': category.id},
     );
