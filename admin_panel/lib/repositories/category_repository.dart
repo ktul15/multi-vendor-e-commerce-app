@@ -113,14 +113,7 @@ class CategoryRepository {
   }
 
   String _errorMessage(DioException e) {
-    if (e.response != null) {
-      final data = e.response?.data;
-      if (data is Map && data['message'] != null) {
-        return data['message'] as String;
-      }
-      return 'Request failed (${e.response?.statusCode})';
-    }
-    return e.message ?? 'Network error';
+    return e.errorMessage;
   }
 
   MediaType _mediaTypeFor(String? filename) {

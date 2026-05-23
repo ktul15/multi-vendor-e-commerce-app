@@ -13,7 +13,8 @@ class ApiException implements Exception {
 
 extension DioExceptionMessage on DioException {
   /// Extracts a human-readable error message from a [DioException].
-  /// Falls back to the HTTP status code or a generic network error string.
+  /// Falls back to a generic connection message for transport errors so raw
+  /// Dio/browser implementation details are not shown in the UI.
   String get errorMessage {
     if (response != null) {
       final data = response?.data;
@@ -22,6 +23,18 @@ extension DioExceptionMessage on DioException {
       }
       return 'Request failed (${response?.statusCode})';
     }
-    return message ?? 'Network error';
+
+    return switch (type) {
+      DioExceptionType.connectionTimeout ||
+      DioExceptionType.sendTimeout ||
+      DioExceptionType.receiveTimeout =>
+        'The request timed out. Please try again.',
+      DioExceptionType.connectionError || DioExceptionType.unknown =>
+        'Unable to connect. Check your internet connection and try again.',
+      DioExceptionType.cancel => 'Request cancelled. Please try again.',
+      DioExceptionType.badCertificate =>
+        'Unable to establish a secure connection.',
+      DioExceptionType.badResponse => 'Request failed. Please try again.',
+    };
   }
 }
