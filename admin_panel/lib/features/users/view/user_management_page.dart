@@ -93,25 +93,24 @@ class _UserManagementPageState extends State<UserManagementPage> {
             elevation: 0,
             scrolledUnderElevation: 1,
             title: const Text('Users'),
-            titleTextStyle:
-                AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
+            titleTextStyle: AppTextStyles.h5.copyWith(
+              color: AppColors.textPrimary,
+            ),
           ),
           body: switch (state) {
-            AdminUserManagementInitial() ||
-            AdminUserManagementLoading() =>
+            AdminUserManagementInitial() || AdminUserManagementLoading() =>
               const SkeletonContainer(child: UserListSkeleton()),
             AdminUserManagementError(:final message) => ErrorState(
-                message: message,
-                onRetry: () =>
-                    context.read<AdminUserManagementCubit>().refresh(),
-              ),
+              message: message,
+              onRetry: () => context.read<AdminUserManagementCubit>().refresh(),
+            ),
             AdminUserManagementLoaded() => _LoadedBody(
-                state: state,
-                searchController: _searchController,
-                scrollController: _scrollController,
-                onSearchChanged: _onSearchChanged,
-                isSearching: state.isSearching,
-              ),
+              state: state,
+              searchController: _searchController,
+              scrollController: _scrollController,
+              onSearchChanged: _onSearchChanged,
+              isSearching: state.isSearching,
+            ),
           },
         );
       },
@@ -158,12 +157,8 @@ class _LoadedBody extends StatelessWidget {
         Expanded(
           child: RefreshIndicator(
             color: AppColors.primary,
-            onRefresh: () =>
-                context.read<AdminUserManagementCubit>().refresh(),
-            child: _UserList(
-              state: state,
-              scrollController: scrollController,
-            ),
+            onRefresh: () => context.read<AdminUserManagementCubit>().refresh(),
+            child: _UserList(state: state, scrollController: scrollController),
           ),
         ),
       ],
@@ -222,8 +217,9 @@ class _SearchAndFilterBarState extends State<_SearchAndFilterBar> {
             style: AppTextStyles.body,
             decoration: InputDecoration(
               hintText: 'Search users...',
-              hintStyle: AppTextStyles.body
-                  .copyWith(color: AppColors.textSecondary),
+              hintStyle: AppTextStyles.body.copyWith(
+                color: AppColors.textSecondary,
+              ),
               prefixIcon: const Icon(
                 Icons.search_rounded,
                 color: AppColors.textSecondary,
@@ -255,7 +251,9 @@ class _SearchAndFilterBarState extends State<_SearchAndFilterBar> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(
-                    color: AppColors.primary, width: 1.5),
+                  color: AppColors.primary,
+                  width: 1.5,
+                ),
               ),
             ),
           ),
@@ -313,9 +311,7 @@ class _RoleChip extends StatelessWidget {
       ),
       selectedColor: AppColors.primary,
       backgroundColor: AppColors.background,
-      side: BorderSide(
-        color: selected ? AppColors.primary : AppColors.border,
-      ),
+      side: BorderSide(color: selected ? AppColors.primary : AppColors.border),
       showCheckmark: false,
       padding: const EdgeInsets.symmetric(horizontal: 4),
     );
@@ -326,10 +322,7 @@ class _UserList extends StatelessWidget {
   final AdminUserManagementLoaded state;
   final ScrollController scrollController;
 
-  const _UserList({
-    required this.state,
-    required this.scrollController,
-  });
+  const _UserList({required this.state, required this.scrollController});
 
   Future<void> _showBanConfirmation(
     BuildContext context,
@@ -350,8 +343,7 @@ class _UserList extends StatelessWidget {
       return Center(
         child: Text(
           'No users found',
-          style: AppTextStyles.body
-              .copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
         ),
       );
     }
@@ -370,9 +362,9 @@ class _UserList extends StatelessWidget {
         return UserRow(
           user: user,
           isBanning: state.banningUserIds.contains(user.id),
-          onTap: () => context.pushNamed(
+          onTap: () => context.goNamed(
             AppRoutes.userDetailName,
-            extra: user,
+            pathParameters: {'id': user.id},
           ),
           onBanToggle: () => _showBanConfirmation(context, user),
         );
@@ -400,8 +392,9 @@ class _ListFooter extends StatelessWidget {
         child: Center(
           child: Text(
             'All users loaded',
-            style: AppTextStyles.caption
-                .copyWith(color: AppColors.textSecondary),
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
         ),
       );
@@ -427,10 +420,7 @@ class _BanConfirmationDialog extends StatelessWidget {
         : '${user.name} will regain access to their account.';
 
     return AlertDialog(
-      title: Text(
-        '$actionLabel ${user.name}?',
-        style: AppTextStyles.h5,
-      ),
+      title: Text('$actionLabel ${user.name}?', style: AppTextStyles.h5),
       content: Text(bodyText, style: AppTextStyles.body),
       actions: [
         TextButton(
@@ -446,4 +436,3 @@ class _BanConfirmationDialog extends StatelessWidget {
     );
   }
 }
-
