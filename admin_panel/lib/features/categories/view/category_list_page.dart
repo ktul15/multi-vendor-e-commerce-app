@@ -47,17 +47,38 @@ class _CategoryListPageState extends State<CategoryListPage> {
               ButtonSegment(
                 value: 0,
                 icon: Icon(Icons.table_rows_rounded),
-                label: Text('Table'),
+                label: SizedBox(
+                  width: 48,
+                  child: Text(
+                    'Table',
+                    maxLines: 1,
+                    overflow: TextOverflow.visible,
+                    softWrap: false,
+                  ),
+                ),
               ),
               ButtonSegment(
                 value: 1,
                 icon: Icon(Icons.account_tree_outlined),
-                label: Text('Tree'),
+                label: SizedBox(
+                  width: 40,
+                  child: Text(
+                    'Tree',
+                    maxLines: 1,
+                    overflow: TextOverflow.visible,
+                    softWrap: false,
+                  ),
+                ),
               ),
             ],
             selected: {_viewIndex},
             onSelectionChanged: (s) => setState(() => _viewIndex = s.first),
-            style: ButtonStyle(visualDensity: VisualDensity.compact),
+            style: const ButtonStyle(
+              visualDensity: VisualDensity.compact,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              minimumSize: WidgetStatePropertyAll(Size(88, 40)),
+              textStyle: WidgetStatePropertyAll(TextStyle(height: 1.0)),
+            ),
           ),
           const SizedBox(width: 8),
           // Add category button
@@ -68,12 +89,24 @@ class _CategoryListPageState extends State<CategoryListPage> {
                     n is CategoryLoaded &&
                     p.isMutating != n.isMutating),
             builder: (context, state) {
-              return FilledButton.icon(
-                onPressed: (state is CategoryLoaded && state.isMutating)
-                    ? null
-                    : () => context.pushNamed(AppRoutes.categoryCreateName),
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('Add Category'),
+              return Center(
+                child: FilledButton.icon(
+                  onPressed: (state is CategoryLoaded && state.isMutating)
+                      ? null
+                      : () => context.goNamed(AppRoutes.categoryCreateName),
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text(
+                    'Add Category',
+                    maxLines: 1,
+                    overflow: TextOverflow.visible,
+                    softWrap: false,
+                  ),
+                  style: const ButtonStyle(
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    minimumSize: WidgetStatePropertyAll(Size(160, 40)),
+                    textStyle: WidgetStatePropertyAll(TextStyle(height: 1.0)),
+                  ),
+                ),
               );
             },
           ),
