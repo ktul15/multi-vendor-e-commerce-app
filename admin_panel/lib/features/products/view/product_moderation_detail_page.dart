@@ -32,44 +32,44 @@ class _ProductModerationDetailPageState
     return BlocBuilder<ProductModerationCubit, ProductModerationState>(
       builder: (context, state) {
         return switch (state) {
-          ProductModerationInitial() ||
-          ProductModerationLoading() =>
-            Scaffold(
-              backgroundColor: Colors.transparent,
-              appBar: AppBar(title: const Text('Product Detail')),
-              body: const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
-              ),
+          ProductModerationInitial() || ProductModerationLoading() => Scaffold(
+            backgroundColor: Colors.transparent,
+            appBar: AppBar(title: const Text('Product Detail')),
+            body: const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
             ),
+          ),
           ProductModerationError(:final message) => Scaffold(
-              backgroundColor: Colors.transparent,
-              appBar: AppBar(title: const Text('Product Detail')),
-              body: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.error_outline_rounded,
-                        size: 64, color: AppColors.error),
-                    const SizedBox(height: 16),
-                    Text(
-                      message,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: AppColors.textSecondary),
-                      textAlign: TextAlign.center,
+            backgroundColor: Colors.transparent,
+            appBar: AppBar(title: const Text('Product Detail')),
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    size: 64,
+                    color: AppColors.error,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    message,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary,
                     ),
-                    const SizedBox(height: 24),
-                    FilledButton.icon(
-                      onPressed: () =>
-                          context.read<ProductModerationCubit>().load(),
-                      icon: const Icon(Icons.refresh_rounded),
-                      label: const Text('Retry'),
-                    ),
-                  ],
-                ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton.icon(
+                    onPressed: () =>
+                        context.read<ProductModerationCubit>().load(),
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('Retry'),
+                  ),
+                ],
               ),
             ),
+          ),
           ProductModerationLoaded() => _buildDetail(context, state),
         };
       },
@@ -77,8 +77,9 @@ class _ProductModerationDetailPageState
   }
 
   Widget _buildDetail(BuildContext context, ProductModerationLoaded state) {
-    final product =
-        state.items.where((p) => p.id == widget.productId).firstOrNull;
+    final product = state.items
+        .where((p) => p.id == widget.productId)
+        .firstOrNull;
 
     if (product == null) {
       return Scaffold(
@@ -88,8 +89,11 @@ class _ProductModerationDetailPageState
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.inventory_2_outlined,
-                  size: 64, color: AppColors.textSecondary),
+              const Icon(
+                Icons.inventory_2_outlined,
+                size: 64,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(height: 16),
               Text(
                 'Product not found',
@@ -97,8 +101,7 @@ class _ProductModerationDetailPageState
               ),
               const SizedBox(height: 24),
               FilledButton(
-                onPressed: () =>
-                    context.goNamed(AppRoutes.productsName),
+                onPressed: () => context.goNamed(AppRoutes.productsName),
                 child: const Text('Back to Products'),
               ),
             ],
@@ -145,9 +148,7 @@ class _ProductModerationDetailPageState
                         children: [
                           Text(
                             product.name,
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
+                            style: Theme.of(context).textTheme.headlineSmall
                                 ?.copyWith(fontWeight: FontWeight.w700),
                           ),
                           const SizedBox(height: 6),
@@ -188,10 +189,7 @@ class _ProductModerationDetailPageState
                       label: 'Base Price',
                       value: product.formattedPrice,
                     ),
-                    _InfoRow(
-                      label: 'Category',
-                      value: product.category.name,
-                    ),
+                    _InfoRow(label: 'Category', value: product.category.name),
                     _InfoRow(
                       label: 'Avg Rating',
                       value: product.avgRating.toStringAsFixed(1),
@@ -204,23 +202,14 @@ class _ProductModerationDetailPageState
                       label: 'Variants',
                       value: product.variantCount.toString(),
                     ),
-                    _InfoRow(
-                      label: 'Created',
-                      value: product.formattedDate,
-                    ),
+                    _InfoRow(label: 'Created', value: product.formattedDate),
                   ],
                 ),
                 _InfoCard(
                   title: 'Vendor',
                   children: [
-                    _InfoRow(
-                      label: 'Name',
-                      value: product.vendor.name,
-                    ),
-                    _InfoRow(
-                      label: 'Email',
-                      value: product.vendor.email,
-                    ),
+                    _InfoRow(label: 'Name', value: product.vendor.name),
+                    _InfoRow(label: 'Email', value: product.vendor.email),
                   ],
                 ),
               ],
@@ -298,9 +287,10 @@ class _DetailActions extends StatelessWidget {
             body:
                 '"${product.name}" will be permanently deleted. Products with existing orders cannot be deleted.',
             actionColor: AppColors.error,
-            onConfirm: () => context
-                .read<ProductModerationCubit>()
-                .deleteProduct(product),
+            onConfirm: () =>
+                context.read<ProductModerationCubit>().deleteProduct(product),
+            successMessage: 'Product deleted successfully',
+            successRouteName: AppRoutes.productsName,
           ),
           child: const Text('Delete'),
         ),
@@ -314,19 +304,21 @@ class _DetailActions extends StatelessWidget {
     required String body,
     required Color actionColor,
     required Future<String?> Function() onConfirm,
+    String? successMessage,
+    String? successRouteName,
   }) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text('$action "${product.name}"?'),
         content: Text(body),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             style: TextButton.styleFrom(foregroundColor: actionColor),
             child: Text(action),
           ),
@@ -334,14 +326,20 @@ class _DetailActions extends StatelessWidget {
       ),
     );
     if (confirmed == true && context.mounted) {
+      final messenger = ScaffoldMessenger.of(context);
+      final router = GoRouter.of(context);
       final error = await onConfirm();
-      if (error != null && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error),
-            backgroundColor: AppColors.error,
-          ),
+      if (error != null) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(error), backgroundColor: AppColors.error),
         );
+      } else {
+        if (successMessage != null) {
+          messenger.showSnackBar(SnackBar(content: Text(successMessage)));
+        }
+        if (successRouteName != null) {
+          router.goNamed(successRouteName);
+        }
       }
     }
   }
@@ -368,9 +366,9 @@ class _InfoCard extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
               ),
               const SizedBox(height: 16),
               ...children,
@@ -399,18 +397,18 @@ class _InfoRow extends StatelessWidget {
             width: 128,
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
           ),
           Expanded(
             child: Text(
               value,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary,
-                  ),
+                fontWeight: FontWeight.w500,
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
         ],

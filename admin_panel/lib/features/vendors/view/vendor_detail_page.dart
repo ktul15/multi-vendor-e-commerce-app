@@ -30,39 +30,42 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
       builder: (context, state) {
         return switch (state) {
           VendorInitial() || VendorLoading() => Scaffold(
-              backgroundColor: Colors.transparent,
-              appBar: AppBar(title: const Text('Vendor Detail')),
-              body: const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
-              ),
+            backgroundColor: Colors.transparent,
+            appBar: AppBar(title: const Text('Vendor Detail')),
+            body: const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
             ),
+          ),
           VendorError(:final message) => Scaffold(
-              backgroundColor: Colors.transparent,
-              appBar: AppBar(title: const Text('Vendor Detail')),
-              body: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.error_outline_rounded,
-                        size: 64, color: AppColors.error),
-                    const SizedBox(height: 16),
-                    Text(message,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(color: AppColors.textSecondary),
-                        textAlign: TextAlign.center),
-                    const SizedBox(height: 24),
-                    FilledButton.icon(
-                      onPressed: () =>
-                          context.read<VendorCubit>().load(),
-                      icon: const Icon(Icons.refresh_rounded),
-                      label: const Text('Retry'),
+            backgroundColor: Colors.transparent,
+            appBar: AppBar(title: const Text('Vendor Detail')),
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    size: 64,
+                    color: AppColors.error,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    message,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary,
                     ),
-                  ],
-                ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton.icon(
+                    onPressed: () => context.read<VendorCubit>().load(),
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('Retry'),
+                  ),
+                ],
               ),
             ),
+          ),
           VendorLoaded() => _buildDetail(context, state),
         };
       },
@@ -70,7 +73,9 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
   }
 
   Widget _buildDetail(BuildContext context, VendorLoaded state) {
-    final vendor = state.items.where((v) => v.id == widget.vendorId).firstOrNull;
+    final vendor = state.items
+        .where((v) => v.id == widget.vendorId)
+        .firstOrNull;
     if (vendor == null) {
       return Scaffold(
         backgroundColor: Colors.transparent,
@@ -79,8 +84,11 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.store_outlined,
-                  size: 64, color: AppColors.textSecondary),
+              const Icon(
+                Icons.store_outlined,
+                size: 64,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(height: 16),
               Text(
                 'Vendor not found',
@@ -135,9 +143,7 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
                         children: [
                           Text(
                             vendor.storeName,
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
+                            style: Theme.of(context).textTheme.headlineSmall
                                 ?.copyWith(fontWeight: FontWeight.w700),
                           ),
                           const SizedBox(height: 6),
@@ -174,10 +180,7 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
                 _InfoCard(
                   title: 'Store Details',
                   children: [
-                    _InfoRow(
-                      label: 'Store Name',
-                      value: vendor.storeName,
-                    ),
+                    _InfoRow(label: 'Store Name', value: vendor.storeName),
                     _InfoRow(
                       label: 'Commission Rate',
                       value: vendor.commissionRate != null
@@ -188,10 +191,7 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
                       label: 'Stripe Status',
                       value: vendor.stripeOnboardingStatus,
                     ),
-                    _InfoRow(
-                      label: 'Joined',
-                      value: vendor.formattedJoinDate,
-                    ),
+                    _InfoRow(label: 'Joined', value: vendor.formattedJoinDate),
                   ],
                 ),
                 _InfoCard(
@@ -215,7 +215,6 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
       ),
     );
   }
-
 }
 
 // ── Detail action buttons ─────────────────────────────────────────────────────
@@ -263,8 +262,7 @@ class _DetailActions extends StatelessWidget {
               body:
                   '"${vendor.storeName}" will be rejected and cannot sell until re-approved.',
               actionColor: AppColors.error,
-              onConfirm: () =>
-                  context.read<VendorCubit>().rejectVendor(vendor),
+              onConfirm: () => context.read<VendorCubit>().rejectVendor(vendor),
             ),
             child: const Text('Reject'),
           ),
@@ -302,16 +300,16 @@ class _DetailActions extends StatelessWidget {
   }) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text('$action "${vendor.storeName}"?'),
         content: Text(body),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             style: TextButton.styleFrom(foregroundColor: actionColor),
             child: Text(action),
           ),
@@ -322,10 +320,7 @@ class _DetailActions extends StatelessWidget {
       final error = await onConfirm();
       if (error != null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error),
-            backgroundColor: AppColors.error,
-          ),
+          SnackBar(content: Text(error), backgroundColor: AppColors.error),
         );
       }
     }
@@ -353,9 +348,9 @@ class _InfoCard extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
               ),
               const SizedBox(height: 16),
               ...children,
@@ -385,18 +380,18 @@ class _InfoRow extends StatelessWidget {
             width: 128,
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
           ),
           Expanded(
             child: Text(
               value,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: valueColor ?? AppColors.textPrimary,
-                  ),
+                fontWeight: FontWeight.w500,
+                color: valueColor ?? AppColors.textPrimary,
+              ),
             ),
           ),
         ],
