@@ -19,6 +19,8 @@ class OrderListPage extends StatefulWidget {
 }
 
 class _OrderListPageState extends State<OrderListPage> {
+  static final DateTime _firstOrderDate = DateTime(2020);
+
   Future<void> _doWithSnackbar(Future<String?> Function() action) async {
     final error = await action();
     if (error != null && mounted) {
@@ -33,12 +35,16 @@ class _OrderListPageState extends State<OrderListPage> {
   }
 
   Future<void> _showDateRangePicker(AdminOrderLoaded state) async {
+    final today = DateUtils.dateOnly(DateTime.now());
     final picked = await showDateRangePicker(
       context: context,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      firstDate: _firstOrderDate,
+      lastDate: DateTime(today.year + 1, 12, 31),
       initialDateRange: state.startDate != null && state.endDate != null
-          ? DateTimeRange(start: state.startDate!, end: state.endDate!)
+          ? DateTimeRange(
+              start: DateUtils.dateOnly(state.startDate!),
+              end: DateUtils.dateOnly(state.endDate!),
+            )
           : null,
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
@@ -50,11 +56,18 @@ class _OrderListPageState extends State<OrderListPage> {
       ),
     );
     if (picked != null && mounted) {
+      final start = DateUtils.dateOnly(picked.start);
+      final end = DateTime(
+        picked.end.year,
+        picked.end.month,
+        picked.end.day,
+        23,
+        59,
+        59,
+        999,
+      );
       await _doWithSnackbar(
-        () => context.read<AdminOrderCubit>().applyDateRange(
-          picked.start,
-          picked.end,
-        ),
+        () => context.read<AdminOrderCubit>().applyDateRange(start, end),
       );
     }
   }
