@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../repositories/banner_repository.dart';
+import '../models/banner_model.dart';
 import 'banner_state.dart';
 
 class BannerCubit extends Cubit<BannerState> {
@@ -33,6 +34,10 @@ class BannerCubit extends Cubit<BannerState> {
   Future<void> ensureLoaded() async {
     if (state is BannerLoaded || state is BannerLoading) return;
     await load();
+  }
+
+  Future<BannerModel> getBannerById(String id) {
+    return _repository.getBannerById(id);
   }
 
   // ── Filter / page ──────────────────────────────────────────────────────────

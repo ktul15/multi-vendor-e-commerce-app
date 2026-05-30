@@ -40,6 +40,7 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
   // True once the form fields have been populated from cubit state.
   // Stays false on deep-link navigation until the first CategoryLoaded arrives.
   bool _formPopulated = false;
+  String? _loadError;
 
   @override
   void initState() {
@@ -74,7 +75,12 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
       _ => const <CategoryModel>[],
     };
     final cat = _findById(cats, widget.categoryId!);
-    if (cat == null) return;
+    if (cat == null) {
+      setState(() {
+        _loadError = 'This category no longer exists or has been deleted.';
+      });
+      return;
+    }
 
     _nameController.text = cat.name;
 
@@ -83,6 +89,7 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
       _originalParentId = cat.parentId;
       _existingImageUrl = cat.image;
       _formPopulated = true;
+      _loadError = null;
     });
   }
 
@@ -221,6 +228,51 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
             (next is CategoryLoaded || next is CategoryError),
         listener: (context, state) => _loadFromState(),
         builder: (context, state) {
+          if (widget.isEditing && !_formPopulated) {
+            if (_loadError != null) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.category_outlined,
+                        size: 64,
+                        color: AppColors.textSecondary,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Category unavailable',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _loadError!,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      FilledButton.icon(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                        label: const Text('Back to categories'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            if (state is CategoryInitial || state is CategoryLoading) {
+              return const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              );
+            }
+          }
+
           final parentOptions = _getParentOptions(state);
 
           return SingleChildScrollView(
