@@ -36,6 +36,7 @@ export class PromoService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.PromoCodeWhereInput = {
+      deletedAt: null,
       ...(isActive !== undefined && { isActive }),
       ...(discountType && { discountType: discountType as DiscountType }),
       ...(search && {
@@ -68,8 +69,8 @@ export class PromoService {
   }
 
   async getPromoById(id: string) {
-    const promo = await prisma.promoCode.findUnique({
-      where: { id },
+    const promo = await prisma.promoCode.findFirst({
+      where: { id, deletedAt: null },
       include: {
         _count: { select: { orders: true, usages: true } },
         usages: {
@@ -90,7 +91,9 @@ export class PromoService {
   }
 
   async updatePromo(id: string, input: UpdatePromoInput) {
-    const existing = await prisma.promoCode.findUnique({ where: { id } });
+    const existing = await prisma.promoCode.findFirst({
+      where: { id, deletedAt: null },
+    });
     if (!existing) {
       throw ApiError.notFound('Promo code not found');
     }
@@ -140,15 +143,17 @@ export class PromoService {
   }
 
   async deletePromo(id: string) {
-    const existing = await prisma.promoCode.findUnique({ where: { id } });
+    const existing = await prisma.promoCode.findFirst({
+      where: { id, deletedAt: null },
+    });
     if (!existing) {
       throw ApiError.notFound('Promo code not found');
     }
 
-    // Soft delete — promo codes are referenced by orders
+    // Soft delete — promo codes are referenced by orders and usage history.
     return prisma.promoCode.update({
       where: { id },
-      data: { isActive: false },
+      data: { isActive: false, deletedAt: new Date() },
     });
   }
 }
