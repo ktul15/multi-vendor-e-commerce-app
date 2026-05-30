@@ -18,6 +18,14 @@ extension DioExceptionMessage on DioException {
   String get errorMessage {
     if (response != null) {
       final data = response?.data;
+      if (data is Map && data['errors'] is List) {
+        final errors = data['errors'] as List;
+        for (final error in errors) {
+          if (error is Map && error['message'] is String) {
+            return error['message'] as String;
+          }
+        }
+      }
       if (data is Map && data['message'] is String) {
         return data['message'] as String;
       }
