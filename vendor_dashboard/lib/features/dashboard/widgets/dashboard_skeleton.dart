@@ -87,13 +87,25 @@ class _TableRowSkeleton extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
         children: const [
-          Expanded(flex: 2, child: SkeletonBox(width: double.infinity, height: 14)),
+          Expanded(
+            flex: 2,
+            child: SkeletonBox(width: double.infinity, height: 14),
+          ),
           SizedBox(width: AppSpacing.md),
-          Expanded(flex: 2, child: SkeletonBox(width: double.infinity, height: 14)),
+          Expanded(
+            flex: 2,
+            child: SkeletonBox(width: double.infinity, height: 14),
+          ),
           SizedBox(width: AppSpacing.md),
-          Expanded(flex: 1, child: SkeletonBox(width: double.infinity, height: 20, radius: 999)),
+          Expanded(
+            flex: 1,
+            child: SkeletonBox(width: double.infinity, height: 20, radius: 999),
+          ),
           SizedBox(width: AppSpacing.md),
-          Expanded(flex: 1, child: SkeletonBox(width: double.infinity, height: 14)),
+          Expanded(
+            flex: 1,
+            child: SkeletonBox(width: double.infinity, height: 14),
+          ),
         ],
       ),
     );

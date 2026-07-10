@@ -68,7 +68,10 @@ class OrdersTable extends StatelessWidget {
                         onPressed: () => onUpdateStatus(o),
                         child: const Text('Update Status'),
                       )
-                    : const Text('—', style: TextStyle(color: AppColors.textSecondary)),
+                    : const Text(
+                        '—',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
               ),
             ],
           );

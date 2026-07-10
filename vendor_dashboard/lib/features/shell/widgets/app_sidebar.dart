@@ -7,41 +7,41 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../features/auth/bloc/auth_bloc.dart';
 import '../../../features/auth/bloc/auth_event.dart';
 
+const appNavItems = [
+  AppNavItem(
+    label: 'Dashboard',
+    icon: Icons.dashboard_outlined,
+    activeIcon: Icons.dashboard,
+    route: AppRoutes.dashboard,
+  ),
+  AppNavItem(
+    label: 'Products',
+    icon: Icons.inventory_2_outlined,
+    activeIcon: Icons.inventory_2,
+    route: AppRoutes.products,
+  ),
+  AppNavItem(
+    label: 'Orders',
+    icon: Icons.receipt_long_outlined,
+    activeIcon: Icons.receipt_long,
+    route: AppRoutes.orders,
+  ),
+  AppNavItem(
+    label: 'Earnings',
+    icon: Icons.bar_chart_outlined,
+    activeIcon: Icons.bar_chart,
+    route: AppRoutes.earnings,
+  ),
+  AppNavItem(
+    label: 'Store',
+    icon: Icons.storefront_outlined,
+    activeIcon: Icons.storefront,
+    route: AppRoutes.store,
+  ),
+];
+
 class AppSidebar extends StatelessWidget {
   const AppSidebar({super.key});
-
-  static const _navItems = [
-    _NavItem(
-      label: 'Dashboard',
-      icon: Icons.dashboard_outlined,
-      activeIcon: Icons.dashboard,
-      route: AppRoutes.dashboard,
-    ),
-    _NavItem(
-      label: 'Products',
-      icon: Icons.inventory_2_outlined,
-      activeIcon: Icons.inventory_2,
-      route: AppRoutes.products,
-    ),
-    _NavItem(
-      label: 'Orders',
-      icon: Icons.receipt_long_outlined,
-      activeIcon: Icons.receipt_long,
-      route: AppRoutes.orders,
-    ),
-    _NavItem(
-      label: 'Earnings',
-      icon: Icons.bar_chart_outlined,
-      activeIcon: Icons.bar_chart,
-      route: AppRoutes.earnings,
-    ),
-    _NavItem(
-      label: 'My Store',
-      icon: Icons.storefront_outlined,
-      activeIcon: Icons.storefront,
-      route: AppRoutes.store,
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -57,11 +57,12 @@ class AppSidebar extends StatelessWidget {
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              children: _navItems
+              children: appNavItems
                   .map(
                     (item) => _SidebarTile(
                       item: item,
-                      isActive: location == item.route ||
+                      isActive:
+                          location == item.route ||
                           (item.route == AppRoutes.dashboard &&
                               location == '/'),
                       onTap: () => context.go(item.route),
@@ -106,7 +107,7 @@ class _SidebarTile extends StatelessWidget {
     required this.onTap,
   });
 
-  final _NavItem item;
+  final AppNavItem item;
   final bool isActive;
   final VoidCallback onTap;
 
@@ -145,11 +146,7 @@ class _LogoutTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: const Icon(
-        Icons.logout,
-        color: AppColors.error,
-        size: 22,
-      ),
+      leading: const Icon(Icons.logout, color: AppColors.error, size: 22),
       title: Text(
         'Logout',
         style: AppTextStyles.body2.copyWith(color: AppColors.error),
@@ -162,13 +159,13 @@ class _LogoutTile extends StatelessWidget {
   }
 }
 
-class _NavItem {
+class AppNavItem {
   final String label;
   final IconData icon;
   final IconData activeIcon;
   final String route;
 
-  const _NavItem({
+  const AppNavItem({
     required this.label,
     required this.icon,
     required this.activeIcon,

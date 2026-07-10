@@ -50,11 +50,20 @@ class _ProductRowSkeleton extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       child: Row(
         children: const [
-          Expanded(flex: 3, child: SkeletonBox(width: double.infinity, height: 14)),
+          Expanded(
+            flex: 3,
+            child: SkeletonBox(width: double.infinity, height: 14),
+          ),
           SizedBox(width: AppSpacing.md),
-          Expanded(flex: 2, child: SkeletonBox(width: double.infinity, height: 14)),
+          Expanded(
+            flex: 2,
+            child: SkeletonBox(width: double.infinity, height: 14),
+          ),
           SizedBox(width: AppSpacing.md),
-          Expanded(flex: 1, child: SkeletonBox(width: double.infinity, height: 22, radius: 999)),
+          Expanded(
+            flex: 1,
+            child: SkeletonBox(width: double.infinity, height: 22, radius: 999),
+          ),
           SizedBox(width: AppSpacing.md),
           Row(
             children: [

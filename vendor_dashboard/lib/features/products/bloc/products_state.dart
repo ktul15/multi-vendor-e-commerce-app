@@ -17,11 +17,7 @@ class ProductsLoaded extends ProductsState {
   final int total;
   final bool hasMore;
 
-  const ProductsLoaded(
-    this.products, {
-    this.total = 0,
-    this.hasMore = false,
-  });
+  const ProductsLoaded(this.products, {this.total = 0, this.hasMore = false});
 
   @override
   List<Object?> get props => [products, total, hasMore];

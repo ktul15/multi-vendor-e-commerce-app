@@ -79,11 +79,20 @@ class _TopProductRowSkeleton extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
         children: const [
-          Expanded(flex: 3, child: SkeletonBox(width: double.infinity, height: 14)),
+          Expanded(
+            flex: 3,
+            child: SkeletonBox(width: double.infinity, height: 14),
+          ),
           SizedBox(width: AppSpacing.md),
-          Expanded(flex: 1, child: SkeletonBox(width: double.infinity, height: 14)),
+          Expanded(
+            flex: 1,
+            child: SkeletonBox(width: double.infinity, height: 14),
+          ),
           SizedBox(width: AppSpacing.md),
-          Expanded(flex: 1, child: SkeletonBox(width: double.infinity, height: 14)),
+          Expanded(
+            flex: 1,
+            child: SkeletonBox(width: double.infinity, height: 14),
+          ),
         ],
       ),
     );

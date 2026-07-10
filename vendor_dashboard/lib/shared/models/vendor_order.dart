@@ -67,10 +67,10 @@ class VendorOrder {
 
     // vendorOrder.createdAt is always present (Prisma @default(now())).
     // Fall back to order.createdAt only if somehow missing (e.g., partial response).
-    final rawDate =
-        (json['createdAt'] ?? order['createdAt'])?.toString();
-    final createdAt =
-        rawDate != null ? DateTime.tryParse(rawDate) ?? DateTime.now() : DateTime.now();
+    final rawDate = (json['createdAt'] ?? order['createdAt'])?.toString();
+    final createdAt = rawDate != null
+        ? DateTime.tryParse(rawDate) ?? DateTime.now()
+        : DateTime.now();
 
     return VendorOrder(
       id: json['id'] as String,

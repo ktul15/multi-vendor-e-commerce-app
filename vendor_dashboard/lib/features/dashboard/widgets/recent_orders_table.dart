@@ -44,7 +44,9 @@ class RecentOrdersTable extends StatelessWidget {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
-                  headingRowColor: WidgetStateProperty.all(AppColors.background),
+                  headingRowColor: WidgetStateProperty.all(
+                    AppColors.background,
+                  ),
                   columns: const [
                     DataColumn(label: Text('Order #')),
                     DataColumn(label: Text('Customer')),

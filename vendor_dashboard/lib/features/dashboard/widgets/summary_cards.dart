@@ -40,18 +40,26 @@ class SummaryCards extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final crossAxis = constraints.maxWidth < 600
+        final width = constraints.maxWidth;
+        final crossAxis = width < 600
             ? 2
-            : constraints.maxWidth < 900
-                ? 2
-                : 4;
+            : width < 900
+            ? 2
+            : 4;
+        final childAspectRatio = width < 420
+            ? 1.45
+            : width < 600
+            ? 1.6
+            : width < 900
+            ? 1.8
+            : 2.1;
         return GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: crossAxis,
           crossAxisSpacing: AppSpacing.md,
           mainAxisSpacing: AppSpacing.md,
-          childAspectRatio: 1.8,
+          childAspectRatio: childAspectRatio,
           children: cards.map((c) => _SummaryCard(data: c)).toList(),
         );
       },

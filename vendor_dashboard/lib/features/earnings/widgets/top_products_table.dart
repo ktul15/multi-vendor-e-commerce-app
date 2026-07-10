@@ -35,8 +35,9 @@ class TopProductsTable extends StatelessWidget {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
-                  headingRowColor:
-                      WidgetStateProperty.all(AppColors.background),
+                  headingRowColor: WidgetStateProperty.all(
+                    AppColors.background,
+                  ),
                   columns: const [
                     DataColumn(label: Text('Rank'), numeric: true),
                     DataColumn(label: Text('Product')),
