@@ -2,19 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../shared/models/product.dart';
-
-// Simple UUID v4 pattern — catches obviously wrong input before hitting the API.
-final _uuidRegExp = RegExp(
-  r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
-);
+import '../../../shared/models/product_category.dart';
 
 /// Dialog for creating or editing a product.
 /// Returns a [ProductFormResult] on submit, null on cancel.
 class ProductFormDialog extends StatefulWidget {
-  const ProductFormDialog({super.key, this.product});
+  const ProductFormDialog({
+    super.key,
+    this.product,
+    this.categories = const [],
+  });
 
   /// When non-null, the form is pre-filled for editing.
   final Product? product;
+  final List<CategoryOption> categories;
 
   @override
   State<ProductFormDialog> createState() => _ProductFormDialogState();
@@ -25,7 +26,7 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _descCtrl;
   late final TextEditingController _priceCtrl;
-  late final TextEditingController _categoryCtrl;
+  late String? _categoryId;
   late bool _isActive;
 
   @override
@@ -37,7 +38,7 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
     _priceCtrl = TextEditingController(
       text: p != null ? p.basePrice.toStringAsFixed(2) : '',
     );
-    _categoryCtrl = TextEditingController(text: p?.categoryId ?? '');
+    _categoryId = p?.categoryId;
     _isActive = p?.isActive ?? true;
   }
 
@@ -46,19 +47,20 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
     _nameCtrl.dispose();
     _descCtrl.dispose();
     _priceCtrl.dispose();
-    _categoryCtrl.dispose();
     super.dispose();
   }
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
-      Navigator.of(context).pop(ProductFormResult(
-        name: _nameCtrl.text.trim(),
-        description: _descCtrl.text.trim(),
-        basePrice: double.parse(_priceCtrl.text.trim()),
-        categoryId: _categoryCtrl.text.trim(),
-        isActive: _isActive,
-      ));
+      Navigator.of(context).pop(
+        ProductFormResult(
+          name: _nameCtrl.text.trim(),
+          description: _descCtrl.text.trim(),
+          basePrice: double.parse(_priceCtrl.text.trim()),
+          categoryId: _categoryId,
+          isActive: _isActive,
+        ),
+      );
     }
   }
 
@@ -78,16 +80,18 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                 TextFormField(
                   controller: _nameCtrl,
                   decoration: const InputDecoration(labelText: 'Product Name'),
-                  validator: (v) =>
-                      (v == null || v.trim().length < 2) ? 'Min 2 characters' : null,
+                  validator: (v) => (v == null || v.trim().length < 2)
+                      ? 'Min 2 characters'
+                      : null,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 TextFormField(
                   controller: _descCtrl,
                   decoration: const InputDecoration(labelText: 'Description'),
                   maxLines: 3,
-                  validator: (v) =>
-                      (v == null || v.trim().length < 10) ? 'Min 10 characters' : null,
+                  validator: (v) => (v == null || v.trim().length < 10)
+                      ? 'Min 10 characters'
+                      : null,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 TextFormField(
@@ -96,10 +100,13 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                     labelText: 'Base Price',
                     prefixText: '\$',
                   ),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'^\d*\.?\d{0,2}'),
+                    ),
                   ],
                   validator: (v) {
                     if (v == null || v.isEmpty) return 'Required';
@@ -112,16 +119,22 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 if (!isEdit)
-                  TextFormField(
-                    controller: _categoryCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Category ID',
-                      hintText: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
-                    ),
-                    validator: (v) {
-                      if (v == null || v.trim().isEmpty) return 'Required';
-                      if (!_uuidRegExp.hasMatch(v.trim())) {
-                        return 'Must be a valid UUID (e.g. from the categories API)';
+                  DropdownButtonFormField<String>(
+                    initialValue: _categoryId,
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: 'Category'),
+                    items: widget.categories
+                        .map(
+                          (category) => DropdownMenuItem(
+                            value: category.id,
+                            child: Text(category.label),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) => setState(() => _categoryId = value),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please select a category';
                       }
                       return null;
                     },
@@ -156,7 +169,7 @@ class ProductFormResult {
   final String name;
   final String description;
   final double basePrice;
-  final String categoryId;
+  final String? categoryId;
   final bool isActive;
 
   const ProductFormResult({
