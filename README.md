@@ -193,6 +193,8 @@ Allows vendors to manage their store on the platform.
 
 ### Features
 
+- Vendor application/signup with admin approval
+- Pending/rejected/suspended vendor status handling
 - Dashboard with sales summary and revenue charts
 - Product management (create, edit, delete, variants)
 - Order management and fulfilment
