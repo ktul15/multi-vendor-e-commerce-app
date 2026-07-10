@@ -7,10 +7,7 @@ import 'package:flutter/material.dart';
 class _SkeletonAnimation extends InheritedWidget {
   final Animation<double> animation;
 
-  const _SkeletonAnimation({
-    required this.animation,
-    required super.child,
-  });
+  const _SkeletonAnimation({required this.animation, required super.child});
 
   static Animation<double> of(BuildContext context) {
     return context
@@ -47,9 +44,10 @@ class _SkeletonContainerState extends State<SkeletonContainer>
       vsync: this,
       duration: const Duration(milliseconds: 900),
     )..repeat(reverse: true);
-    _animation = Tween<double>(begin: 0.25, end: 0.6).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _animation = Tween<double>(
+      begin: 0.25,
+      end: 0.6,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override

@@ -58,11 +58,11 @@ class _OrdersView extends StatelessWidget {
     );
     if (result != null && context.mounted) {
       await context.read<OrdersCubit>().updateStatus(
-            order.id,
-            result.status,
-            trackingNumber: result.trackingNumber,
-            trackingCarrier: result.trackingCarrier,
-          );
+        order.id,
+        result.status,
+        trackingNumber: result.trackingNumber,
+        trackingCarrier: result.trackingCarrier,
+      );
     }
   }
 
@@ -73,17 +73,20 @@ class _OrdersView extends StatelessWidget {
       body: BlocConsumer<OrdersCubit, OrdersState>(
         listener: (context, state) {
           if (state is OrdersError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: AppColors.error,
-              ),
-            );
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: AppColors.error,
+                ),
+              );
           }
         },
         builder: (context, state) {
-          final activeStatus =
-              state is OrdersLoaded ? state.activeStatus : null;
+          final activeStatus = state is OrdersLoaded
+              ? state.activeStatus
+              : null;
 
           return Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
@@ -104,8 +107,9 @@ class _OrdersView extends StatelessWidget {
                           selected: isActive,
                           onSelected: (_) =>
                               context.read<OrdersCubit>().load(status: status),
-                          selectedColor:
-                              AppColors.primary.withValues(alpha: 0.15),
+                          selectedColor: AppColors.primary.withValues(
+                            alpha: 0.15,
+                          ),
                           checkmarkColor: AppColors.primary,
                         ),
                       );
@@ -126,14 +130,13 @@ class _OrdersView extends StatelessWidget {
                         OrdersLoading() || OrdersInitial() =>
                           const SkeletonContainer(child: OrdersSkeleton()),
                         OrdersError(:final message) => ErrorState(
-                            message: message,
-                            onRetry: () => context.read<OrdersCubit>().load(),
-                          ),
+                          message: message,
+                          onRetry: () => context.read<OrdersCubit>().load(),
+                        ),
                         OrdersLoaded(:final orders) => OrdersTable(
-                            orders: orders,
-                            onUpdateStatus: (o) =>
-                                _showUpdateDialog(context, o),
-                          ),
+                          orders: orders,
+                          onUpdateStatus: (o) => _showUpdateDialog(context, o),
+                        ),
                         _ => const SizedBox(),
                       },
                     ),

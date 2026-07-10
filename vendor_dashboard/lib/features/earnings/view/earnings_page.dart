@@ -35,12 +35,14 @@ class _EarningsView extends StatelessWidget {
       body: BlocConsumer<EarningsCubit, EarningsState>(
         listener: (context, state) {
           if (state is EarningsError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: AppColors.error,
-              ),
-            );
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: AppColors.error,
+                ),
+              );
           }
         },
         builder: (context, state) {

@@ -62,7 +62,10 @@ class RevenueChart extends StatelessWidget {
               height: 200,
               child: series.isEmpty
                   ? const Center(child: Text('No data for this period.'))
-                  : _RevenueLineChart(series: series, showDots: series.length <= 14),
+                  : _RevenueLineChart(
+                      series: series,
+                      showDots: series.length <= 14,
+                    ),
             ),
           ],
         ),
@@ -94,10 +97,8 @@ class _RevenueLineChart extends StatelessWidget {
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          getDrawingHorizontalLine: (_) => const FlLine(
-            color: AppColors.border,
-            strokeWidth: 1,
-          ),
+          getDrawingHorizontalLine: (_) =>
+              const FlLine(color: AppColors.border, strokeWidth: 1),
         ),
         borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
@@ -107,8 +108,9 @@ class _RevenueLineChart extends StatelessWidget {
               reservedSize: 52,
               getTitlesWidget: (value, meta) => Text(
                 '\$${value.toStringAsFixed(0)}',
-                style: AppTextStyles.caption
-                    .copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
             ),
           ),
@@ -124,8 +126,9 @@ class _RevenueLineChart extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     label,
-                    style: AppTextStyles.caption
-                        .copyWith(color: AppColors.textSecondary),
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 );
               },
