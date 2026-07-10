@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import * as vendorProfileController from './vendor-profile.controller';
 import { authenticate, authorize } from '../../middleware/auth';
-import { requireApprovedVendor } from '../../middleware/requireApprovedVendor';
+import { requireEditableVendorProfile } from '../../middleware/requireApprovedVendor';
 import { validate } from '../../middleware/validate';
 import { updateVendorProfileSchema } from './vendor-profile.validation';
 import { withUpload } from '../../middleware/upload';
@@ -48,7 +48,7 @@ router.get('/me', vendorProfileController.getProfile);
  * /vendor-profile/me:
  *   put:
  *     tags: [Vendor Profile]
- *     summary: Update the vendor profile (approved vendors only)
+ *     summary: Update the vendor profile (pending or approved vendors only)
  *     description: >
  *       Send as `multipart/form-data`. Include `logo` and/or `banner` file fields to upload images.
  *       Text fields (`storeName`, `description`) are included as form fields.
@@ -88,12 +88,12 @@ router.get('/me', vendorProfileController.getProfile);
  *       401:
  *         description: Unauthorized
  *       403:
- *         description: Forbidden — must be an approved vendor
+ *         description: Forbidden — vendor profile cannot be edited in current status
  */
-// PUT /vendor-profile/me — only approved vendors can update their profile
+// PUT /vendor-profile/me — pending and approved vendors can update their profile
 router.put(
   '/me',
-  requireApprovedVendor,
+  requireEditableVendorProfile,
   withUpload(
     upload.fields([
       { name: 'logo', maxCount: 1 },
