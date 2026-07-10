@@ -102,6 +102,98 @@ void main() {
           ),
         );
       });
+
+      test('throws DioException 403 when role is ADMIN', () async {
+        when(
+          () => mockDio.post('/auth/login', data: any(named: 'data')),
+        ).thenAnswer(
+          (_) async => Response(
+            requestOptions: RequestOptions(),
+            statusCode: 200,
+            data: {
+              'data': {
+                'user': {'id': '1', 'role': 'ADMIN'},
+                'tokens': {
+                  'accessToken': 'access1',
+                  'refreshToken': 'refresh1',
+                },
+              },
+            },
+          ),
+        );
+
+        await expectLater(
+          () => authRepository.login(email: 'admin@test.com', password: 'test'),
+          throwsA(
+            isA<DioException>().having(
+              (e) => e.response?.statusCode,
+              'statusCode',
+              403,
+            ),
+          ),
+        );
+        verifyNever(
+          () => mockTokenStorage.saveTokens(
+            accessToken: any(named: 'accessToken'),
+            refreshToken: any(named: 'refreshToken'),
+          ),
+        );
+      });
+    });
+
+    group('registerVendor', () {
+      test('posts VENDOR payload, returns user, and saves tokens', () async {
+        when(
+          () => mockDio.post('/auth/register', data: any(named: 'data')),
+        ).thenAnswer(
+          (_) async => Response(
+            requestOptions: RequestOptions(),
+            statusCode: 201,
+            data: {
+              'data': {
+                'user': {'id': '1', 'role': 'VENDOR'},
+                'tokens': {
+                  'accessToken': 'access1',
+                  'refreshToken': 'refresh1',
+                },
+              },
+            },
+          ),
+        );
+        when(
+          () => mockTokenStorage.saveTokens(
+            accessToken: any(named: 'accessToken'),
+            refreshToken: any(named: 'refreshToken'),
+          ),
+        ).thenAnswer((_) async {});
+
+        final user = await authRepository.registerVendor(
+          name: 'Vendor Owner',
+          email: 'vendor@test.com',
+          password: 'password123',
+          storeName: 'QA Store',
+        );
+
+        expect(user['role'], 'VENDOR');
+        verify(
+          () => mockDio.post(
+            '/auth/register',
+            data: {
+              'name': 'Vendor Owner',
+              'email': 'vendor@test.com',
+              'password': 'password123',
+              'role': 'VENDOR',
+              'storeName': 'QA Store',
+            },
+          ),
+        ).called(1);
+        verify(
+          () => mockTokenStorage.saveTokens(
+            accessToken: 'access1',
+            refreshToken: 'refresh1',
+          ),
+        ).called(1);
+      });
     });
 
     group('getProfile', () {
@@ -112,6 +204,29 @@ void main() {
             statusCode: 200,
             data: {
               'data': {'id': '1', 'role': 'CUSTOMER'},
+            },
+          ),
+        );
+
+        await expectLater(
+          () => authRepository.getProfile(),
+          throwsA(
+            isA<DioException>().having(
+              (e) => e.response?.statusCode,
+              'statusCode',
+              403,
+            ),
+          ),
+        );
+      });
+
+      test('throws DioException 403 if profile role is ADMIN', () async {
+        when(() => mockDio.get('/auth/profile')).thenAnswer(
+          (_) async => Response(
+            requestOptions: RequestOptions(),
+            statusCode: 200,
+            data: {
+              'data': {'id': '1', 'role': 'ADMIN'},
             },
           ),
         );

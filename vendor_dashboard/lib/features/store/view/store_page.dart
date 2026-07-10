@@ -54,9 +54,9 @@ class _StoreViewState extends State<_StoreView> {
   void _save(BuildContext context) {
     if (_formKey.currentState!.validate()) {
       context.read<StoreCubit>().save(
-            storeName: _storeNameCtrl.text.trim(),
-            description: _descCtrl.text.trim(),
-          );
+        storeName: _storeNameCtrl.text.trim(),
+        description: _descCtrl.text.trim(),
+      );
     }
   }
 
@@ -69,22 +69,26 @@ class _StoreViewState extends State<_StoreView> {
           if (state is StoreSaved) {
             _initialised = false;
             _populate(state.profile);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Store profile updated.'),
-                backgroundColor: AppColors.success,
-              ),
-            );
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                const SnackBar(
+                  content: Text('Store profile updated.'),
+                  backgroundColor: AppColors.success,
+                ),
+              );
             // StoreCubit transitions to StoreLoaded immediately after StoreSaved —
             // no redundant load() call needed here.
           }
           if (state is StoreError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: AppColors.error,
-              ),
-            );
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: AppColors.error,
+                ),
+              );
           }
         },
         builder: (context, state) {
@@ -108,6 +112,9 @@ class _StoreViewState extends State<_StoreView> {
           _populate(profile);
 
           final isSaving = state is StoreLoaded && state.isSaving;
+          final canEdit =
+              profile.approvalStatus == 'PENDING' ||
+              profile.approvalStatus == 'APPROVED';
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.lg),
@@ -137,17 +144,19 @@ class _StoreViewState extends State<_StoreView> {
                             const SizedBox(height: AppSpacing.lg),
                             TextFormField(
                               controller: _storeNameCtrl,
+                              enabled: canEdit,
                               decoration: const InputDecoration(
                                 labelText: 'Store Name',
                               ),
                               validator: (v) =>
                                   (v == null || v.trim().length < 2)
-                                      ? 'Min 2 characters'
-                                      : null,
+                                  ? 'Min 2 characters'
+                                  : null,
                             ),
                             const SizedBox(height: AppSpacing.md),
                             TextFormField(
                               controller: _descCtrl,
+                              enabled: canEdit,
                               decoration: const InputDecoration(
                                 labelText: 'Description',
                                 alignLabelWithHint: true,
@@ -159,8 +168,9 @@ class _StoreViewState extends State<_StoreView> {
                             SizedBox(
                               width: double.infinity,
                               child: FilledButton(
-                                onPressed:
-                                    isSaving ? null : () => _save(context),
+                                onPressed: isSaving || !canEdit
+                                    ? null
+                                    : () => _save(context),
                                 child: isSaving
                                     ? const SizedBox(
                                         height: 20,
@@ -201,7 +211,8 @@ class _ApprovalBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (color, icon) = _data[status] ?? (AppColors.neutral500, Icons.info_outline);
+    final (color, icon) =
+        _data[status] ?? (AppColors.neutral500, Icons.info_outline);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

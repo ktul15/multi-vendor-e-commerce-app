@@ -5,12 +5,14 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
 import '../../features/auth/bloc/auth_state.dart';
 import '../../features/auth/view/login_page.dart';
+import '../../features/auth/view/register_page.dart';
 import '../../features/dashboard/view/dashboard_page.dart';
 import '../../features/earnings/view/earnings_page.dart';
 import '../../features/orders/view/orders_page.dart';
 import '../../features/products/view/products_page.dart';
 import '../../features/shell/view/shell_page.dart';
 import '../../features/store/view/store_page.dart';
+import '../../shared/widgets/vendor_status_gate.dart';
 
 /// App route paths.
 class AppRoutes {
@@ -18,6 +20,7 @@ class AppRoutes {
 
   static const String dashboard = '/';
   static const String login = '/login';
+  static const String register = '/register';
   static const String products = '/products';
   static const String orders = '/orders';
   static const String earnings = '/earnings';
@@ -31,17 +34,19 @@ GoRouter appRouter(AuthBloc authBloc) {
     refreshListenable: GoRouterRefreshStream(authBloc.stream),
     redirect: (context, state) {
       final authState = authBloc.state;
-      final isLoginRoute = state.matchedLocation == AppRoutes.login;
+      final isAuthRoute =
+          state.matchedLocation == AppRoutes.login ||
+          state.matchedLocation == AppRoutes.register;
 
       // During the initial auth check, treat as unauthenticated to prevent
       // protected routes from rendering before credentials are verified.
       if (authState is AuthInitial ||
           authState is AuthLoading ||
           authState is! AuthAuthenticated) {
-        return isLoginRoute ? null : AppRoutes.login;
+        return isAuthRoute ? null : AppRoutes.login;
       }
 
-      if (isLoginRoute) {
+      if (isAuthRoute) {
         return AppRoutes.dashboard;
       }
 
@@ -52,24 +57,32 @@ GoRouter appRouter(AuthBloc authBloc) {
         path: AppRoutes.login,
         builder: (context, state) => const VendorLoginPage(),
       ),
+      GoRoute(
+        path: AppRoutes.register,
+        builder: (context, state) => const VendorRegisterPage(),
+      ),
       ShellRoute(
         builder: (context, state, child) => ShellPage(child: child),
         routes: [
           GoRoute(
             path: AppRoutes.dashboard,
-            builder: (context, state) => const DashboardPage(),
+            builder: (context, state) =>
+                const VendorStatusGate(child: DashboardPage()),
           ),
           GoRoute(
             path: AppRoutes.products,
-            builder: (context, state) => const ProductsPage(),
+            builder: (context, state) =>
+                const VendorStatusGate(child: ProductsPage()),
           ),
           GoRoute(
             path: AppRoutes.orders,
-            builder: (context, state) => const OrdersPage(),
+            builder: (context, state) =>
+                const VendorStatusGate(child: OrdersPage()),
           ),
           GoRoute(
             path: AppRoutes.earnings,
-            builder: (context, state) => const EarningsPage(),
+            builder: (context, state) =>
+                const VendorStatusGate(child: EarningsPage()),
           ),
           GoRoute(
             path: AppRoutes.store,

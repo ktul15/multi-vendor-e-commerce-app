@@ -12,7 +12,7 @@ class AuthRepository {
       _tokenStorage = tokenStorage;
 
   /// Login with email and password.
-  /// Enforces that only VENDOR or ADMIN can access the dashboard.
+  /// Enforces that only VENDOR accounts can access the dashboard.
   Future<Map<String, dynamic>> login({
     required String email,
     required String password,
@@ -26,7 +26,7 @@ class AuthRepository {
     final user = data['user'];
 
     // Role-based access control for Vendor Dashboard
-    if (user['role'] == 'CUSTOMER') {
+    if (user['role'] != 'VENDOR') {
       throw DioException(
         requestOptions: response.requestOptions,
         response: Response(
@@ -45,12 +45,57 @@ class AuthRepository {
     return user;
   }
 
+  /// Register a new vendor account.
+  ///
+  /// The backend creates a VendorProfile in PENDING status. Admin approval is
+  /// required before inventory, order, analytics, and payout features unlock.
+  Future<Map<String, dynamic>> registerVendor({
+    required String name,
+    required String email,
+    required String password,
+    required String storeName,
+  }) async {
+    final response = await _dio.post(
+      '/auth/register',
+      data: {
+        'name': name,
+        'email': email,
+        'password': password,
+        'role': 'VENDOR',
+        'storeName': storeName,
+      },
+    );
+
+    final data = response.data['data'];
+    final user = data['user'];
+
+    if (user['role'] != 'VENDOR') {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: Response(
+          requestOptions: response.requestOptions,
+          statusCode: 403,
+          data: {
+            'message': 'Vendor registration did not create a vendor account.',
+          },
+        ),
+      );
+    }
+
+    await _tokenStorage.saveTokens(
+      accessToken: data['tokens']['accessToken'],
+      refreshToken: data['tokens']['refreshToken'],
+    );
+
+    return user;
+  }
+
   /// Get current user profile and verify role.
   Future<Map<String, dynamic>> getProfile() async {
     final response = await _dio.get('/auth/profile');
     final user = response.data['data'];
 
-    if (user['role'] == 'CUSTOMER') {
+    if (user['role'] != 'VENDOR') {
       throw DioException(
         requestOptions: response.requestOptions,
         response: Response(
@@ -74,7 +119,6 @@ class AuthRepository {
     } catch (_) {
     } finally {
       await _tokenStorage.clearTokens();
-      ApiClient.reset();
     }
   }
 

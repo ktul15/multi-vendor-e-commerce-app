@@ -11,35 +11,45 @@ import '../bloc/auth_state.dart';
 
 final _emailRegExp = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
 
-/// Vendor Login Page
-/// Allows vendors to log into the dashboard.
-class VendorLoginPage extends StatefulWidget {
-  const VendorLoginPage({super.key});
+/// Vendor application page.
+///
+/// Successful submission creates a VENDOR user and a PENDING vendor profile.
+class VendorRegisterPage extends StatefulWidget {
+  const VendorRegisterPage({super.key});
 
   @override
-  State<VendorLoginPage> createState() => _VendorLoginPageState();
+  State<VendorRegisterPage> createState() => _VendorRegisterPageState();
 }
 
-class _VendorLoginPageState extends State<VendorLoginPage> {
+class _VendorRegisterPageState extends State<VendorRegisterPage> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _storeNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
+    _nameController.dispose();
+    _storeNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
       context.read<AuthBloc>().add(
-        AuthLoginRequested(
+        AuthRegisterRequested(
+          name: _nameController.text.trim(),
           email: _emailController.text.trim(),
           password: _passwordController.text,
+          storeName: _storeNameController.text.trim(),
         ),
       );
     }
@@ -66,7 +76,7 @@ class _VendorLoginPageState extends State<VendorLoginPage> {
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.xxl),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 400),
+                constraints: const BoxConstraints(maxWidth: 460),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -74,19 +84,19 @@ class _VendorLoginPageState extends State<VendorLoginPage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const Icon(
-                        Icons.storefront,
+                        Icons.add_business_outlined,
                         size: 64,
                         color: AppColors.primary,
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       Text(
-                        'Vendor Portal',
+                        'Apply to Sell',
                         style: AppTextStyles.h3,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        'Manage your store, products, and incoming orders.',
+                        'Create your vendor account for admin review.',
                         style: AppTextStyles.body2.copyWith(
                           color: AppColors.neutral500,
                         ),
@@ -94,8 +104,47 @@ class _VendorLoginPageState extends State<VendorLoginPage> {
                       ),
                       const SizedBox(height: AppSpacing.xxl),
                       TextFormField(
+                        controller: _nameController,
+                        textCapitalization: TextCapitalization.words,
+                        textInputAction: TextInputAction.next,
+                        decoration: const InputDecoration(
+                          labelText: 'Owner Name',
+                          prefixIcon: Icon(Icons.person_outline),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter the owner name';
+                          }
+                          if (value.trim().length < 2) {
+                            return 'Owner name must be at least 2 characters';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      TextFormField(
+                        controller: _storeNameController,
+                        textCapitalization: TextCapitalization.words,
+                        textInputAction: TextInputAction.next,
+                        decoration: const InputDecoration(
+                          labelText: 'Store Name',
+                          prefixIcon: Icon(Icons.storefront_outlined),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter your store name';
+                          }
+                          if (value.trim().length < 2) {
+                            return 'Store name must be at least 2 characters';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
                         decoration: const InputDecoration(
                           labelText: 'Email Address',
                           prefixIcon: Icon(Icons.email_outlined),
@@ -115,6 +164,7 @@ class _VendorLoginPageState extends State<VendorLoginPage> {
                       TextFormField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
+                        textInputAction: TextInputAction.next,
                         decoration: InputDecoration(
                           labelText: 'Password',
                           prefixIcon: const Icon(Icons.lock_outline),
@@ -133,7 +183,43 @@ class _VendorLoginPageState extends State<VendorLoginPage> {
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
+                            return 'Please enter a password';
+                          }
+                          if (value.length < 6) {
+                            return 'Password must be at least 6 characters';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      TextFormField(
+                        controller: _confirmPasswordController,
+                        obscureText: _obscureConfirmPassword,
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) => _submit(),
+                        decoration: InputDecoration(
+                          labelText: 'Confirm Password',
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscureConfirmPassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscureConfirmPassword =
+                                    !_obscureConfirmPassword;
+                              });
+                            },
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please confirm your password';
+                          }
+                          if (value != _passwordController.text) {
+                            return 'Passwords do not match';
                           }
                           return null;
                         },
@@ -158,7 +244,7 @@ class _VendorLoginPageState extends State<VendorLoginPage> {
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : const Text('Sign In to Dashboard'),
+                                : const Text('Submit Application'),
                           );
                         },
                       ),
@@ -167,14 +253,14 @@ class _VendorLoginPageState extends State<VendorLoginPage> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'New vendor? ',
+                            'Already applied? ',
                             style: AppTextStyles.body2.copyWith(
                               color: AppColors.neutral500,
                             ),
                           ),
                           TextButton(
-                            onPressed: () => context.go(AppRoutes.register),
-                            child: const Text('Apply to sell'),
+                            onPressed: () => context.go(AppRoutes.login),
+                            child: const Text('Sign in'),
                           ),
                         ],
                       ),
