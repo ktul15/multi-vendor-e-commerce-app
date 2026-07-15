@@ -45,16 +45,23 @@ class SortBottomSheet extends StatelessWidget {
             ),
             child: Text('Sort by', style: AppTextStyles.h5),
           ),
-          ...ProductSort.values.map(
-            (sort) => RadioListTile<ProductSort>(
-              value: sort,
-              groupValue: current,
-              title: Text(sort.label, style: AppTextStyles.body),
-              activeColor: AppColors.primary,
-              onChanged: (value) {
-                Navigator.of(context).pop();
-                if (value != null) onSelected(value);
-              },
+          RadioGroup<ProductSort>(
+            groupValue: current,
+            onChanged: (value) {
+              Navigator.of(context).pop();
+              if (value != null) onSelected(value);
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: ProductSort.values
+                  .map(
+                    (sort) => RadioListTile<ProductSort>(
+                      value: sort,
+                      title: Text(sort.label, style: AppTextStyles.body),
+                      activeColor: AppColors.primary,
+                    ),
+                  )
+                  .toList(),
             ),
           ),
           const SizedBox(height: AppSpacing.sm),

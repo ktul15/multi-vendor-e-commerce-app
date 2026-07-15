@@ -24,10 +24,7 @@ class OrderItemsSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Items (${items.length})',
-              style: AppTextStyles.h5,
-            ),
+            Text('Items (${items.length})', style: AppTextStyles.h5),
             const SizedBox(height: AppSpacing.md),
             for (int i = 0; i < items.length; i++) ...[
               _ItemRow(item: items[i]),
@@ -60,7 +57,7 @@ class _ItemRow extends StatelessWidget {
                   width: 64,
                   height: 64,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _placeholder(),
+                  errorBuilder: (context, error, stackTrace) => _placeholder(),
                 )
               : _placeholder(),
         ),
