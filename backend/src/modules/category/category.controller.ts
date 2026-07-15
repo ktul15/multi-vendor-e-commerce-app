@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import { CategoryService } from './category.service';
 import catchAsync from '../../utils/catchAsync';
 import { ApiResponse } from '../../utils/apiResponse';
