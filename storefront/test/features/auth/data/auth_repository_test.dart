@@ -1,24 +1,20 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:storefront/core/network/api_exception.dart';
 import 'package:storefront/core/network/http_client.dart';
 import 'package:storefront/core/network/token_storage.dart';
 import 'package:storefront/repositories/auth_repository.dart';
-
-class MockDio extends Mock implements Dio {}
 
 class MockTokenStorage extends Mock implements TokenStorage {}
 
 class MockHttpClient extends Mock implements HttpClient {}
 
 void main() {
-  late MockDio mockDio;
   late MockTokenStorage mockTokenStorage;
   late AuthRepository authRepository;
   late MockHttpClient mockHttpClient;
 
   setUp(() {
-    mockDio = MockDio();
     mockHttpClient = MockHttpClient();
     mockTokenStorage = MockTokenStorage();
     authRepository = AuthRepository(
@@ -33,26 +29,22 @@ void main() {
     group('login', () {
       test('returns user data and saves tokens on successful login', () async {
         when(
-          () => mockDio.post('/auth/login', data: any(named: 'data')),
+          () => mockHttpClient.post('/auth/login', data: any(named: 'data')),
         ).thenAnswer(
-          (_) async => Response(
-            requestOptions: RequestOptions(),
-            statusCode: 200,
-            data: {
-              'success': true,
-              'data': {
-                'user': {
-                  'id': '1',
-                  'name': 'Test User',
-                  'email': 'test@test.com',
-                },
-                'tokens': {
-                  'accessToken': 'access_123',
-                  'refreshToken': 'refresh_123',
-                },
+          (_) async => {
+            'success': true,
+            'data': {
+              'user': {
+                'id': '1',
+                'name': 'Test User',
+                'email': 'test@test.com',
+              },
+              'tokens': {
+                'accessToken': 'access_123',
+                'refreshToken': 'refresh_123',
               },
             },
-          ),
+          },
         );
 
         when(
@@ -72,7 +64,7 @@ void main() {
         expect(user['email'], 'test@test.com');
 
         verify(
-          () => mockDio.post(
+          () => mockHttpClient.post(
             '/auth/login',
             data: {'email': 'test@test.com', 'password': 'password123'},
           ),
@@ -86,23 +78,14 @@ void main() {
         ).called(1);
       });
 
-      test('throws DioException on invalid credentials', () async {
+      test('throws ApiException on invalid credentials', () async {
         when(
-          () => mockDio.post('/auth/login', data: any(named: 'data')),
-        ).thenThrow(
-          DioException(
-            requestOptions: RequestOptions(),
-            response: Response(
-              requestOptions: RequestOptions(),
-              statusCode: 401,
-              data: {'message': 'Invalid credentials'},
-            ),
-          ),
-        );
+          () => mockHttpClient.post('/auth/login', data: any(named: 'data')),
+        ).thenThrow(const ApiException('Invalid credentials', statusCode: 401));
 
         expect(
           () => authRepository.login(email: 'test@test.com', password: 'wrong'),
-          throwsA(isA<DioException>()),
+          throwsA(isA<ApiException>()),
         );
 
         verifyNever(
@@ -121,26 +104,23 @@ void main() {
         'returns user data and saves tokens on successful registration',
         () async {
           when(
-            () => mockDio.post('/auth/register', data: any(named: 'data')),
+            () =>
+                mockHttpClient.post('/auth/register', data: any(named: 'data')),
           ).thenAnswer(
-            (_) async => Response(
-              requestOptions: RequestOptions(),
-              statusCode: 201,
-              data: {
-                'success': true,
-                'data': {
-                  'user': {
-                    'id': '2',
-                    'name': 'New User',
-                    'email': 'new@test.com',
-                  },
-                  'tokens': {
-                    'accessToken': 'access_456',
-                    'refreshToken': 'refresh_456',
-                  },
+            (_) async => {
+              'success': true,
+              'data': {
+                'user': {
+                  'id': '2',
+                  'name': 'New User',
+                  'email': 'new@test.com',
+                },
+                'tokens': {
+                  'accessToken': 'access_456',
+                  'refreshToken': 'refresh_456',
                 },
               },
-            ),
+            },
           );
 
           when(
@@ -168,18 +148,11 @@ void main() {
         },
       );
 
-      test('throws DioException when email already exists', () async {
+      test('throws ApiException when email already exists', () async {
         when(
-          () => mockDio.post('/auth/register', data: any(named: 'data')),
+          () => mockHttpClient.post('/auth/register', data: any(named: 'data')),
         ).thenThrow(
-          DioException(
-            requestOptions: RequestOptions(),
-            response: Response(
-              requestOptions: RequestOptions(),
-              statusCode: 409,
-              data: {'message': 'Email already exists'},
-            ),
-          ),
+          const ApiException('Email already exists', statusCode: 409),
         );
 
         expect(
@@ -188,7 +161,7 @@ void main() {
             email: 'exists@test.com',
             password: 'password123',
           ),
-          throwsA(isA<DioException>()),
+          throwsA(isA<ApiException>()),
         );
       });
     });
@@ -197,20 +170,16 @@ void main() {
 
     group('getProfile', () {
       test('returns user profile data', () async {
-        when(() => mockDio.get('/auth/profile')).thenAnswer(
-          (_) async => Response(
-            requestOptions: RequestOptions(),
-            statusCode: 200,
-            data: {
-              'success': true,
-              'data': {
-                'id': '1',
-                'name': 'Test User',
-                'email': 'test@test.com',
-                'role': 'CUSTOMER',
-              },
+        when(() => mockHttpClient.get('/auth/profile')).thenAnswer(
+          (_) async => {
+            'success': true,
+            'data': {
+              'id': '1',
+              'name': 'Test User',
+              'email': 'test@test.com',
+              'role': 'CUSTOMER',
             },
-          ),
+          },
         );
 
         final user = await authRepository.getProfile();
@@ -219,18 +188,12 @@ void main() {
         expect(user['role'], 'CUSTOMER');
       });
 
-      test('throws DioException on 401 unauthorized', () async {
-        when(() => mockDio.get('/auth/profile')).thenThrow(
-          DioException(
-            requestOptions: RequestOptions(),
-            response: Response(
-              requestOptions: RequestOptions(),
-              statusCode: 401,
-            ),
-          ),
-        );
+      test('throws ApiException on 401 unauthorized', () async {
+        when(
+          () => mockHttpClient.get('/auth/profile'),
+        ).thenThrow(const ApiException('Unauthorized', statusCode: 401));
 
-        expect(() => authRepository.getProfile(), throwsA(isA<DioException>()));
+        expect(() => authRepository.getProfile(), throwsA(isA<ApiException>()));
       });
     });
 
@@ -242,17 +205,14 @@ void main() {
           () => mockTokenStorage.getRefreshToken(),
         ).thenAnswer((_) async => 'refresh_123');
         when(
-          () => mockDio.post('/auth/logout', data: any(named: 'data')),
-        ).thenAnswer(
-          (_) async =>
-              Response(requestOptions: RequestOptions(), statusCode: 200),
-        );
+          () => mockHttpClient.post('/auth/logout', data: any(named: 'data')),
+        ).thenAnswer((_) async => {'success': true});
         when(() => mockTokenStorage.clearTokens()).thenAnswer((_) async {});
 
         await authRepository.logout();
 
         verify(
-          () => mockDio.post(
+          () => mockHttpClient.post(
             '/auth/logout',
             data: {'refreshToken': 'refresh_123'},
           ),
@@ -265,8 +225,8 @@ void main() {
           () => mockTokenStorage.getRefreshToken(),
         ).thenAnswer((_) async => 'refresh_123');
         when(
-          () => mockDio.post('/auth/logout', data: any(named: 'data')),
-        ).thenThrow(DioException(requestOptions: RequestOptions()));
+          () => mockHttpClient.post('/auth/logout', data: any(named: 'data')),
+        ).thenThrow(const ApiException('Logout failed'));
         when(() => mockTokenStorage.clearTokens()).thenAnswer((_) async {});
 
         await authRepository.logout();
