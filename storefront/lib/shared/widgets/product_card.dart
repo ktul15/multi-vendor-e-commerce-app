@@ -22,42 +22,46 @@ class ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: width,
-      child: Card(
-        clipBehavior: Clip.hardEdge,
-        child: InkWell(
-          onTap: onTap,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _ProductImage(product: product),
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.sm),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      product.name,
-                      style: AppTextStyles.bodySmall.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Card(
+          clipBehavior: Clip.hardEdge,
+          child: InkWell(
+            onTap: onTap,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _ProductImage(product: product),
+                Padding(
+                  padding: const EdgeInsets.all(AppSpacing.sm),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.name,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      '\$${product.displayPrice.toStringAsFixed(2)}',
-                      style: AppTextStyles.body.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w700,
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        '\$${product.displayPrice.toStringAsFixed(2)}',
+                        style: AppTextStyles.body.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    ProductRatingRow(product: product),
-                  ],
+                      const SizedBox(height: AppSpacing.xs),
+                      ProductRatingRow(product: product),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -78,9 +82,7 @@ class ProductRatingRow extends StatelessWidget {
         const Icon(Icons.star_rounded, size: 14, color: AppColors.rating),
         const SizedBox(width: 2),
         Text(
-          product.avgRating > 0
-              ? product.avgRating.toStringAsFixed(1)
-              : 'New',
+          product.avgRating > 0 ? product.avgRating.toStringAsFixed(1) : 'New',
           style: AppTextStyles.caption.copyWith(
             color: AppColors.textSecondary,
             fontWeight: FontWeight.w500,
@@ -90,8 +92,9 @@ class ProductRatingRow extends StatelessWidget {
           const SizedBox(width: 2),
           Text(
             '(${product.reviewCount})',
-            style:
-                AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ],

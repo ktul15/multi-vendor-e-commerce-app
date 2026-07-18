@@ -2,17 +2,14 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../shared/widgets/overflow_safe_text.dart';
 import '../../../shared/models/cart_model.dart';
 
 class CartSummaryCard extends StatelessWidget {
   final double subtotal;
   final PromoPreviewModel? promoPreview;
 
-  const CartSummaryCard({
-    super.key,
-    required this.subtotal,
-    this.promoPreview,
-  });
+  const CartSummaryCard({super.key, required this.subtotal, this.promoPreview});
 
   @override
   Widget build(BuildContext context) {
@@ -72,15 +69,11 @@ class _SummaryRow extends StatelessWidget {
         ? AppTextStyles.body.copyWith(fontWeight: FontWeight.w700)
         : AppTextStyles.body;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: style),
-        Text(
-          value,
-          style: style.copyWith(color: valueColor),
-        ),
-      ],
+    return ResponsiveMetadataRow(
+      label: label,
+      value: value,
+      labelStyle: style,
+      valueStyle: style.copyWith(color: valueColor),
     );
   }
 }

@@ -80,14 +80,15 @@ class _ProductListViewState extends State<_ProductListView> {
       appBar: _ProductListAppBar(title: widget.title),
       body: BlocBuilder<ProductListCubit, ProductListState>(
         builder: (context, state) => switch (state) {
-          ProductListInitial() || ProductListLoading() =>
-            const _LoadingView(),
-          ProductListError(:final message, :final filters) =>
-            _ErrorView(message: message, filters: filters),
+          ProductListInitial() || ProductListLoading() => const _LoadingView(),
+          ProductListError(:final message, :final filters) => _ErrorView(
+            message: message,
+            filters: filters,
+          ),
           ProductListLoaded() => _LoadedView(
-              state: state,
-              scrollController: _scrollController,
-            ),
+            state: state,
+            scrollController: _scrollController,
+          ),
         },
       ),
     );
@@ -123,8 +124,8 @@ class _ProductListAppBar extends StatelessWidget
         final filters = state is ProductListLoaded
             ? state.filters
             : state is ProductListError
-                ? state.filters
-                : const ProductFilters();
+            ? state.filters
+            : const ProductFilters();
         final viewMode = state is ProductListLoaded
             ? state.viewMode
             : ProductListViewMode.grid;
@@ -135,10 +136,7 @@ class _ProductListAppBar extends StatelessWidget
             children: [
               Text(title),
               if (state is ProductListLoaded)
-                Text(
-                  '${state.total} products',
-                  style: AppTextStyles.caption,
-                ),
+                Text('${state.total} products', style: AppTextStyles.caption),
             ],
           ),
           actions: [
@@ -240,8 +238,7 @@ class _GridView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final itemCount =
-        state.products.length + (state.isLoadingMore ? 1 : 0);
+    final itemCount = state.products.length + (state.isLoadingMore ? 1 : 0);
 
     return GridView.builder(
       controller: scrollController,
@@ -250,7 +247,7 @@ class _GridView extends StatelessWidget {
         crossAxisCount: 2,
         crossAxisSpacing: AppSpacing.sm,
         mainAxisSpacing: AppSpacing.sm,
-        childAspectRatio: 0.7,
+        childAspectRatio: 0.6,
       ),
       itemCount: itemCount,
       itemBuilder: (context, index) {
@@ -281,8 +278,7 @@ class _ListView extends StatelessWidget {
     return ListView.builder(
       controller: scrollController,
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-      itemCount:
-          state.products.length + (state.isLoadingMore ? 1 : 0),
+      itemCount: state.products.length + (state.isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
         if (index >= state.products.length) {
           return const _LoadMoreIndicator();
@@ -402,16 +398,15 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           Text(
             'Try adjusting your filters',
-            style:
-                AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+            style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: AppSpacing.xl),
           OutlinedButton(
             // resetFilters() clears user-applied filters while preserving the
             // navigation context (categoryId / vendorId).
-            onPressed: () => context
-                .read<ProductListCubit>()
-                .applyFilters(filters.resetFilters()),
+            onPressed: () => context.read<ProductListCubit>().applyFilters(
+              filters.resetFilters(),
+            ),
             child: const Text('Clear Filters'),
           ),
         ],
@@ -443,15 +438,16 @@ class _ErrorView extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Text(
               message,
-              style:
-                  AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.body.copyWith(
+                color: AppColors.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.xl),
             ElevatedButton.icon(
-              onPressed: () => context
-                  .read<ProductListCubit>()
-                  .loadProducts(filters: filters),
+              onPressed: () => context.read<ProductListCubit>().loadProducts(
+                filters: filters,
+              ),
               icon: const Icon(Icons.refresh_rounded),
               label: const Text('Try Again'),
             ),

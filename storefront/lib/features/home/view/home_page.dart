@@ -299,7 +299,8 @@ class _LoadedView extends StatelessWidget {
         if (trendingProducts.isNotEmpty) ...[
           SliverToBoxAdapter(
             child: ProductSection(
-              title: '🔥 Trending',
+              title: 'Trending',
+              leadingIcon: Icons.local_fire_department_rounded,
               products: trendingProducts,
               onSeeAll: () => context.pushNamed(
                 AppRoutes.productsName,
@@ -313,7 +314,8 @@ class _LoadedView extends StatelessWidget {
         if (newArrivals.isNotEmpty) ...[
           SliverToBoxAdapter(
             child: ProductSection(
-              title: '✨ New Arrivals',
+              title: 'New Arrivals',
+              leadingIcon: Icons.auto_awesome_rounded,
               products: newArrivals,
               onSeeAll: () => context.pushNamed(
                 AppRoutes.productsName,

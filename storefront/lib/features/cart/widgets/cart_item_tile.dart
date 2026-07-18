@@ -10,11 +10,7 @@ class CartItemTile extends StatelessWidget {
   final CartItemModel item;
   final bool isUpdating;
 
-  const CartItemTile({
-    super.key,
-    required this.item,
-    required this.isUpdating,
-  });
+  const CartItemTile({super.key, required this.item, required this.isUpdating});
 
   @override
   Widget build(BuildContext context) {
@@ -72,6 +68,8 @@ class CartItemTile extends StatelessWidget {
                     style: AppTextStyles.caption.copyWith(
                       color: AppColors.textSecondary,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Row(
@@ -101,10 +99,7 @@ class CartItemTile extends StatelessWidget {
       width: 80,
       height: 80,
       color: AppColors.border,
-      child: const Icon(
-        Icons.image_outlined,
-        color: AppColors.textSecondary,
-      ),
+      child: const Icon(Icons.image_outlined, color: AppColors.textSecondary),
     );
   }
 }
@@ -123,9 +118,10 @@ class _QuantityControls extends StatelessWidget {
           icon: Icons.remove,
           onPressed: isUpdating || item.quantity <= 1
               ? null
-              : () => context
-                  .read<CartCubit>()
-                  .updateQuantity(item.id, item.quantity - 1),
+              : () => context.read<CartCubit>().updateQuantity(
+                  item.id,
+                  item.quantity - 1,
+                ),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
@@ -138,9 +134,10 @@ class _QuantityControls extends StatelessWidget {
           icon: Icons.add,
           onPressed: isUpdating || item.quantity >= item.variantStock
               ? null
-              : () => context
-                  .read<CartCubit>()
-                  .updateQuantity(item.id, item.quantity + 1),
+              : () => context.read<CartCubit>().updateQuantity(
+                  item.id,
+                  item.quantity + 1,
+                ),
         ),
       ],
     );
@@ -165,15 +162,14 @@ class _QtyButton extends StatelessWidget {
           side: BorderSide(
             color: onPressed != null ? AppColors.primary : AppColors.border,
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(6),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
         child: Icon(
           icon,
           size: 16,
-          color:
-              onPressed != null ? AppColors.primary : AppColors.textSecondary,
+          color: onPressed != null
+              ? AppColors.primary
+              : AppColors.textSecondary,
         ),
       ),
     );

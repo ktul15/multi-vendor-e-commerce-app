@@ -61,6 +61,8 @@ class WishlistItemTile extends StatelessWidget {
                     Text(
                       product.vendorName!,
                       style: AppTextStyles.caption,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                   const SizedBox(height: AppSpacing.xs),
@@ -74,8 +76,11 @@ class WishlistItemTile extends StatelessWidget {
                       ),
                       if (product.avgRating > 0) ...[
                         const SizedBox(width: AppSpacing.sm),
-                        const Icon(Icons.star_rounded,
-                            size: 14, color: AppColors.rating),
+                        const Icon(
+                          Icons.star_rounded,
+                          size: 14,
+                          color: AppColors.rating,
+                        ),
                         const SizedBox(width: 2),
                         Text(
                           product.avgRating.toStringAsFixed(1),
@@ -93,8 +98,10 @@ class WishlistItemTile extends StatelessWidget {
                           height: 34,
                           child: OutlinedButton.icon(
                             onPressed: onMoveToCart,
-                            icon: const Icon(Icons.shopping_cart_outlined,
-                                size: 16),
+                            icon: const Icon(
+                              Icons.shopping_cart_outlined,
+                              size: 16,
+                            ),
                             label: const Text('Move to Cart'),
                             style: OutlinedButton.styleFrom(
                               textStyle: AppTextStyles.caption.copyWith(
@@ -143,11 +150,7 @@ class _ImagePlaceholder extends StatelessWidget {
       width: 90,
       height: 90,
       color: Colors.grey[200],
-      child: Icon(
-        Icons.image_outlined,
-        color: Colors.grey[400],
-        size: 32,
-      ),
+      child: Icon(Icons.image_outlined, color: Colors.grey[400], size: 32),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../shared/widgets/overflow_safe_text.dart';
 import '../../../shared/models/order_detail_model.dart';
 
 class OrderPaymentSection extends StatelessWidget {
@@ -38,7 +39,10 @@ class OrderPaymentSection extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             _InfoRow(label: 'Method', value: payment.methodLabel),
             const SizedBox(height: AppSpacing.sm),
-            _InfoRow(label: 'Status', valueWidget: _PaymentStatusChip(status: payment.status)),
+            _InfoRow(
+              label: 'Status',
+              valueWidget: _PaymentStatusChip(status: payment.status),
+            ),
             const SizedBox(height: AppSpacing.sm),
             _InfoRow(
               label: 'Amount',
@@ -56,8 +60,18 @@ class OrderPaymentSection extends StatelessWidget {
 
   static String _formatDate(DateTime dt) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
   }
@@ -72,16 +86,12 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: AppTextStyles.caption),
-        valueWidget ??
-            Text(
-              value ?? '',
-              style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w500),
-            ),
-      ],
+    return ResponsiveMetadataRow(
+      label: label,
+      value: value,
+      valueWidget: valueWidget,
+      labelStyle: AppTextStyles.caption,
+      valueStyle: AppTextStyles.body.copyWith(fontWeight: FontWeight.w500),
     );
   }
 }
@@ -105,12 +115,17 @@ class _PaymentStatusChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color),
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
       ),
     );
   }
 
-  static (Color, String) _style(String status) => switch (status.toUpperCase()) {
+  static (Color, String) _style(String status) =>
+      switch (status.toUpperCase()) {
         'PENDING' => (AppColors.warning, 'Pending'),
         'PROCESSING' => (AppColors.info, 'Processing'),
         'SUCCEEDED' => (AppColors.success, 'Paid'),
