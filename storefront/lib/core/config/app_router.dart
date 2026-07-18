@@ -76,12 +76,15 @@ class AppRoutes {
 /// Paths accessible without authentication (deep-link friendly).
 ///
 /// Auth pages are always public so unauthenticated users can sign in.
-/// Product detail (/product/:id) and product reviews (/product/:id/reviews)
-/// are publicly viewable — share links should work without an account.
+/// Home, discovery/search, product detail, and product reviews are publicly
+/// viewable so customers can browse before creating an account.
 /// Write-review (/product/:id/review/write) requires auth and is NOT listed
 /// here, so unauthenticated users are redirected to login first.
 bool _isPublicPath(String location) {
-  return location == AppRoutes.login ||
+  return location == AppRoutes.home ||
+      location == AppRoutes.products ||
+      location == AppRoutes.search ||
+      location == AppRoutes.login ||
       location == AppRoutes.register ||
       location == AppRoutes.forgotPassword ||
       // Match /product/<id> but not /product/<id>/review/write
@@ -207,7 +210,7 @@ GoRouter appRouter(AuthBloc authBloc) {
               state.uri.queryParameters['productName'] ?? 'Product';
           final avgRating =
               double.tryParse(state.uri.queryParameters['avgRating'] ?? '') ??
-                  0;
+              0;
           final reviewCount =
               int.tryParse(state.uri.queryParameters['reviewCount'] ?? '') ?? 0;
           return ReviewListPage(
@@ -224,10 +227,7 @@ GoRouter appRouter(AuthBloc authBloc) {
         builder: (context, state) {
           final id = state.pathParameters['id']!;
           final existingReview = state.extra as ReviewModel?;
-          return WriteReviewPage(
-            productId: id,
-            existingReview: existingReview,
-          );
+          return WriteReviewPage(productId: id, existingReview: existingReview);
         },
       ),
       GoRoute(

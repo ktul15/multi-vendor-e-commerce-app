@@ -5,6 +5,7 @@ import '../../../core/config/injection_container.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/services/push_notification_service.dart';
 import '../../../features/notifications/bloc/notification_cubit.dart';
+import '../../../features/cart/bloc/cart_cubit.dart';
 import '../../../features/wishlist/bloc/wishlist_cubit.dart';
 import '../../../repositories/auth_repository.dart';
 import 'auth_event.dart';
@@ -25,6 +26,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   /// Initialize push notifications, notification cubit, and wishlist after authentication.
   Future<void> _initPostAuth() async {
+    if (sl.isRegistered<CartCubit>()) {
+      try {
+        await sl<CartCubit>().mergeGuestCart();
+      } catch (e) {
+        debugPrint('Error merging guest cart: $e');
+      }
+    }
     try {
       await sl<PushNotificationService>().initialize();
       await sl<NotificationCubit>().init();
@@ -42,6 +50,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     sl<PushNotificationService>().dispose();
     sl<NotificationCubit>().reset();
     sl<WishlistCubit>().reset();
+    if (sl.isRegistered<CartCubit>()) sl<CartCubit>().reset();
   }
 
   /// Auto-login: check stored tokens and fetch profile.

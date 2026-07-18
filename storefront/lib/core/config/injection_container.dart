@@ -6,6 +6,7 @@ import '../network/dio_http_client.dart';
 import '../network/http_client.dart';
 import '../network/token_storage.dart';
 import '../storage/recent_searches_storage.dart';
+import '../storage/guest_cart_storage.dart';
 import '../storage/theme_storage.dart';
 import '../../features/settings/bloc/theme_cubit.dart';
 import '../../repositories/auth_repository.dart';
@@ -127,6 +128,8 @@ Future<void> initDependencies() async {
     () => RecentSearchesStorage(),
   );
 
+  sl.registerLazySingleton<GuestCartStorage>(() => GuestCartStorage());
+
   // ThemeCubit (singleton — drives the root MaterialApp themeMode, must persist
   // across all routes; same rationale as AuthBloc). loadTheme() is awaited here
   // so the preference is loaded before runApp and ThemeLoaded is the only
@@ -162,7 +165,11 @@ Future<void> initDependencies() async {
 
   // CartCubit (lazySingleton — shared global state: home badge, product detail, cart page)
   sl.registerLazySingleton<CartCubit>(
-    () => CartCubit(repository: sl<CartRepository>()),
+    () => CartCubit(
+      repository: sl<CartRepository>(),
+      tokenStorage: sl<TokenStorage>(),
+      guestStorage: sl<GuestCartStorage>(),
+    ),
   );
 
   // NotificationCubit (lazySingleton — shared global state: home badge, notification center)

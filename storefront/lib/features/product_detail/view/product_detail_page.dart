@@ -3,7 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/config/app_router.dart';
 import '../../../core/config/injection_container.dart';
+import '../../auth/bloc/auth_bloc.dart';
+import '../../auth/bloc/auth_state.dart';
 import '../../cart/bloc/cart_cubit.dart';
+import '../../cart/bloc/cart_state.dart';
 import '../../wishlist/bloc/wishlist_cubit.dart';
 import '../../wishlist/bloc/wishlist_state.dart';
 import '../../../core/theme/app_colors.dart';
@@ -26,8 +29,8 @@ class ProductDetailPage extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-            create: (_) =>
-                sl<ProductDetailCubit>()..loadProduct(productId)),
+          create: (_) => sl<ProductDetailCubit>()..loadProduct(productId),
+        ),
         BlocProvider.value(value: sl<CartCubit>()),
         BlocProvider.value(value: sl<WishlistCubit>()),
       ],
@@ -45,10 +48,12 @@ class _ProductDetailView extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<ProductDetailCubit, ProductDetailState>(
       builder: (context, state) => switch (state) {
-        ProductDetailInitial() || ProductDetailLoading() =>
-          const _LoadingView(),
-        ProductDetailError(:final message, :final productId) =>
-          _ErrorView(message: message, productId: productId),
+        ProductDetailInitial() ||
+        ProductDetailLoading() => const _LoadingView(),
+        ProductDetailError(:final message, :final productId) => _ErrorView(
+          message: message,
+          productId: productId,
+        ),
         ProductDetailLoaded() => _LoadedView(state: state),
       },
     );
@@ -82,7 +87,8 @@ class _LoadedView extends StatelessWidget {
             actions: [
               BlocBuilder<WishlistCubit, WishlistState>(
                 builder: (context, wishlistState) {
-                  final isWishlisted = wishlistState is WishlistLoaded &&
+                  final isWishlisted =
+                      wishlistState is WishlistLoaded &&
                       wishlistState.isInWishlist(product.id);
                   return IconButton(
                     onPressed: () =>
@@ -122,13 +128,18 @@ class _LoadedView extends StatelessWidget {
                               color: AppColors.textSecondary,
                             ),
                             const SizedBox(width: AppSpacing.xs),
-                            Text(
-                              product.categoryName!,
-                              style: AppTextStyles.caption,
+                            Expanded(
+                              child: Text(
+                                product.categoryName!,
+                                style: AppTextStyles.caption,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                             const SizedBox(width: AppSpacing.sm),
+                          ] else ...[
+                            const Spacer(),
                           ],
-                          const Spacer(),
                           _StockBadge(inStock: state.isInStock),
                         ],
                       ),
@@ -184,11 +195,15 @@ class _LoadedView extends StatelessWidget {
                               color: AppColors.textSecondary,
                             ),
                             const SizedBox(width: AppSpacing.xs),
-                            Text(
-                              product.vendorName!,
-                              style: AppTextStyles.caption.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w600,
+                            Expanded(
+                              child: Text(
+                                product.vendorName!,
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -207,10 +222,10 @@ class _LoadedView extends StatelessWidget {
                                 vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color:
-                                    AppColors.primary.withAlpha(20),
+                                color: AppColors.primary.withAlpha(20),
                                 borderRadius: BorderRadius.circular(
-                                    AppRadius.full),
+                                  AppRadius.full,
+                                ),
                               ),
                               child: Text(
                                 tag,
@@ -320,11 +335,8 @@ class _AddToCartBar extends StatelessWidget {
             Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-                Text(
-                  'Total',
-                  style: AppTextStyles.caption,
-                ),
+              children: [
+                Text('Total', style: AppTextStyles.caption),
                 Text(
                   '\$${state.displayPrice.toStringAsFixed(2)}',
                   style: AppTextStyles.h4.copyWith(color: AppColors.primary),
@@ -335,19 +347,35 @@ class _AddToCartBar extends StatelessWidget {
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: state.isInStock && !needsVariant
-                    ? () {
-                        final variantId = state.selectedVariant?.id ??
-                            state.product.variants.first.id;
-                        context
-                            .read<CartCubit>()
-                            .addItem(variantId, 1);
+                    ? () async {
+                        final variant =
+                            state.selectedVariant ??
+                            state.product.variants.first;
+                        final isAuthenticated =
+                            sl<AuthBloc>().state is AuthAuthenticated;
+                        await context.read<CartCubit>().addItem(
+                          variant.id,
+                          1,
+                          product: state.product,
+                          variant: variant,
+                        );
+                        if (!context.mounted) {
+                          return;
+                        }
+                        if (context.read<CartCubit>().state is CartError) {
+                          return;
+                        }
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content:
-                                Text('${state.product.name} added to cart'),
+                            content: Text(
+                              '${state.product.name} added to cart',
+                            ),
                             duration: const Duration(seconds: 2),
                           ),
                         );
+                        if (!isAuthenticated) {
+                          context.pushNamed(AppRoutes.loginName);
+                        }
                       }
                     : null,
                 icon: const Icon(Icons.shopping_cart_outlined, size: 20),
@@ -355,13 +383,11 @@ class _AddToCartBar extends StatelessWidget {
                   needsVariant
                       ? 'Select options'
                       : state.isInStock
-                          ? 'Add to Cart'
-                          : 'Out of Stock',
+                      ? 'Add to Cart'
+                      : 'Out of Stock',
                 ),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: AppSpacing.md,
-                  ),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                 ),
               ),
             ),
@@ -430,10 +456,7 @@ class _ReviewsSection extends StatelessWidget {
               Text('Reviews', style: AppTextStyles.h5),
               if (reviewCount > 0) ...[
                 const SizedBox(width: AppSpacing.sm),
-                Text(
-                  '($reviewCount)',
-                  style: AppTextStyles.caption,
-                ),
+                Text('($reviewCount)', style: AppTextStyles.caption),
               ],
               const Spacer(),
               if (reviewCount > 0)
@@ -557,26 +580,28 @@ class _ErrorView extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline_rounded,
-                  size: 72, color: Colors.grey),
+              const Icon(
+                Icons.error_outline_rounded,
+                size: 72,
+                color: Colors.grey,
+              ),
               const SizedBox(height: AppSpacing.base),
               Text(
                 'Something went wrong',
-                style: AppTextStyles.h5.copyWith(
-                    color: AppColors.textPrimary),
+                style: AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 message,
-                style: AppTextStyles.body
-                    .copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.body.copyWith(
+                  color: AppColors.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.xl),
               ElevatedButton.icon(
-                onPressed: () => context
-                    .read<ProductDetailCubit>()
-                    .loadProduct(productId),
+                onPressed: () =>
+                    context.read<ProductDetailCubit>().loadProduct(productId),
                 icon: const Icon(Icons.refresh_rounded),
                 label: const Text('Try Again'),
               ),
