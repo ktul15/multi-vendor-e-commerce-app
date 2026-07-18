@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import 'overflow_safe_text.dart';
 import '../models/sales_point.dart';
 
 /// Unified revenue line chart used by both Dashboard and Earnings pages.
@@ -41,21 +42,20 @@ class RevenueChart extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(title, style: AppTextStyles.h3),
-                if (hasPeriodToggle)
-                  SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(value: 'day', label: Text('Daily')),
-                      ButtonSegment(value: 'week', label: Text('Weekly')),
-                      ButtonSegment(value: 'month', label: Text('Monthly')),
-                    ],
-                    selected: {period!},
-                    onSelectionChanged: (s) => onPeriodChanged!(s.first),
-                  ),
-              ],
+            ResponsiveActionHeader(
+              title: title,
+              titleStyle: AppTextStyles.h3,
+              action: hasPeriodToggle
+                  ? SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'day', label: Text('Daily')),
+                        ButtonSegment(value: 'week', label: Text('Weekly')),
+                        ButtonSegment(value: 'month', label: Text('Monthly')),
+                      ],
+                      selected: {period!},
+                      onSelectionChanged: (s) => onPeriodChanged!(s.first),
+                    )
+                  : null,
             ),
             const SizedBox(height: AppSpacing.md),
             SizedBox(

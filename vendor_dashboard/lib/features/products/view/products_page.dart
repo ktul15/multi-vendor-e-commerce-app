@@ -14,6 +14,7 @@ import '../bloc/products_cubit.dart';
 import '../bloc/products_state.dart';
 import '../../../shared/widgets/skeleton_box.dart';
 import '../../../shared/widgets/error_state.dart';
+import '../../../shared/widgets/overflow_safe_text.dart';
 import '../widgets/products_skeleton.dart';
 import '../widgets/products_table.dart';
 import '../widgets/product_form_dialog.dart';
@@ -156,18 +157,16 @@ class _ProductsView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Products', style: AppTextStyles.h2),
-                    FilledButton.icon(
-                      onPressed: state is ProductsLoading
-                          ? null
-                          : () => _showCreateDialog(context),
-                      icon: const Icon(Icons.add),
-                      label: const Text('New Product'),
-                    ),
-                  ],
+                ResponsiveActionHeader(
+                  title: 'Products',
+                  titleStyle: AppTextStyles.h2,
+                  action: FilledButton.icon(
+                    onPressed: state is ProductsLoading
+                        ? null
+                        : () => _showCreateDialog(context),
+                    icon: const Icon(Icons.add),
+                    label: const Text('New Product'),
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Expanded(
