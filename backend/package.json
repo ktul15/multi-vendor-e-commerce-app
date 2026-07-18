@@ -16,7 +16,7 @@
     "test:coverage": "jest --coverage --forceExit --detectOpenHandles",
     "db:migrate": "npx prisma migrate dev",
     "db:push": "npx prisma db push",
-    "db:seed": "npx tsx prisma/seed.ts",
+    "db:seed": "npx tsx prisma/seed_admin_qa.ts",
     "db:studio": "npx prisma studio",
     "prisma:generate": "npx prisma generate"
   },

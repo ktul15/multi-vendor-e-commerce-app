@@ -17,7 +17,8 @@ import {
 } from '../src/generated/prisma/client';
 import { hashPassword } from '../src/utils/password';
 
-const RUN_ID = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+// Stable identifiers make the documented QA accounts easy to find and reuse.
+const RUN_ID = 'REALWORLD';
 const PASSWORD = 'password123';
 const ADMIN_PASSWORD = 'admin123';
 const PLATFORM_COMMISSION_RATE = '12.50';
@@ -96,23 +97,25 @@ async function clearExistingData() {
 }
 
 async function ensureAdmin() {
-  const adminCount = await db.user.count({ where: { role: Role.ADMIN } });
-  if (adminCount > 0) {
-    console.log(`  ✅ Preserved ${adminCount} existing ADMIN user(s)`);
-    return;
-  }
-
   const password = await hashPassword(ADMIN_PASSWORD);
-  await db.user.create({
-    data: {
-      name: 'Admin User',
-      email: 'admin@ecommerce.com',
+  await db.user.upsert({
+    where: { email: 'alice.admin@example.com' },
+    update: {
+      name: 'Alice Admin',
+      password,
+      role: Role.ADMIN,
+      isVerified: true,
+      isBanned: false,
+    },
+    create: {
+      name: 'Alice Admin',
+      email: 'alice.admin@example.com',
       password,
       role: Role.ADMIN,
       isVerified: true,
     },
   });
-  console.log('  ✅ Created fallback admin: admin@ecommerce.com / admin123');
+  console.log('  ✅ Admin persona ready: alice.admin@example.com / admin123');
 }
 
 async function seedPlatformSettings() {
@@ -131,14 +134,21 @@ async function seedUsersAndVendors(passwordHash: string) {
 
   const customerSpecs = Array.from({ length: 22 }, (_, index) => {
     const number = index + 1;
+    const personas = [
+      { name: 'Ava New Shopper', email: 'ava.customer@example.com' },
+      { name: 'Ben Returning Shopper', email: 'ben.customer@example.com' },
+      { name: 'Mallory Unauthorized User', email: 'mallory.user@example.com' },
+    ];
     return {
       name:
-        number === 3
-          ? `QA Customer <script>alert("xss")</script> ${RUN_ID}`
-          : number === 4
-            ? `QA Customer With A Very Long Name For Layout Regression ${RUN_ID} ${number}`
-            : `QA Customer ${RUN_ID} ${number.toString().padStart(2, '0')}`,
-      email: `qa.customer.${RUN_ID}.${number}@example.com`,
+        personas[index]?.name ??
+        (number === 4
+          ? `QA Customer With A Very Long Name For Layout Regression ${RUN_ID} ${number}`
+          : number === 7
+            ? `QA Customer <script>alert("xss")</script> ${RUN_ID}`
+            : `QA Customer ${RUN_ID} ${number.toString().padStart(2, '0')}`),
+      email:
+        personas[index]?.email ?? `qa.customer.${RUN_ID}.${number}@example.com`,
       isBanned: number === 5 || number === 12,
       isVerified: number !== 6,
     };
@@ -166,28 +176,81 @@ async function seedUsersAndVendors(passwordHash: string) {
       },
     });
     customers.push({ id: user.id, email: user.email, addressId: address.id });
+
+    if (spec.email === 'ben.customer@example.com') {
+      await db.address.create({
+        data: {
+          userId: user.id,
+          fullName: 'Ben Returning Shopper',
+          phone: '+15550009999',
+          street: '42 Secondary Address Lane, Apt #5B',
+          city: 'Austin',
+          state: 'TX',
+          country: 'USA',
+          zipCode: '73301',
+          isDefault: false,
+        },
+      });
+    }
   }
 
-  const vendorStatuses = [
-    VendorProfileStatus.PENDING,
-    VendorProfileStatus.APPROVED,
-    VendorProfileStatus.REJECTED,
-    VendorProfileStatus.SUSPENDED,
+  const vendorPersonas = [
+    {
+      name: 'Vera Pending Vendor',
+      email: 'vera.vendor@example.com',
+      store: 'Vera New Goods',
+      status: VendorProfileStatus.PENDING,
+    },
+    {
+      name: 'Victor Approved Vendor',
+      email: 'victor.vendor@example.com',
+      store: 'Victor Marketplace',
+      status: VendorProfileStatus.APPROVED,
+    },
+    {
+      name: 'Nina Suspended Vendor',
+      email: 'nina.vendor@example.com',
+      store: 'Nina Restricted Store',
+      status: VendorProfileStatus.SUSPENDED,
+    },
+    {
+      name: 'Riley Rejected Vendor',
+      email: 'riley.vendor@example.com',
+      store: 'Riley Rejected Goods',
+      status: VendorProfileStatus.REJECTED,
+    },
+    {
+      name: 'Olivia Approved Vendor',
+      email: 'olivia.vendor@example.com',
+      store: 'Olivia Home & Style',
+      status: VendorProfileStatus.APPROVED,
+    },
   ];
 
   for (let index = 0; index < 18; index += 1) {
     const number = index + 1;
-    const status = vendorStatuses[index % vendorStatuses.length];
+    const persona = vendorPersonas[index];
+    const fallbackStatuses = [
+      VendorProfileStatus.PENDING,
+      VendorProfileStatus.APPROVED,
+      VendorProfileStatus.REJECTED,
+      VendorProfileStatus.SUSPENDED,
+    ];
+    const status =
+      persona?.status ?? fallbackStatuses[index % fallbackStatuses.length]!;
     const storeName =
-      number === 2
+      persona?.store ??
+      (number === 7
         ? `QA Vendor <script>store</script> ${RUN_ID}`
-        : number === 3
+        : number === 8
           ? `QA Vendor Store With An Intentionally Long Name For Table Layout ${RUN_ID}`
-          : `QA Vendor Store ${RUN_ID} ${number.toString().padStart(2, '0')}`;
+          : `QA Vendor Store ${RUN_ID} ${number.toString().padStart(2, '0')}`);
     const user = await db.user.create({
       data: {
-        name: `QA Vendor Owner ${RUN_ID} ${number.toString().padStart(2, '0')}`,
-        email: `qa.vendor.${RUN_ID}.${number}@example.com`,
+        name:
+          persona?.name ??
+          `QA Vendor Owner ${RUN_ID} ${number.toString().padStart(2, '0')}`,
+        email: persona?.email ?? `qa.vendor.${RUN_ID}.${number}@example.com`,
         password: passwordHash,
         role: Role.VENDOR,
         isVerified: true,
@@ -294,18 +357,66 @@ async function seedCategories() {
       parentId: mens.id,
     },
   });
+  const womens = await db.category.create({
+    data: {
+      name: `QA_CAT_${RUN_ID}_Womenswear`,
+      slug: `qa-cat-${RUN_ID}-womenswear`,
+      image: `https://picsum.photos/seed/qa-cat-${RUN_ID}-womenswear/800/500`,
+      parentId: fashion.id,
+    },
+  });
+  const kitchen = await db.category.create({
+    data: {
+      name: `QA_CAT_${RUN_ID}_Kitchen`,
+      slug: `qa-cat-${RUN_ID}-kitchen`,
+      image: `https://picsum.photos/seed/qa-cat-${RUN_ID}-kitchen/800/500`,
+      parentId: home.id,
+    },
+  });
+  const decor = await db.category.create({
+    data: {
+      name: `QA_CAT_${RUN_ID}_Home Decor`,
+      slug: `qa-cat-${RUN_ID}-home-decor`,
+      image: `https://picsum.photos/seed/qa-cat-${RUN_ID}-decor/800/500`,
+      parentId: home.id,
+    },
+  });
 
   console.log(
     '  ✅ Categories seeded: roots, children, and nested grandchildren'
   );
-  return { electronics, fashion, home, special, phones, laptops, mens, shoes };
+  return {
+    electronics,
+    fashion,
+    home,
+    special,
+    phones,
+    laptops,
+    mens,
+    shoes,
+    womens,
+    kitchen,
+    decor,
+  };
 }
 
 async function seedProducts(
   vendors: SeedVendor[],
   categories: Awaited<ReturnType<typeof seedCategories>>
 ) {
-  const approvedVendors = vendors.slice(0, 14);
+  const approvedVendorUsers = await db.user.findMany({
+    where: { vendorProfile: { status: VendorProfileStatus.APPROVED } },
+    include: { vendorProfile: true },
+    orderBy: { email: 'asc' },
+  });
+  const approvedVendors: SeedVendor[] = approvedVendorUsers.map(
+    (vendor: any) => ({
+      id: vendor.id,
+      email: vendor.email,
+      profileId: vendor.vendorProfile.id,
+      storeName: vendor.vendorProfile.storeName,
+    })
+  );
   const categoryIds = [
     categories.phones.id,
     categories.laptops.id,
@@ -315,7 +426,7 @@ async function seedProducts(
   ];
   const products: SeedProduct[] = [];
 
-  for (let index = 0; index < 24; index += 1) {
+  for (let index = 0; index < 25; index += 1) {
     const number = index + 1;
     const vendor = approvedVendors[index % approvedVendors.length];
     const price = 19.99 + number * 7.35;
@@ -331,11 +442,14 @@ async function seedProducts(
               : `QA Product ${RUN_ID} ${number.toString().padStart(2, '0')}`,
         description: `QA seeded product ${number} for active/inactive, detail, search, and delete behavior.`,
         basePrice: money(price),
-        images: [
-          `https://picsum.photos/seed/qa-product-${RUN_ID}-${number}/900/700`,
-          `https://picsum.photos/seed/qa-product-alt-${RUN_ID}-${number}/900/700`,
-        ],
-        isActive: number % 4 !== 0,
+        images:
+          number === 2
+            ? []
+            : [
+                `https://picsum.photos/seed/qa-product-${RUN_ID}-${number}/900/700`,
+                `https://picsum.photos/seed/qa-product-alt-${RUN_ID}-${number}/900/700`,
+              ],
+        isActive: number <= 20,
         avgRating: money(number % 6 === 0 ? 0 : 2.5 + (number % 5) * 0.45),
         reviewCount: number % 6 === 0 ? 0 : number * 3,
         tags: [
@@ -353,6 +467,17 @@ async function seedProducts(
               stock: number % 5 === 0 ? 0 : 25 + number,
               sku: `QA-${RUN_ID}-${randomUUID().slice(0, 8)}`,
             },
+            ...(number === 1
+              ? [
+                  {
+                    size: 'L',
+                    color: 'Red',
+                    price: money(price + 5),
+                    stock: 0,
+                    sku: `QA-${RUN_ID}-${randomUUID().slice(0, 8)}`,
+                  },
+                ]
+              : []),
           ],
         },
       },
@@ -383,9 +508,15 @@ async function seedPromos() {
     const promo = await db.promoCode.create({
       data: {
         code:
-          number === 4
-            ? `QA_LONG_PROMO_CODE_${RUN_ID}_LAYOUT_04`
-            : `QA_PROMO_${RUN_ID}_${number.toString().padStart(2, '0')}`,
+          number === 1
+            ? 'SAVE10'
+            : number === 2
+              ? 'FIXED15'
+              : number === 3
+                ? 'EXPIRED20'
+                : number === 4
+                  ? `QA_LONG_PROMO_CODE_${RUN_ID}_LAYOUT_04`
+                  : `QA_PROMO_${RUN_ID}_${number.toString().padStart(2, '0')}`,
         discountType: isPercentage
           ? DiscountType.PERCENTAGE
           : DiscountType.FIXED,
@@ -398,7 +529,7 @@ async function seedPromos() {
         usageLimit: number % 5 === 0 ? null : 50 + number,
         usageCount: number % 6 === 0 ? 5 : 0,
         perUserLimit: number % 4 === 0 ? null : 1 + (number % 3),
-        isActive: number % 4 !== 0,
+        isActive: number === 3 ? false : number % 4 !== 0,
         expiresAt:
           number % 6 === 0
             ? daysAgo(5)
@@ -433,7 +564,8 @@ async function seedOrders(
 
   for (let index = 0; index < 28; index += 1) {
     const number = index + 1;
-    const customer = customers[index % customers.length];
+    // Keep Ava pristine for the first-visit journey; seed history on returning users.
+    const customer = customers[(index % (customers.length - 1)) + 1];
     const product = products[index % 18];
     const status = statuses[index % statuses.length];
     const quantity = (index % 3) + 1;
@@ -575,7 +707,7 @@ async function seedReviewsWishlistsAndCarts(
   for (let index = 0; index < 8; index += 1) {
     await db.review.create({
       data: {
-        userId: customers[index]!.id,
+        userId: customers[index + 1]!.id,
         productId: products[index]!.id,
         rating: (index % 5) + 1,
         comment:
@@ -589,7 +721,7 @@ async function seedReviewsWishlistsAndCarts(
   for (let index = 0; index < 6; index += 1) {
     await db.wishlistItem.create({
       data: {
-        userId: customers[index]!.id,
+        userId: customers[index + 1]!.id,
         productId: products[index + 6]!.id,
       },
     });
@@ -597,7 +729,7 @@ async function seedReviewsWishlistsAndCarts(
 
   const cart = await db.cart.create({
     data: {
-      userId: customers[0]!.id,
+      userId: customers[1]!.id,
       items: {
         create: [
           { variantId: products[19]!.variantId, quantity: 2 },
@@ -608,6 +740,33 @@ async function seedReviewsWishlistsAndCarts(
   });
 
   console.log(`  ✅ Reviews, wishlists, and cart seeded: ${cart.id}`);
+}
+
+async function seedNotifications(customers: SeedCustomer[]) {
+  const ben = customers.find(
+    (customer) => customer.email === 'ben.customer@example.com'
+  )!;
+  await db.notification.createMany({
+    data: [
+      {
+        userId: ben.id,
+        type: 'ORDER_SHIPPED',
+        title: 'Your order is on the way',
+        body: 'Track your package with the seeded shipment details.',
+        data: { scenario: 'REAL_WORLD_USER_TEST_SCENARIOS' },
+        isRead: false,
+      },
+      {
+        userId: ben.id,
+        type: 'PROMO',
+        title: 'Welcome-back discount',
+        body: 'A seeded promotion is available for your next checkout.',
+        data: { code: 'SAVE10' },
+        isRead: true,
+      },
+    ],
+  });
+  console.log('  ✅ Read and unread notifications seeded for Ben');
 }
 
 async function seedBanners() {
@@ -680,6 +839,7 @@ async function main() {
       const promos = await seedPromos();
       await seedOrders(customers, products, promos);
       await seedReviewsWishlistsAndCarts(customers, products);
+      await seedNotifications(customers);
       await seedBanners();
       await seedVendorPayouts(vendors);
     },
@@ -693,10 +853,14 @@ async function main() {
   console.log(
     `   Test account password for QA customer/vendor users: ${PASSWORD}`
   );
-  console.log('   Existing ADMIN users were preserved.');
-  console.log(
-    '   Fallback admin is only created if no ADMIN existed: admin@ecommerce.com / admin123'
-  );
+  console.log('   Admin: alice.admin@example.com / admin123');
+  console.log('   Ava: ava.customer@example.com / password123');
+  console.log('   Ben: ben.customer@example.com / password123');
+  console.log('   Vera: vera.vendor@example.com / password123');
+  console.log('   Victor: victor.vendor@example.com / password123');
+  console.log('   Nina: nina.vendor@example.com / password123');
+  console.log('   Mallory: mallory.user@example.com / password123');
+  console.log('   Promos: SAVE10, FIXED15, EXPIRED20 (inactive)');
 }
 
 main()
