@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../shared/widgets/overflow_safe_text.dart';
 import '../bloc/admin_order_cubit.dart';
 import '../bloc/admin_order_state.dart';
 import '../models/admin_order_detail_model.dart';
@@ -492,21 +493,14 @@ class _DetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-        ),
-        Text(
-          value,
-          style: AppTextStyles.body.copyWith(
-            fontWeight: valueBold ? FontWeight.w700 : FontWeight.w500,
-            color: valueColor ?? AppColors.textPrimary,
-          ),
-        ),
-      ],
+    return ResponsiveMetadataRow(
+      label: label,
+      value: value,
+      labelStyle: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+      valueStyle: AppTextStyles.body.copyWith(
+        fontWeight: valueBold ? FontWeight.w700 : FontWeight.w500,
+        color: valueColor ?? AppColors.textPrimary,
+      ),
     );
   }
 }
@@ -519,15 +513,10 @@ class _DetailRowWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-        ),
-        child,
-      ],
+    return ResponsiveMetadataRow(
+      label: label,
+      valueWidget: child,
+      labelStyle: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
     );
   }
 }

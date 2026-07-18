@@ -10,6 +10,7 @@ import '../bloc/vendor_state.dart';
 import '../models/vendor_model.dart';
 import '../../../shared/widgets/skeleton_box.dart';
 import '../../../shared/widgets/error_state.dart';
+import '../../../shared/widgets/overflow_safe_text.dart';
 import '../widgets/vendor_list_skeleton.dart';
 import '../widgets/vendor_status_badge.dart';
 
@@ -299,7 +300,7 @@ class _VendorTable extends StatelessWidget {
                               AppRoutes.vendorDetailName,
                               pathParameters: {'id': vendor.id},
                             ),
-                            child: Text(
+                            child: TableCellText(
                               vendor.storeName,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
@@ -316,14 +317,16 @@ class _VendorTable extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              TableCellText(
                                 vendor.owner.name,
+                                maxWidth: 180,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              Text(
+                              TableCellText(
                                 vendor.owner.email,
+                                maxWidth: 180,
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: AppColors.textSecondary,

@@ -8,6 +8,7 @@ import '../bloc/admin_order_cubit.dart';
 import '../bloc/admin_order_state.dart';
 import '../../../shared/widgets/skeleton_box.dart';
 import '../../../shared/widgets/error_state.dart';
+import '../../../shared/widgets/overflow_safe_text.dart';
 import '../widgets/order_list_skeleton.dart';
 import '../widgets/order_status_badge.dart';
 
@@ -360,7 +361,7 @@ class _OrderTable extends StatelessWidget {
                               AppRoutes.orderDetailName,
                               pathParameters: {'id': order.id},
                             ),
-                            child: Text(
+                            child: TableCellText(
                               order.orderNumber,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
@@ -371,7 +372,7 @@ class _OrderTable extends StatelessWidget {
                             ),
                           ),
                         ),
-                        DataCell(Text(order.customerName)),
+                        DataCell(TableCellText(order.customerName)),
                         DataCell(OrderStatusBadge(status: order.status)),
                         DataCell(
                           Text(

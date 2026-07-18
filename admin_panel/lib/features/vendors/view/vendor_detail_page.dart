@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/overflow_safe_text.dart';
 import '../bloc/vendor_cubit.dart';
 import '../bloc/vendor_state.dart';
 import '../models/vendor_model.dart';
@@ -109,7 +110,7 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: Text(vendor.storeName)),
+      appBar: AppBar(title: SingleLineText(vendor.storeName)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(

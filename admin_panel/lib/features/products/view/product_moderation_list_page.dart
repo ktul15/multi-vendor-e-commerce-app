@@ -10,6 +10,7 @@ import '../bloc/product_moderation_state.dart';
 import '../models/admin_product_model.dart';
 import '../../../shared/widgets/skeleton_box.dart';
 import '../../../shared/widgets/error_state.dart';
+import '../../../shared/widgets/overflow_safe_text.dart';
 import '../widgets/product_moderation_skeleton.dart';
 import '../widgets/product_status_badge.dart';
 
@@ -320,7 +321,7 @@ class _ProductTable extends StatelessWidget {
                               AppRoutes.productDetailName,
                               pathParameters: {'id': product.id},
                             ),
-                            child: Text(
+                            child: TableCellText(
                               product.name,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
@@ -337,14 +338,16 @@ class _ProductTable extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              TableCellText(
                                 product.vendor.name,
+                                maxWidth: 180,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              Text(
+                              TableCellText(
                                 product.vendor.email,
+                                maxWidth: 180,
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: AppColors.textSecondary,
@@ -354,7 +357,7 @@ class _ProductTable extends StatelessWidget {
                           ),
                         ),
                         // Category
-                        DataCell(Text(product.category.name)),
+                        DataCell(TableCellText(product.category.name)),
                         // Price
                         DataCell(
                           Text(

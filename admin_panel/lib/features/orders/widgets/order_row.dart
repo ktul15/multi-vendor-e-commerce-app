@@ -34,10 +34,14 @@ class OrderRow extends StatelessWidget {
       title: Text(
         order.orderNumber,
         style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
       subtitle: Text(
         order.customerName,
         style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
       trailing: Column(
         mainAxisAlignment: MainAxisAlignment.center,

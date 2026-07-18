@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/config/app_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/overflow_safe_text.dart';
 import '../bloc/product_moderation_cubit.dart';
 import '../bloc/product_moderation_state.dart';
 import '../models/admin_product_model.dart';
@@ -114,7 +115,7 @@ class _ProductModerationDetailPageState
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: Text(product.name)),
+      appBar: AppBar(title: SingleLineText(product.name)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
