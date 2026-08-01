@@ -88,13 +88,18 @@ class _UpdateStatusDialogState extends State<UpdateStatusDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              DropdownButtonFormField<String>(
-                initialValue: _selectedStatus,
-                decoration: const InputDecoration(labelText: 'New Status'),
-                items: _nextStatuses
-                    .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                    .toList(),
-                onChanged: (v) => setState(() => _selectedStatus = v),
+              InputDecorator(
+                decoration: const InputDecoration(labelText: 'Next Status'),
+                child: Row(
+                  children: [
+                    const Icon(Icons.arrow_forward_rounded, size: 18),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text(
+                      _selectedStatus!,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
               ),
               if (_requiresTracking) ...[
                 const SizedBox(height: AppSpacing.md),
