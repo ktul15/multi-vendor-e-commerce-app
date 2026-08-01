@@ -453,7 +453,7 @@ describe('OrderService — cancelOrder()', () => {
         const order = await createPendingOrder();
 
         await prisma.payment.create({
-            data: { orderId: order.id, amount: 50, currency: 'USD', method: 'CARD', status: 'PROCESSING', stripePaymentIntentId: 'pi_unit_cancel_test' },
+            data: { orderId: order.id, amount: 50, currency: 'INR', method: 'CARD', status: 'PROCESSING', stripePaymentIntentId: 'pi_unit_cancel_test' },
         });
 
         await orderService.cancelOrder(customerId, order.id, {});
@@ -465,7 +465,7 @@ describe('OrderService — cancelOrder()', () => {
         const order = await createPendingOrder();
 
         await prisma.payment.create({
-            data: { orderId: order.id, amount: 50, currency: 'USD', method: 'CARD', status: 'SUCCEEDED', stripePaymentIntentId: 'pi_unit_refund_test', paidAt: new Date() },
+            data: { orderId: order.id, amount: 50, currency: 'INR', method: 'CARD', status: 'SUCCEEDED', stripePaymentIntentId: 'pi_unit_refund_test', paidAt: new Date() },
         });
 
         await orderService.cancelOrder(customerId, order.id, {});

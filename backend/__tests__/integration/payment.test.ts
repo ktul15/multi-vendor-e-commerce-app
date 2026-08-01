@@ -207,7 +207,7 @@ describe('Payment API (Issue #32)', () => {
             const res = await request(app)
                 .post('/api/v1/payments/create-intent')
                 .set('Authorization', customerToken)
-                .send({ orderId, currency: 'USD' });
+                .send({ orderId, currency: 'INR' });
 
             expect(res.status).toBe(201);
             expect(res.body.success).toBe(true);
@@ -226,7 +226,7 @@ describe('Payment API (Issue #32)', () => {
             const res = await request(app)
                 .post('/api/v1/payments/create-intent')
                 .set('Authorization', customerToken)
-                .send({ orderId, currency: 'USD' });
+                .send({ orderId, currency: 'INR' });
 
             expect(res.status).toBe(201);
             expect(res.body.data.clientSecret).toBe(MOCK_CLIENT_SECRET);
@@ -321,7 +321,7 @@ describe('Payment API (Issue #32)', () => {
             const res = await request(app)
                 .post('/api/v1/payments/create-intent')
                 .set('Authorization', customerToken)
-                .send({ orderId, currency: 'USD' });
+                .send({ orderId, currency: 'INR' });
 
             expect(res.status).toBe(409);
         });

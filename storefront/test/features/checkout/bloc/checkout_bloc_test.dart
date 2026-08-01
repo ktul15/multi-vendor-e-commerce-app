@@ -1,5 +1,6 @@
 import 'package:bloc_test/bloc_test.dart';
-import 'package:flutter_stripe/flutter_stripe.dart' show StripeException, FailureCode, LocalizedErrorMessage;
+import 'package:flutter_stripe/flutter_stripe.dart'
+    show StripeException, FailureCode, LocalizedErrorMessage;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:storefront/core/network/api_exception.dart';
@@ -70,14 +71,15 @@ void main() {
     orderRepo = MockOrderRepository();
     stripeService = MockStripeService();
     cartCubit = MockCartCubit();
+    when(() => cartCubit.mergeGuestCart()).thenAnswer((_) async {});
   });
 
   CheckoutBloc buildBloc() => CheckoutBloc(
-        addressRepository: addressRepo,
-        orderRepository: orderRepo,
-        stripeService: stripeService,
-        cartCubit: cartCubit,
-      );
+    addressRepository: addressRepo,
+    orderRepository: orderRepo,
+    stripeService: stripeService,
+    cartCubit: cartCubit,
+  );
 
   group('CheckoutBloc', () {
     // ── CheckoutStarted ──────────────────────────────────────────────────────
@@ -86,9 +88,9 @@ void main() {
       blocTest<CheckoutBloc, CheckoutState>(
         'emits [AddressesLoading, AddressStep] with auto-selected default address',
         setUp: () {
-          when(() => addressRepo.getAddresses()).thenAnswer(
-            (_) async => [_defaultAddress, _secondAddress],
-          );
+          when(
+            () => addressRepo.getAddresses(),
+          ).thenAnswer((_) async => [_defaultAddress, _secondAddress]);
         },
         build: buildBloc,
         act: (bloc) => bloc.add(const CheckoutStarted()),
@@ -105,9 +107,9 @@ void main() {
         'selects first address when no default exists',
         setUp: () {
           final noDefault = _defaultAddress.copyWith(isDefault: false);
-          when(() => addressRepo.getAddresses()).thenAnswer(
-            (_) async => [noDefault, _secondAddress],
-          );
+          when(
+            () => addressRepo.getAddresses(),
+          ).thenAnswer((_) async => [noDefault, _secondAddress]);
         },
         build: buildBloc,
         act: (bloc) => bloc.add(const CheckoutStarted()),
@@ -124,9 +126,9 @@ void main() {
       blocTest<CheckoutBloc, CheckoutState>(
         'emits [AddressesLoading, CheckoutError] on API error',
         setUp: () {
-          when(() => addressRepo.getAddresses()).thenThrow(
-            const ApiException('Server error'),
-          );
+          when(
+            () => addressRepo.getAddresses(),
+          ).thenThrow(const ApiException('Server error'));
         },
         build: buildBloc,
         act: (bloc) => bloc.add(const CheckoutStarted()),
@@ -143,9 +145,7 @@ void main() {
       blocTest<CheckoutBloc, CheckoutState>(
         'emits [AddressesLoading, AddressStep(no selection)] when list is empty',
         setUp: () {
-          when(() => addressRepo.getAddresses()).thenAnswer(
-            (_) async => [],
-          );
+          when(() => addressRepo.getAddresses()).thenAnswer((_) async => []);
         },
         build: buildBloc,
         act: (bloc) => bloc.add(const CheckoutStarted()),
@@ -190,33 +190,40 @@ void main() {
       blocTest<CheckoutBloc, CheckoutState>(
         'appends new address and selects it on success',
         setUp: () {
-          when(() => addressRepo.createAddress(
-                fullName: any(named: 'fullName'),
-                phone: any(named: 'phone'),
-                street: any(named: 'street'),
-                city: any(named: 'city'),
-                state: any(named: 'state'),
-                country: any(named: 'country'),
-                zipCode: any(named: 'zipCode'),
-              )).thenAnswer((_) async => _secondAddress);
+          when(
+            () => addressRepo.createAddress(
+              fullName: any(named: 'fullName'),
+              phone: any(named: 'phone'),
+              street: any(named: 'street'),
+              city: any(named: 'city'),
+              state: any(named: 'state'),
+              country: any(named: 'country'),
+              zipCode: any(named: 'zipCode'),
+            ),
+          ).thenAnswer((_) async => _secondAddress);
         },
         seed: () => CheckoutAddressStep(
           addresses: [_defaultAddress],
           selectedAddress: _defaultAddress,
         ),
         build: buildBloc,
-        act: (bloc) => bloc.add(const CheckoutAddressAdded(
-          fullName: 'John Doe',
-          phone: '0987654321',
-          street: '2 Oak Ave',
-          city: 'Shelbyville',
-          state: 'IL',
-          country: 'US',
-          zipCode: '62565',
-        )),
+        act: (bloc) => bloc.add(
+          const CheckoutAddressAdded(
+            fullName: 'John Doe',
+            phone: '0987654321',
+            street: '2 Oak Ave',
+            city: 'Shelbyville',
+            state: 'IL',
+            country: 'US',
+            zipCode: '62565',
+          ),
+        ),
         expect: () => [
-          isA<CheckoutAddressStep>()
-              .having((s) => s.isAddingAddress, 'isAddingAddress', true),
+          isA<CheckoutAddressStep>().having(
+            (s) => s.isAddingAddress,
+            'isAddingAddress',
+            true,
+          ),
           CheckoutAddressStep(
             addresses: [_defaultAddress, _secondAddress],
             selectedAddress: _secondAddress,
@@ -227,33 +234,40 @@ void main() {
       blocTest<CheckoutBloc, CheckoutState>(
         'shows inline error and stays in AddressStep on API failure',
         setUp: () {
-          when(() => addressRepo.createAddress(
-                fullName: any(named: 'fullName'),
-                phone: any(named: 'phone'),
-                street: any(named: 'street'),
-                city: any(named: 'city'),
-                state: any(named: 'state'),
-                country: any(named: 'country'),
-                zipCode: any(named: 'zipCode'),
-              )).thenThrow(const ApiException('Invalid address'));
+          when(
+            () => addressRepo.createAddress(
+              fullName: any(named: 'fullName'),
+              phone: any(named: 'phone'),
+              street: any(named: 'street'),
+              city: any(named: 'city'),
+              state: any(named: 'state'),
+              country: any(named: 'country'),
+              zipCode: any(named: 'zipCode'),
+            ),
+          ).thenThrow(const ApiException('Invalid address'));
         },
         seed: () => CheckoutAddressStep(
           addresses: [_defaultAddress],
           selectedAddress: _defaultAddress,
         ),
         build: buildBloc,
-        act: (bloc) => bloc.add(const CheckoutAddressAdded(
-          fullName: 'X',
-          phone: '1234567',
-          street: 'X',
-          city: 'X',
-          state: 'XX',
-          country: 'US',
-          zipCode: '00000',
-        )),
+        act: (bloc) => bloc.add(
+          const CheckoutAddressAdded(
+            fullName: 'X',
+            phone: '1234567',
+            street: 'X',
+            city: 'X',
+            state: 'XX',
+            country: 'US',
+            zipCode: '00000',
+          ),
+        ),
         expect: () => [
-          isA<CheckoutAddressStep>()
-              .having((s) => s.isAddingAddress, 'loading', true),
+          isA<CheckoutAddressStep>().having(
+            (s) => s.isAddingAddress,
+            'loading',
+            true,
+          ),
           isA<CheckoutAddressStep>()
               .having((s) => s.error, 'error', 'Invalid address')
               .having((s) => s.isAddingAddress, 'isAddingAddress', false),
@@ -285,10 +299,8 @@ void main() {
         setUp: () {
           when(() => cartCubit.state).thenReturn(CartLoaded(cart: _cart));
         },
-        seed: () => const CheckoutAddressStep(
-          addresses: [],
-          selectedAddress: null,
-        ),
+        seed: () =>
+            const CheckoutAddressStep(addresses: [], selectedAddress: null),
         build: buildBloc,
         act: (bloc) => bloc.add(const CheckoutProceedToSummary()),
         expect: () => [],
@@ -300,10 +312,8 @@ void main() {
     group('CheckoutBackToAddress', () {
       blocTest<CheckoutBloc, CheckoutState>(
         'returns to address step from summary using cached data (no fetch)',
-        seed: () => CheckoutSummaryStep(
-          selectedAddress: _defaultAddress,
-          cart: _cart,
-        ),
+        seed: () =>
+            CheckoutSummaryStep(selectedAddress: _defaultAddress, cart: _cart),
         build: buildBloc,
         act: (bloc) => bloc.add(const CheckoutBackToAddress()),
         expect: () => [
@@ -323,28 +333,31 @@ void main() {
 
     group('CheckoutProceedToPayment — success', () {
       setUp(() {
-        when(() => orderRepo.createOrder(
-              addressId: any(named: 'addressId'),
-              promoCode: any(named: 'promoCode'),
-            )).thenAnswer((_) async => _order);
-        when(() => orderRepo.createPaymentIntent(
-              orderId: any(named: 'orderId'),
-            )).thenAnswer((_) async => 'pi_test_secret');
-        when(() => stripeService.initPaymentSheet(
-              clientSecret: any(named: 'clientSecret'),
-              merchantDisplayName: any(named: 'merchantDisplayName'),
-            )).thenAnswer((_) async {});
-        when(() => stripeService.presentPaymentSheet())
-            .thenAnswer((_) async {});
+        when(
+          () => orderRepo.createOrder(
+            addressId: any(named: 'addressId'),
+            promoCode: any(named: 'promoCode'),
+          ),
+        ).thenAnswer((_) async => _order);
+        when(
+          () => orderRepo.createPaymentIntent(orderId: any(named: 'orderId')),
+        ).thenAnswer((_) async => 'pi_test_secret');
+        when(
+          () => stripeService.initPaymentSheet(
+            clientSecret: any(named: 'clientSecret'),
+            merchantDisplayName: any(named: 'merchantDisplayName'),
+          ),
+        ).thenAnswer((_) async {});
+        when(
+          () => stripeService.presentPaymentSheet(),
+        ).thenAnswer((_) async {});
         when(() => cartCubit.loadCart()).thenAnswer((_) async {});
       });
 
       blocTest<CheckoutBloc, CheckoutState>(
         'emits [PaymentInProgress, CheckoutSuccess] on happy path',
-        seed: () => CheckoutSummaryStep(
-          selectedAddress: _defaultAddress,
-          cart: _cart,
-        ),
+        seed: () =>
+            CheckoutSummaryStep(selectedAddress: _defaultAddress, cart: _cart),
         build: buildBloc,
         act: (bloc) => bloc.add(const CheckoutProceedToPayment()),
         expect: () => [
@@ -356,12 +369,16 @@ void main() {
           ),
         ],
         verify: (_) {
-          verify(() => orderRepo.createOrder(
-                addressId: _defaultAddress.id,
-                promoCode: null,
-              )).called(1);
-          verify(() => orderRepo.createPaymentIntent(orderId: _order.id))
-              .called(1);
+          verify(() => cartCubit.mergeGuestCart()).called(1);
+          verify(
+            () => orderRepo.createOrder(
+              addressId: _defaultAddress.id,
+              promoCode: null,
+            ),
+          ).called(1);
+          verify(
+            () => orderRepo.createPaymentIntent(orderId: _order.id),
+          ).called(1);
           verify(() => stripeService.presentPaymentSheet()).called(1);
           verify(() => cartCubit.loadCart()).called(1);
         },
@@ -372,17 +389,21 @@ void main() {
 
     group('CheckoutProceedToPayment — Stripe cancel', () {
       setUp(() {
-        when(() => orderRepo.createOrder(
-              addressId: any(named: 'addressId'),
-              promoCode: any(named: 'promoCode'),
-            )).thenAnswer((_) async => _order);
-        when(() => orderRepo.createPaymentIntent(
-              orderId: any(named: 'orderId'),
-            )).thenAnswer((_) async => 'pi_test_secret');
-        when(() => stripeService.initPaymentSheet(
-              clientSecret: any(named: 'clientSecret'),
-              merchantDisplayName: any(named: 'merchantDisplayName'),
-            )).thenAnswer((_) async {});
+        when(
+          () => orderRepo.createOrder(
+            addressId: any(named: 'addressId'),
+            promoCode: any(named: 'promoCode'),
+          ),
+        ).thenAnswer((_) async => _order);
+        when(
+          () => orderRepo.createPaymentIntent(orderId: any(named: 'orderId')),
+        ).thenAnswer((_) async => 'pi_test_secret');
+        when(
+          () => stripeService.initPaymentSheet(
+            clientSecret: any(named: 'clientSecret'),
+            merchantDisplayName: any(named: 'merchantDisplayName'),
+          ),
+        ).thenAnswer((_) async {});
         when(() => stripeService.presentPaymentSheet()).thenThrow(
           StripeException(
             error: const LocalizedErrorMessage(
@@ -395,10 +416,8 @@ void main() {
 
       blocTest<CheckoutBloc, CheckoutState>(
         'returns to SummaryStep with pendingOrder set when user dismisses Payment Sheet',
-        seed: () => CheckoutSummaryStep(
-          selectedAddress: _defaultAddress,
-          cart: _cart,
-        ),
+        seed: () =>
+            CheckoutSummaryStep(selectedAddress: _defaultAddress, cart: _cart),
         build: buildBloc,
         act: (bloc) => bloc.add(const CheckoutProceedToPayment()),
         expect: () => [
@@ -418,17 +437,21 @@ void main() {
 
     group('CheckoutProceedToPayment — payment failure', () {
       setUp(() {
-        when(() => orderRepo.createOrder(
-              addressId: any(named: 'addressId'),
-              promoCode: any(named: 'promoCode'),
-            )).thenAnswer((_) async => _order);
-        when(() => orderRepo.createPaymentIntent(
-              orderId: any(named: 'orderId'),
-            )).thenAnswer((_) async => 'pi_test_secret');
-        when(() => stripeService.initPaymentSheet(
-              clientSecret: any(named: 'clientSecret'),
-              merchantDisplayName: any(named: 'merchantDisplayName'),
-            )).thenAnswer((_) async {});
+        when(
+          () => orderRepo.createOrder(
+            addressId: any(named: 'addressId'),
+            promoCode: any(named: 'promoCode'),
+          ),
+        ).thenAnswer((_) async => _order);
+        when(
+          () => orderRepo.createPaymentIntent(orderId: any(named: 'orderId')),
+        ).thenAnswer((_) async => 'pi_test_secret');
+        when(
+          () => stripeService.initPaymentSheet(
+            clientSecret: any(named: 'clientSecret'),
+            merchantDisplayName: any(named: 'merchantDisplayName'),
+          ),
+        ).thenAnswer((_) async {});
         when(() => stripeService.presentPaymentSheet()).thenThrow(
           StripeException(
             error: const LocalizedErrorMessage(
@@ -441,10 +464,8 @@ void main() {
 
       blocTest<CheckoutBloc, CheckoutState>(
         'emits CheckoutError with failedOrderId preserved',
-        seed: () => CheckoutSummaryStep(
-          selectedAddress: _defaultAddress,
-          cart: _cart,
-        ),
+        seed: () =>
+            CheckoutSummaryStep(selectedAddress: _defaultAddress, cart: _cart),
         build: buildBloc,
         act: (bloc) => bloc.add(const CheckoutProceedToPayment()),
         expect: () => [
@@ -454,21 +475,53 @@ void main() {
               .having((e) => e.failedOrderId, 'failedOrderId', _order.id),
         ],
       );
+
+      blocTest<CheckoutBloc, CheckoutState>(
+        'replaces Stripe diagnostic text with a customer-friendly message',
+        setUp: () {
+          when(() => stripeService.presentPaymentSheet()).thenThrow(
+            StripeException(
+              error: const LocalizedErrorMessage(
+                code: FailureCode.Failed,
+                message:
+                    'There was an error confirming the Intent. Inspect the '
+                    '`paymentIntent.lastPaymentError` property.',
+              ),
+            ),
+          );
+        },
+        seed: () =>
+            CheckoutSummaryStep(selectedAddress: _defaultAddress, cart: _cart),
+        build: buildBloc,
+        act: (bloc) => bloc.add(const CheckoutProceedToPayment()),
+        expect: () => [
+          isA<CheckoutPaymentInProgress>(),
+          isA<CheckoutError>().having(
+            (e) => e.message,
+            'message',
+            'Payment could not be completed. Please verify your card details '
+                'and try again.',
+          ),
+        ],
+      );
     });
 
     // ── CheckoutProceedToPayment (pendingOrder reuse) ────────────────────────
 
     group('CheckoutProceedToPayment — pendingOrder reuse', () {
       setUp(() {
-        when(() => orderRepo.createPaymentIntent(
-              orderId: any(named: 'orderId'),
-            )).thenAnswer((_) async => 'pi_retry_secret');
-        when(() => stripeService.initPaymentSheet(
-              clientSecret: any(named: 'clientSecret'),
-              merchantDisplayName: any(named: 'merchantDisplayName'),
-            )).thenAnswer((_) async {});
-        when(() => stripeService.presentPaymentSheet())
-            .thenAnswer((_) async {});
+        when(
+          () => orderRepo.createPaymentIntent(orderId: any(named: 'orderId')),
+        ).thenAnswer((_) async => 'pi_retry_secret');
+        when(
+          () => stripeService.initPaymentSheet(
+            clientSecret: any(named: 'clientSecret'),
+            merchantDisplayName: any(named: 'merchantDisplayName'),
+          ),
+        ).thenAnswer((_) async {});
+        when(
+          () => stripeService.presentPaymentSheet(),
+        ).thenAnswer((_) async {});
         when(() => cartCubit.loadCart()).thenAnswer((_) async {});
       });
 
@@ -477,7 +530,8 @@ void main() {
         seed: () => CheckoutSummaryStep(
           selectedAddress: _defaultAddress,
           cart: _cart,
-          pendingOrder: _order, // already has a pending order from prior attempt
+          pendingOrder:
+              _order, // already has a pending order from prior attempt
         ),
         build: buildBloc,
         act: (bloc) => bloc.add(const CheckoutProceedToPayment()),
@@ -490,12 +544,15 @@ void main() {
           ),
         ],
         verify: (_) {
-          verifyNever(() => orderRepo.createOrder(
-                addressId: any(named: 'addressId'),
-                promoCode: any(named: 'promoCode'),
-              ));
-          verify(() => orderRepo.createPaymentIntent(orderId: _order.id))
-              .called(1);
+          verifyNever(
+            () => orderRepo.createOrder(
+              addressId: any(named: 'addressId'),
+              promoCode: any(named: 'promoCode'),
+            ),
+          );
+          verify(
+            () => orderRepo.createPaymentIntent(orderId: _order.id),
+          ).called(1);
         },
       );
     });
@@ -506,15 +563,15 @@ void main() {
       blocTest<CheckoutBloc, CheckoutState>(
         'emits CheckoutError with no failedOrderId when order creation fails',
         setUp: () {
-          when(() => orderRepo.createOrder(
-                addressId: any(named: 'addressId'),
-                promoCode: any(named: 'promoCode'),
-              )).thenThrow(const ApiException('Insufficient stock'));
+          when(
+            () => orderRepo.createOrder(
+              addressId: any(named: 'addressId'),
+              promoCode: any(named: 'promoCode'),
+            ),
+          ).thenThrow(const ApiException('Insufficient stock'));
         },
-        seed: () => CheckoutSummaryStep(
-          selectedAddress: _defaultAddress,
-          cart: _cart,
-        ),
+        seed: () =>
+            CheckoutSummaryStep(selectedAddress: _defaultAddress, cart: _cart),
         build: buildBloc,
         act: (bloc) => bloc.add(const CheckoutProceedToPayment()),
         expect: () => [
@@ -532,9 +589,9 @@ void main() {
       blocTest<CheckoutBloc, CheckoutState>(
         'restores summary step on payment error with saved summary',
         setUp: () {
-          when(() => addressRepo.getAddresses()).thenAnswer(
-            (_) async => [_defaultAddress],
-          );
+          when(
+            () => addressRepo.getAddresses(),
+          ).thenAnswer((_) async => [_defaultAddress]);
         },
         seed: () {
           final summary = CheckoutSummaryStep(
@@ -585,9 +642,9 @@ void main() {
       blocTest<CheckoutBloc, CheckoutState>(
         'restarts from address step on address error',
         setUp: () {
-          when(() => addressRepo.getAddresses()).thenAnswer(
-            (_) async => [_defaultAddress],
-          );
+          when(
+            () => addressRepo.getAddresses(),
+          ).thenAnswer((_) async => [_defaultAddress]);
         },
         seed: () => const CheckoutError(
           message: 'Network error',

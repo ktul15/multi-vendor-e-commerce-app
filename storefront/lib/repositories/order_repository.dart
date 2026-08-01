@@ -30,10 +30,7 @@ class OrderRepository {
     int limit = 10,
     String? status,
   }) async {
-    final queryParams = <String, String>{
-      'page': '$page',
-      'limit': '$limit',
-    };
+    final queryParams = <String, String>{'page': '$page', 'limit': '$limit'};
     if (status != null) queryParams['status'] = status;
 
     final body = await _client.get('/orders', queryParameters: queryParams);
@@ -77,14 +74,11 @@ class OrderRepository {
     return OrderDetailModel.fromJson(body['data'] as Map<String, dynamic>);
   }
 
-  Future<String> createPaymentIntent({
-    required String orderId,
-    String currency = 'USD',
-  }) async {
-    final body = await _client.post('/payments/create-intent', data: {
-      'orderId': orderId,
-      'currency': currency,
-    });
+  Future<String> createPaymentIntent({required String orderId}) async {
+    final body = await _client.post(
+      '/payments/create-intent',
+      data: {'orderId': orderId},
+    );
     if (body == null || body['data'] is! Map) {
       throw const ApiException('Failed to create payment intent');
     }

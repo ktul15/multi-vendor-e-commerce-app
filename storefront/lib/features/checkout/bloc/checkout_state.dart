@@ -59,8 +59,12 @@ class CheckoutAddressStep extends CheckoutState {
   }
 
   @override
-  List<Object?> get props =>
-      [addresses, selectedAddress, isAddingAddress, error];
+  List<Object?> get props => [
+    addresses,
+    selectedAddress,
+    isAddingAddress,
+    error,
+  ];
 }
 
 /// Step 2 — order summary.
@@ -100,8 +104,12 @@ class CheckoutSummaryStep extends CheckoutState {
   }
 
   @override
-  List<Object?> get props =>
-      [selectedAddress, cart, promoPreview, pendingOrder];
+  List<Object?> get props => [
+    selectedAddress,
+    cart,
+    promoPreview,
+    pendingOrder,
+  ];
 }
 
 /// Step 3 — order placed, payment intent created, Payment Sheet is shown.
@@ -154,6 +162,10 @@ class CheckoutError extends CheckoutState {
   String? get failedOrderId => failedOrder?.id;
 
   @override
-  List<Object?> get props =>
-      [message, lastStep, previousSummaryStep, failedOrder];
+  List<Object?> get props => [
+    message,
+    lastStep,
+    previousSummaryStep,
+    failedOrder,
+  ];
 }

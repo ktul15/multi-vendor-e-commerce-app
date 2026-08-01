@@ -20,7 +20,7 @@ class VendorOrderSummary extends Equatable {
     return VendorOrderSummary(
       id: json['id'] as String,
       status: json['status'] as String? ?? 'PENDING',
-      subtotal: (json['subtotal'] as num).toDouble(),
+      subtotal: _toDouble(json['subtotal']),
       itemCount: count?['items'] as int? ?? 0,
     );
   }
@@ -34,11 +34,7 @@ class PaymentSummary extends Equatable {
   final String? method;
   final DateTime? paidAt;
 
-  const PaymentSummary({
-    required this.status,
-    this.method,
-    this.paidAt,
-  });
+  const PaymentSummary({required this.status, this.method, this.paidAt});
 
   factory PaymentSummary.fromJson(Map<String, dynamic> json) {
     return PaymentSummary(
@@ -95,19 +91,22 @@ class OrderModel extends Equatable {
       id: json['id'] as String,
       orderNumber: json['orderNumber'] as String,
       status: json['status'] as String?,
-      subtotal: (json['subtotal'] as num).toDouble(),
-      discount: (json['discount'] as num? ?? 0).toDouble(),
-      tax: (json['tax'] as num? ?? 0).toDouble(),
-      total: (json['total'] as num).toDouble(),
+      subtotal: _toDouble(json['subtotal']),
+      discount: _toDouble(json['discount']),
+      tax: _toDouble(json['tax']),
+      total: _toDouble(json['total']),
       notes: json['notes'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
-      vendorOrders: vendorOrdersList
-              ?.map((e) =>
-                  VendorOrderSummary.fromJson(e as Map<String, dynamic>))
+      vendorOrders:
+          vendorOrdersList
+              ?.map(
+                (e) => VendorOrderSummary.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           const [],
-      payment:
-          paymentJson != null ? PaymentSummary.fromJson(paymentJson) : null,
+      payment: paymentJson != null
+          ? PaymentSummary.fromJson(paymentJson)
+          : null,
     );
   }
 
@@ -147,16 +146,24 @@ class OrderModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        orderNumber,
-        status,
-        subtotal,
-        discount,
-        tax,
-        total,
-        notes,
-        createdAt,
-        vendorOrders,
-        payment,
-      ];
+    id,
+    orderNumber,
+    status,
+    subtotal,
+    discount,
+    tax,
+    total,
+    notes,
+    createdAt,
+    vendorOrders,
+    payment,
+  ];
+}
+
+/// Prisma Decimal fields may serialize as either JSON numbers or strings.
+double _toDouble(dynamic value) {
+  if (value is num) return value.toDouble();
+  if (value is String) return double.parse(value);
+  if (value == null) return 0.0;
+  throw FormatException('Expected num or String, got ${value.runtimeType}');
 }

@@ -2,7 +2,8 @@ import 'dart:async';
 
 import 'package:collection/collection.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_stripe/flutter_stripe.dart' show StripeException, FailureCode;
+import 'package:flutter_stripe/flutter_stripe.dart'
+    show StripeException, FailureCode;
 import '../../../core/config/app_env.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/stripe/stripe_service.dart';
@@ -29,11 +30,11 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
     required OrderRepository orderRepository,
     required StripeService stripeService,
     required CartCubit cartCubit,
-  })  : _addressRepository = addressRepository,
-        _orderRepository = orderRepository,
-        _stripeService = stripeService,
-        _cartCubit = cartCubit,
-        super(const CheckoutAddressesLoading()) {
+  }) : _addressRepository = addressRepository,
+       _orderRepository = orderRepository,
+       _stripeService = stripeService,
+       _cartCubit = cartCubit,
+       super(const CheckoutAddressesLoading()) {
     on<CheckoutStarted>(_onStarted);
     on<CheckoutAddressSelected>(_onAddressSelected);
     on<CheckoutAddressAdded>(_onAddressAdded);
@@ -80,11 +81,13 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
       );
       final updated = [...current.addresses, newAddress];
       _cachedAddresses = updated;
-      emit(CheckoutAddressStep(
-        addresses: updated,
-        selectedAddress: newAddress,
-        isAddingAddress: false,
-      ));
+      emit(
+        CheckoutAddressStep(
+          addresses: updated,
+          selectedAddress: newAddress,
+          isAddingAddress: false,
+        ),
+      );
     } on ApiException catch (e) {
       emit(current.copyWith(isAddingAddress: false, error: e.message));
     } on NetworkException catch (e) {
@@ -106,11 +109,13 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
     final cartState = _cartCubit.state;
     if (cartState is! CartLoaded) return;
 
-    emit(CheckoutSummaryStep(
-      selectedAddress: selectedAddress,
-      cart: cartState.cart,
-      promoPreview: cartState.promoPreview,
-    ));
+    emit(
+      CheckoutSummaryStep(
+        selectedAddress: selectedAddress,
+        cart: cartState.cart,
+        promoPreview: cartState.promoPreview,
+      ),
+    );
   }
 
   void _onBackToAddress(
@@ -127,10 +132,12 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
       selectedAddress = current.selectedAddress;
     }
     // Restore from cache — no network call needed.
-    emit(CheckoutAddressStep(
-      addresses: _cachedAddresses,
-      selectedAddress: selectedAddress,
-    ));
+    emit(
+      CheckoutAddressStep(
+        addresses: _cachedAddresses,
+        selectedAddress: selectedAddress,
+      ),
+    );
   }
 
   Future<void> _onProceedToPayment(
@@ -147,7 +154,13 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
     final pendingOrder = current.pendingOrder;
 
     try {
-      final order = pendingOrder ??
+      // Authentication normally merges the guest cart before navigation, but
+      // retry here as a final guard against a transient or interrupted merge.
+      // The orders API builds the order from the authenticated server cart.
+      await _cartCubit.mergeGuestCart();
+
+      final order =
+          pendingOrder ??
           await _orderRepository.createOrder(
             addressId: current.selectedAddress.id,
             promoCode: current.promoPreview?.code,
@@ -160,10 +173,12 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
         );
 
         // 3. Init and present the Payment Sheet.
-        await _stripeService.initPaymentSheet(
-          clientSecret: clientSecret,
-          merchantDisplayName: AppEnv.appName,
-        );
+        await _stripeService
+            .initPaymentSheet(
+              clientSecret: clientSecret,
+              merchantDisplayName: AppEnv.appName,
+            )
+            .timeout(const Duration(seconds: 20));
         await _stripeService.presentPaymentSheet();
 
         // 4. Payment confirmed — refresh cart (fire-and-forget so a cart
@@ -176,56 +191,91 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
           // pending order so a second tap does not create a duplicate.
           emit(current.copyWith(pendingOrder: order));
         } else {
-          emit(CheckoutError(
-            message: e.error.localizedMessage ??
-                'Payment failed. Please try again.',
+          emit(
+            CheckoutError(
+              message: _stripeErrorMessage(e),
+              lastStep: CheckoutStep.payment,
+              previousSummaryStep: current,
+              failedOrder: order,
+            ),
+          );
+        }
+      } on ApiException catch (e) {
+        emit(
+          CheckoutError(
+            message: e.message,
             lastStep: CheckoutStep.payment,
             previousSummaryStep: current,
             failedOrder: order,
-          ));
-        }
-      } on ApiException catch (e) {
-        emit(CheckoutError(
-          message: e.message,
-          lastStep: CheckoutStep.payment,
-          previousSummaryStep: current,
-          failedOrder: order,
-        ));
+          ),
+        );
       } on NetworkException catch (e) {
-        emit(CheckoutError(
-          message: e.message,
-          lastStep: CheckoutStep.payment,
-          previousSummaryStep: current,
-          failedOrder: order,
-        ));
+        emit(
+          CheckoutError(
+            message: e.message,
+            lastStep: CheckoutStep.payment,
+            previousSummaryStep: current,
+            failedOrder: order,
+          ),
+        );
+      } on TimeoutException {
+        emit(
+          CheckoutError(
+            message:
+                'The payment screen took too long to open. Please try again.',
+            lastStep: CheckoutStep.payment,
+            previousSummaryStep: current,
+            failedOrder: order,
+          ),
+        );
       } catch (e) {
-        emit(CheckoutError(
-          message: e.toString(),
-          lastStep: CheckoutStep.payment,
-          previousSummaryStep: current,
-          failedOrder: order,
-        ));
+        emit(
+          CheckoutError(
+            message: e.toString(),
+            lastStep: CheckoutStep.payment,
+            previousSummaryStep: current,
+            failedOrder: order,
+          ),
+        );
       }
     } on ApiException catch (e) {
       // createOrder itself failed — no order was created.
-      emit(CheckoutError(
-        message: e.message,
-        lastStep: CheckoutStep.payment,
-        previousSummaryStep: current,
-      ));
+      emit(
+        CheckoutError(
+          message: e.message,
+          lastStep: CheckoutStep.payment,
+          previousSummaryStep: current,
+        ),
+      );
     } on NetworkException catch (e) {
-      emit(CheckoutError(
-        message: e.message,
-        lastStep: CheckoutStep.payment,
-        previousSummaryStep: current,
-      ));
+      emit(
+        CheckoutError(
+          message: e.message,
+          lastStep: CheckoutStep.payment,
+          previousSummaryStep: current,
+        ),
+      );
     } catch (e) {
-      emit(CheckoutError(
-        message: e.toString(),
-        lastStep: CheckoutStep.payment,
-        previousSummaryStep: current,
-      ));
+      emit(
+        CheckoutError(
+          message: e.toString(),
+          lastStep: CheckoutStep.payment,
+          previousSummaryStep: current,
+        ),
+      );
     }
+  }
+
+  String _stripeErrorMessage(StripeException exception) {
+    final message = exception.error.localizedMessage?.trim();
+    if (message == null ||
+        message.isEmpty ||
+        message.contains('lastPaymentError') ||
+        message.contains('lastSetupError')) {
+      return 'Payment could not be completed. Please verify your card details '
+          'and try again.';
+    }
+    return message;
   }
 
   Future<void> _onRetried(
@@ -240,12 +290,14 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
       final summary = current.previousSummaryStep!;
       // Thread the failed order into the summary step so the next
       // CheckoutProceedToPayment reuses it instead of calling createOrder.
-      emit(CheckoutSummaryStep(
-        selectedAddress: summary.selectedAddress,
-        cart: summary.cart,
-        promoPreview: summary.promoPreview,
-        pendingOrder: current.failedOrder,
-      ));
+      emit(
+        CheckoutSummaryStep(
+          selectedAddress: summary.selectedAddress,
+          cart: summary.cart,
+          promoPreview: summary.promoPreview,
+          pendingOrder: current.failedOrder,
+        ),
+      );
     } else {
       // Address-step errors: reload from network.
       await _loadAddresses(emit);
@@ -259,17 +311,20 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
     try {
       final addresses = await _addressRepository.getAddresses();
       _cachedAddresses = addresses;
-      emit(CheckoutAddressStep(
-        addresses: addresses,
-        selectedAddress: _selectInitialAddress(addresses),
-      ));
+      emit(
+        CheckoutAddressStep(
+          addresses: addresses,
+          selectedAddress: _selectInitialAddress(addresses),
+        ),
+      );
     } on ApiException catch (e) {
       emit(CheckoutError(message: e.message, lastStep: CheckoutStep.address));
     } on NetworkException catch (e) {
       emit(CheckoutError(message: e.message, lastStep: CheckoutStep.address));
     } catch (e) {
       emit(
-          CheckoutError(message: e.toString(), lastStep: CheckoutStep.address));
+        CheckoutError(message: e.toString(), lastStep: CheckoutStep.address),
+      );
     }
   }
 

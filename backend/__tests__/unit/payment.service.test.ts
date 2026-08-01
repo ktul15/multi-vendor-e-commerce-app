@@ -163,17 +163,17 @@ describe('PaymentService — createPaymentIntent()', () => {
     it('should call stripe.paymentIntents.create with correct amount in cents', async () => {
         const orderId = await createTestOrder(100);
 
-        await paymentService.createPaymentIntent(customerId, { orderId, currency: 'USD' });
+        await paymentService.createPaymentIntent(customerId, { orderId, currency: 'INR' });
 
         expect(mockCreate).toHaveBeenCalledWith(
-            expect.objectContaining({ amount: 10000, currency: 'usd' })
+            expect.objectContaining({ amount: 10000, currency: 'inr' })
         );
     });
 
     it('should create a Payment record in PROCESSING state', async () => {
         const orderId = await createTestOrder(50);
 
-        const result = await paymentService.createPaymentIntent(customerId, { orderId, currency: 'USD' });
+        const result = await paymentService.createPaymentIntent(customerId, { orderId, currency: 'INR' });
 
         expect(result.clientSecret).toBe(MOCK_CLIENT_SECRET);
         const payment = await prisma.payment.findUnique({ where: { orderId } });
@@ -184,7 +184,7 @@ describe('PaymentService — createPaymentIntent()', () => {
 
     it('should throw 404 when orderId does not exist', async () => {
         await expect(
-            paymentService.createPaymentIntent(customerId, { orderId: '00000000-0000-0000-0000-000000000000', currency: 'USD' })
+            paymentService.createPaymentIntent(customerId, { orderId: '00000000-0000-0000-0000-000000000000', currency: 'INR' })
         ).rejects.toMatchObject({ statusCode: 404 });
     });
 
@@ -192,7 +192,7 @@ describe('PaymentService — createPaymentIntent()', () => {
         const orderId = await createTestOrder();
 
         await expect(
-            paymentService.createPaymentIntent('00000000-0000-0000-0000-000000000000', { orderId, currency: 'USD' })
+            paymentService.createPaymentIntent('00000000-0000-0000-0000-000000000000', { orderId, currency: 'INR' })
         ).rejects.toMatchObject({ statusCode: 403 });
     });
 
@@ -200,11 +200,11 @@ describe('PaymentService — createPaymentIntent()', () => {
         const orderId = await createTestOrder();
 
         // First call creates payment
-        await paymentService.createPaymentIntent(customerId, { orderId, currency: 'USD' });
+        await paymentService.createPaymentIntent(customerId, { orderId, currency: 'INR' });
         mockCreate.mockClear();
 
         // Second call should reuse existing intent
-        const result = await paymentService.createPaymentIntent(customerId, { orderId, currency: 'USD' });
+        const result = await paymentService.createPaymentIntent(customerId, { orderId, currency: 'INR' });
 
         expect(result.clientSecret).toBe(MOCK_CLIENT_SECRET);
         expect(mockCreate).not.toHaveBeenCalled();
@@ -215,14 +215,14 @@ describe('PaymentService — createPaymentIntent()', () => {
         const orderId = await createTestOrder();
 
         // First call creates payment
-        await paymentService.createPaymentIntent(customerId, { orderId, currency: 'USD' });
+        await paymentService.createPaymentIntent(customerId, { orderId, currency: 'INR' });
         mockCreate.mockClear();
 
         // Stripe reports intent as cancelled
         mockRetrieve.mockResolvedValueOnce({ id: MOCK_INTENT_ID, client_secret: 'old_secret', status: 'canceled' });
         mockCreate.mockResolvedValueOnce({ id: 'pi_new', client_secret: 'new_secret' });
 
-        const result = await paymentService.createPaymentIntent(customerId, { orderId, currency: 'USD' });
+        const result = await paymentService.createPaymentIntent(customerId, { orderId, currency: 'INR' });
 
         expect(mockCreate).toHaveBeenCalledTimes(1);
         expect(result.clientSecret).toBe('new_secret');
@@ -231,29 +231,29 @@ describe('PaymentService — createPaymentIntent()', () => {
     it('should throw 409 when payment is already SUCCEEDED', async () => {
         const orderId = await createTestOrder();
         await prisma.payment.create({
-            data: { orderId, amount: 100, currency: 'USD', method: 'CARD', status: 'SUCCEEDED', stripePaymentIntentId: MOCK_INTENT_ID },
+            data: { orderId, amount: 100, currency: 'INR', method: 'CARD', status: 'SUCCEEDED', stripePaymentIntentId: MOCK_INTENT_ID },
         });
 
         await expect(
-            paymentService.createPaymentIntent(customerId, { orderId, currency: 'USD' })
+            paymentService.createPaymentIntent(customerId, { orderId, currency: 'INR' })
         ).rejects.toMatchObject({ statusCode: 409 });
     });
 
     it('should throw 409 when payment is already FAILED', async () => {
         const orderId = await createTestOrder();
         await prisma.payment.create({
-            data: { orderId, amount: 100, currency: 'USD', method: 'CARD', status: 'FAILED', stripePaymentIntentId: MOCK_INTENT_ID },
+            data: { orderId, amount: 100, currency: 'INR', method: 'CARD', status: 'FAILED', stripePaymentIntentId: MOCK_INTENT_ID },
         });
 
         await expect(
-            paymentService.createPaymentIntent(customerId, { orderId, currency: 'USD' })
+            paymentService.createPaymentIntent(customerId, { orderId, currency: 'INR' })
         ).rejects.toMatchObject({ statusCode: 409 });
     });
 
     it('should convert Decimal total to integer cents correctly (floating-point safe)', async () => {
         const orderId = await createTestOrder(99.99);
 
-        await paymentService.createPaymentIntent(customerId, { orderId, currency: 'USD' });
+        await paymentService.createPaymentIntent(customerId, { orderId, currency: 'INR' });
 
         expect(mockCreate).toHaveBeenCalledWith(
             expect.objectContaining({ amount: 9999 })
@@ -277,7 +277,7 @@ describe('PaymentService — handleWebhook()', () => {
     it('should update Payment to SUCCEEDED and VendorOrders to CONFIRMED on payment_intent.succeeded', async () => {
         const orderId = await createTestOrder();
         await prisma.payment.create({
-            data: { orderId, amount: 100, currency: 'USD', method: 'CARD', status: 'PROCESSING', stripePaymentIntentId: MOCK_INTENT_ID },
+            data: { orderId, amount: 100, currency: 'INR', method: 'CARD', status: 'PROCESSING', stripePaymentIntentId: MOCK_INTENT_ID },
         });
 
         jest.spyOn(vendorPayoutService, 'createTransfersForPayment').mockResolvedValueOnce(undefined as any);
@@ -301,7 +301,7 @@ describe('PaymentService — handleWebhook()', () => {
     it('should update Payment to FAILED on payment_intent.payment_failed', async () => {
         const orderId = await createTestOrder();
         await prisma.payment.create({
-            data: { orderId, amount: 100, currency: 'USD', method: 'CARD', status: 'PROCESSING', stripePaymentIntentId: MOCK_INTENT_ID },
+            data: { orderId, amount: 100, currency: 'INR', method: 'CARD', status: 'PROCESSING', stripePaymentIntentId: MOCK_INTENT_ID },
         });
 
         mockConstructEvent.mockReturnValueOnce({

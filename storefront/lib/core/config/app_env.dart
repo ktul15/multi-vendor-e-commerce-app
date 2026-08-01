@@ -17,13 +17,16 @@ class AppEnv {
     defaultValue: 'Storefront',
   );
 
-  static const bool isProduction = String.fromEnvironment(
-    'ENV',
-    defaultValue: 'development',
-  ) == 'production';
+  static const bool isProduction =
+      String.fromEnvironment('ENV', defaultValue: 'development') ==
+      'production';
 
   static const String stripePublishableKey = String.fromEnvironment(
     'STRIPE_PUBLISHABLE_KEY',
     defaultValue: '',
   );
+
+  /// Must match the custom URL scheme registered by the native apps.
+  static const String stripeUrlScheme = 'storefrontapp';
+  static const String stripeReturnUrl = '$stripeUrlScheme://stripe-redirect';
 }

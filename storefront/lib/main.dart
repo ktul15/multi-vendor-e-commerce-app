@@ -28,6 +28,7 @@ void main() async {
   // Initialize Stripe before running the app.
   if (!kIsWeb) {
     Stripe.publishableKey = AppEnv.stripePublishableKey;
+    Stripe.urlScheme = AppEnv.stripeUrlScheme;
     await Stripe.instance.applySettings();
   }
 

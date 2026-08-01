@@ -18,7 +18,8 @@ const REUSABLE_INTENT_STATUSES: Stripe.PaymentIntent.Status[] = [
 
 export class PaymentService {
     async createPaymentIntent(userId: string, input: CreatePaymentIntentInput) {
-        const { orderId, currency } = input;
+        const { orderId } = input;
+        const currency = 'INR';
 
         const order = await prisma.order.findUnique({
             where: { id: orderId },
@@ -28,6 +29,30 @@ export class PaymentService {
         if (!order) throw ApiError.notFound('Order not found');
         if (order.userId !== userId) throw ApiError.forbidden('Access denied');
 
+        const address = order.shippingAddress as {
+            fullName: string;
+            phone: string;
+            street: string;
+            city: string;
+            state: string;
+            country: string;
+            zipCode: string;
+        };
+        const intentDetails = {
+            description: `Order ${order.orderNumber}`,
+            shipping: {
+                name: address.fullName,
+                phone: address.phone,
+                address: {
+                    line1: address.street,
+                    city: address.city,
+                    state: address.state,
+                    country: address.country,
+                    postal_code: address.zipCode,
+                },
+            },
+        };
+
         // Idempotency: return existing clientSecret for in-progress payments
         if (order.payment) {
             const { status, stripePaymentIntentId } = order.payment;
@@ -36,7 +61,8 @@ export class PaymentService {
                 const existing = await stripe.paymentIntents.retrieve(stripePaymentIntentId!);
 
                 if (REUSABLE_INTENT_STATUSES.includes(existing.status)) {
-                    return { clientSecret: existing.client_secret };
+                    const updated = await stripe.paymentIntents.update(existing.id, intentDetails);
+                    return { clientSecret: updated.client_secret };
                 }
 
                 // Intent was cancelled on Stripe's side — fall through to create a fresh one
@@ -44,6 +70,8 @@ export class PaymentService {
                 const intent = await stripe.paymentIntents.create({
                     amount: Math.round(parseFloat(order.total.toString()) * 100),
                     currency: currency.toLowerCase(),
+                    automatic_payment_methods: { enabled: true },
+                    ...intentDetails,
                     transfer_group: orderId,
                     metadata: { orderId, userId },
                 });
@@ -65,6 +93,8 @@ export class PaymentService {
         const intent = await stripe.paymentIntents.create({
             amount: amountInCents,
             currency: currency.toLowerCase(),
+            automatic_payment_methods: { enabled: true },
+            ...intentDetails,
             transfer_group: orderId,
             metadata: { orderId, userId },
         });
@@ -73,7 +103,7 @@ export class PaymentService {
             data: {
                 orderId,
                 amount: order.total,
-                currency: currency as Currency,
+                currency: Currency.INR,
                 // Hardcoded to CARD for Stripe PaymentIntent flow; extend when wallet/COD support is added
                 method: 'CARD' as PaymentMethod,
                 status: 'PROCESSING',
