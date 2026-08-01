@@ -22,6 +22,7 @@ import '../../repositories/search_repository.dart';
 import '../../repositories/wishlist_repository.dart';
 import '../../features/address_management/bloc/address_management_cubit.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
+import '../../features/auth/bloc/auth_event.dart';
 import '../../features/cart/bloc/cart_cubit.dart';
 import '../../features/checkout/bloc/checkout_bloc.dart';
 import '../../features/notifications/bloc/notification_cubit.dart';
@@ -147,6 +148,11 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<AuthBloc>(
     () => AuthBloc(authRepository: sl<AuthRepository>()),
   );
+  ApiClient.onSessionExpired = () async {
+    if (sl.isRegistered<AuthBloc>()) {
+      sl<AuthBloc>().add(AuthSessionExpired());
+    }
+  };
 
   // HomeCubit (factory — new instance per screen visit)
   sl.registerFactory<HomeCubit>(

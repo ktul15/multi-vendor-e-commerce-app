@@ -22,10 +22,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthLoginRequested>(_onLoginRequested);
     on<AuthRegisterRequested>(_onRegisterRequested);
     on<AuthLogoutRequested>(_onLogoutRequested);
+    on<AuthSessionExpired>(_onSessionExpired);
   }
 
-  /// Initialize push notifications, notification cubit, and wishlist after authentication.
-  Future<void> _initPostAuth() async {
+  /// Upload the guest cart before publishing the authenticated state so route
+  /// changes cannot race ahead of the server cart.
+  Future<void> _syncCartAfterAuth() async {
     if (sl.isRegistered<CartCubit>()) {
       try {
         await sl<CartCubit>().mergeGuestCart();
@@ -33,6 +35,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         debugPrint('Error merging guest cart: $e');
       }
     }
+  }
+
+  /// Initialize non-critical services after authentication.
+  Future<void> _initPostAuth() async {
     try {
       await sl<PushNotificationService>().initialize();
       await sl<NotificationCubit>().init();
@@ -66,6 +72,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         return;
       }
       final user = await _authRepository.getProfile();
+      await _syncCartAfterAuth();
       emit(AuthAuthenticated(user: user));
       unawaited(_initPostAuth());
     } catch (_) {
@@ -84,6 +91,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         email: event.email,
         password: event.password,
       );
+      await _syncCartAfterAuth();
       emit(AuthAuthenticated(user: user));
       unawaited(_initPostAuth());
     } on ApiException catch (e) {
@@ -107,6 +115,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         email: event.email,
         password: event.password,
       );
+      await _syncCartAfterAuth();
       emit(AuthAuthenticated(user: user));
       unawaited(_initPostAuth());
     } on ApiException catch (e) {
@@ -125,6 +134,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     _cleanupOnLogout();
     await _authRepository.logout();
+    emit(AuthUnauthenticated());
+  }
+
+  void _onSessionExpired(AuthSessionExpired event, Emitter<AuthState> emit) {
+    _cleanupOnLogout();
     emit(AuthUnauthenticated());
   }
 }

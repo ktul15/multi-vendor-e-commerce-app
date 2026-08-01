@@ -239,5 +239,15 @@ void main() {
         verify(() => mockAuthRepository.logout()).called(1);
       },
     );
+
+    blocTest<AuthBloc, AuthState>(
+      'emits [AuthUnauthenticated] when the API session expires',
+      build: () => AuthBloc(authRepository: mockAuthRepository),
+      seed: () =>
+          const AuthAuthenticated(user: {'id': '1', 'email': 'test@test.com'}),
+      act: (bloc) => bloc.add(AuthSessionExpired()),
+      expect: () => [isA<AuthUnauthenticated>()],
+      verify: (_) => verifyNever(() => mockAuthRepository.logout()),
+    );
   });
 }
