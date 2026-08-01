@@ -1,0 +1,209 @@
+# Admin Panel Flutter-to-Next.js Parity Matrix
+
+Status: Baseline for issue #73
+
+Source application: `admin_panel/` (Flutter)
+
+Target application: `apps/admin-panel/` (Next.js)
+
+API base path: `/api/v1`
+
+Baseline verified: 2026-08-01 at commit `f481d81311071f3a2ce23a405d5906d038d85998`
+
+## Purpose
+
+This document is the parity contract for replacing the Flutter admin panel with Next.js. It records current routes, actions, APIs, permissions, page states, destructive operations, known gaps, and target behavior. A row marked **Fix during migration** describes behavior that must not be copied into the new application.
+
+## Access and session model
+
+| State | Flutter behavior | Backend behavior | Next.js requirement |
+|---|---|---|---|
+| No session | Redirects protected routes to `/login` after the initial auth check; during `AuthInitial`/`AuthLoading`, the router currently permits a protected deep link to build | Admin endpoints return 401 | Render a neutral session-check state, then redirect server-side without flashing protected content; preserve a safe return path. |
+| Authenticated non-admin | Login rejects the role before saving tokens | `/admin`, admin category, promo, and banner mutations return 403 | Show access denied and never render or cache admin data. |
+| Authenticated admin | Redirects away from login and renders the admin shell | All admin operations still enforce `authenticate` and `authorize('ADMIN')` | Allow routes according to backend authorization; client controls are not the security boundary. |
+| Expired access token with valid refresh token | Refreshes once and retries the request | `/auth/refresh` returns new tokens | Use a single-flight browser refresh flow and retry once. |
+| Invalid refresh token | Clears tokens and notifies auth state | Returns 401 | Clear the web session and redirect to login. |
+| Logout request fails | Clears local tokens in `finally` | Server may not blacklist the unavailable refresh token | Clear browser session regardless, report only actionable failures, and avoid protected data remaining visible. |
+
+The current Flutter web client stores JWTs in browser-readable preferences. The Next.js application must use the browser-safe cookie work tracked in #82–#84.
+
+## Route and screen parity
+
+| Area | Flutter route | Current behavior and actions | API endpoints | Permission | Required states | Target Next.js route | Decision |
+|---|---|---|---|---|---|---|---|
+| Login | `/login` | Email/password form, validation, password visibility, submit spinner, general error snackbar | `POST /auth/login`; `GET /auth/profile`; `POST /auth/refresh`; `POST /auth/logout` | Public login; successful role must be `ADMIN` | Idle, field error, submitting, invalid credentials, wrong role, network/server error, success | `/login` | Preserve behavior; use inline API field errors and HttpOnly cookie sessions. |
+| Admin shell | All protected routes | Fixed 88px navigation rail for dashboard, categories, users, vendors, products, orders, finance, banners, promos; logout action | None directly | Authenticated admin | Active route, navigation, logout pending, narrow viewport | Shared protected layout | Fix during migration: current shell is desktop-only. Add accessible desktop/tablet navigation and breadcrumbs. |
+| Dashboard | `/` | Platform stat cards, revenue chart with period changes, five recent orders | `GET /admin/dashboard`; `GET /admin/revenue?period={period}`; `GET /admin/orders?page=1&limit=5` | Admin | Skeleton, fatal initial error, independent revenue refresh error, zero metrics, empty chart/orders, loaded | `/` | Preserve data; retain successful panels when a later panel refresh fails. |
+| Categories | `/categories` | Hierarchical table/tree, pull-to-refresh, create, edit, delete | `GET /categories`; admin mutations below | Reads are public; mutations require admin | Skeleton, retryable error, empty tree, loaded, refreshing, mutating, mutation error/success | `/categories` | Preserve hierarchy and actions. Prefer explicit tree semantics and URL-addressable forms. |
+| Category create | `/categories/create` | Name, required image in Flutter UI, optional parent with hierarchical picker | `POST /categories` as JSON or multipart | Admin | Reference-data loading, no parent, validation, image picking, submitting, field/general error, success | `/categories/new` | Preserve UX. Record that backend image is optional while Flutter requires it; decide product requirement before implementation. |
+| Category edit | `/categories/:id/edit` | Loads category from the currently returned three-level tree, edits name/image/parent, supports moving to root; deeper categories can fail deep-link lookup | `PUT /categories/{id}` | Admin | Deep-link load, not found, validation, image picking, submitting, conflict/error, success | `/categories/[id]/edit` | Preserve the form behavior after fixing the incomplete tree contract. Prevent self-parenting and descendant cycles in both UI and backend. |
+| Category delete | Confirmation on `/categories` | Warns before deletion and refreshes the returned three-level category tree | `DELETE /categories/{id}` | Admin | Confirmation, pending/disabled, has-children conflict, has-products conflict, success | `/categories` | Preserve destructive confirmation and display backend dependency errors verbatim in user-friendly form. |
+| Users | `/users` | Search by name/email, role chips for All/Customer/Vendor, infinite pagination, row/detail navigation, ban/unban | `GET /admin/users?page&limit&role&search`; backend also supports `isBanned` | Admin | Skeleton, retryable fatal error, loaded, empty/filter-empty, searching, loading more, transient failure, action pending | `/users` | Preserve current controls; add URL state, explicit pagination, ADMIN role filter, and banned-state filter supported by backend. |
+| User detail | `/users/:id` | Displays a user selected from the currently cached list; no dedicated detail request | No admin user-detail endpoint | Admin | Initial list load, not found in cache, loaded | `/users/[id]` | Fix during migration: add a dedicated admin user-detail endpoint under #74 before claiming bookmarkable detail parity. |
+| User ban/unban | Confirmation from `/users` | Admin accounts have no action; ban warning says login will be blocked; action updates cached row | `PATCH /admin/users/{id}/ban`; `PATCH /admin/users/{id}/unban` | Admin; backend forbids banning an ADMIN | Confirmation, action pending, already banned/unbanned conflict, not found, success, failure | `/users` and `/users/[id]` | Preserve confirmation. Clearly distinguish reversible account restriction from deletion. |
+| Vendors | `/vendors` | Store-name search, All/Pending/Approved/Rejected/Suspended filters, numbered pagination, lifecycle actions, detail navigation | `GET /admin/vendors?page&limit&status&search` | Admin | Skeleton, retryable error, loaded, empty/filter-empty, refreshing, action pending, transient failure | `/vendors` | Preserve with URL-backed query state. Backend search currently matches store name only despite OpenAPI claiming owner email; track under #74. |
+| Vendor detail | `/vendors/:id` | Displays cached list data: store, owner, status, commission, onboarding status; lifecycle actions | No admin vendor-detail endpoint | Admin | Initial list load, not found in current page/cache, loaded, action pending | `/vendors/[id]` | Fix during migration: add a dedicated vendor-detail endpoint under #74; list-cache hydration is not safe for direct URLs. |
+| Vendor lifecycle | Confirmation from vendor list/detail | Approve PENDING/REJECTED/SUSPENDED, reject eligible non-approved vendors, suspend APPROVED | `PATCH /admin/vendors/{id}/approve`; `/reject`; `/suspend` | Admin | Confirmation, pending, invalid transition/conflict, not found, success, failure | `/vendors` and `/vendors/[id]` | Preserve backend transition rules; refresh authoritative data after mutation rather than relying only on optimistic status. |
+| Vendor commission override | Displayed on vendor views but not editable | `PATCH /admin/vendors/{id}/commission` with `rate` as a number from 0 through 100, or null | Admin | Missing in Flutter | `/vendors/[id]` | Fix during migration: implement #107. Explain override versus platform default and allow null to revert. |
+| Product moderation | `/products` | Search, All/Active/Inactive filters, pagination, activate/deactivate/delete, cached detail navigation | `GET /admin/products?page&limit&isActive&search`; backend also supports `vendorId` and `categoryId` | Admin | Skeleton, retryable error, loaded, empty/filter-empty, refreshing, action pending, transient failure | `/products` | Preserve current controls; add vendor/category filters and URL query state. |
+| Product moderation detail | `/products/:id` | Renders only the summary model available in the current list page; supports activate/deactivate/delete | No admin product-detail endpoint; public product detail hides inactive products | Admin | Initial list load, cache miss, loaded, action pending | `/products/[id]` | Fix during migration: add an admin product-detail endpoint under #74 returning inactive products, media, tags, variants, vendor, category, ratings, and inventory. |
+| Product activate/deactivate | Confirmation from list/detail | Toggles storefront availability and updates cached row | `PATCH /admin/products/{id}/activate`; `/deactivate` | Admin | Confirmation, pending, already-active/inactive conflict, not found, success/failure | `/products` and `/products/[id]` | Preserve reversible moderation action and explain storefront impact. |
+| Product delete | Destructive confirmation from list/detail | Permanently deletes when possible; ordered products cause conflict recommending deactivation | `DELETE /admin/products/{id}` | Admin | Confirmation, pending, order-history conflict, not found, success/failure | `/products` and `/products/[id]` | Preserve strong confirmation. Prefer deactivate when history exists. |
+| Orders | `/orders` | Status and date-range filters, pagination, rows link to details; customer/vendor filters exist in repository but not primary UI. A status filter matches when any vendor sub-order has that status, while each row displays only the first vendor sub-order's status. | `GET /admin/orders?page&limit&status&startDate&endDate&userId&vendorId` | Admin | Skeleton, retryable fatal error, loaded, empty/filter-empty, refreshing, transient filter error, mixed vendor-order statuses | `/orders` | Preserve and move filters into URL. Expose customer/vendor filters and per-vendor statuses clearly; do not present the first vendor status as an aggregate order status. Resolve any aggregate-status API change under #74. |
+| Order detail | `/orders/:id` | Loads list first, then fetches full order with customer, address, payment, vendor sub-orders, items and tracking; summary status uses the first vendor sub-order even when statuses differ | `GET /admin/orders/{id}` | Admin | Unnecessary prerequisite list load, detail loading, not found, retryable detail error, loaded, mixed vendor-order statuses | `/orders/[id]` | Preserve detail data; fix during migration by fetching detail directly without requiring list state first. Present each vendor sub-order status or a defined aggregate/mixed state. Read-only—admin has no order-status mutation endpoint. |
+| Finance revenue | `/finance` | Gross merchandise revenue series, total gross revenue, total orders, chart, and separate default-commission setting; day/week/month and date-range controls | `GET /admin/revenue?period&startDate&endDate` | Admin | Initial skeleton/error, loaded, zero/empty series, in-place refresh, invalid range, transient error | `/finance` | Preserve the current gross-revenue contract and label it as gross revenue/GMV. Do not claim platform commission revenue or vendor net earnings; those require a new backend contract under #74. Date range must be ordered and no longer than 366 days. |
+| Default commission | Dialog on `/finance` | Displays source (database/environment), edits platform default percentage | `GET /admin/commission`; `PATCH /admin/commission` with `rate` | Admin | Loading, value/source, validation, saving, success/error | `/finance` | Preserve; add explicit confirmation because changes affect future vendor earnings. Backend accepts 0–100 inclusive. |
+| Banners | `/banners` | Active/inactive filters, pagination, preview, add/edit/delete; Cubit contains reorder behavior | `GET /banners/all`; mutation endpoints below | Admin | Skeleton, retryable error, empty, loaded, refreshing, submitting, transient failure | `/banners` | Preserve list, filters, preview, and CRUD. Verify whether reorder is reachable in UI; do not claim parity for inaccessible code. |
+| Banner create | `/banners/create` | Title, required image, optional URL, non-negative integer position, active flag | `POST /banners` multipart | Admin | Validation, file pick/preview/failure, submitting, field/general error, success | `/banners/new` | Preserve and add upload progress/retry. |
+| Banner edit | `/banners/:id/edit` | Dedicated detail fetch, optional image replacement, clearable URL, position, active flag; an image-only multipart update currently fails body validation unless another field is supplied | `GET /banners/{id}`; `PUT /banners/{id}` JSON or multipart | Admin | Loading/cache hit, not found, validation, upload failure, submitting, success/error | `/banners/[id]/edit` | Preserve direct-load behavior. Fix image-only replacement validation under #74 instead of sending an unrelated text field as a workaround. |
+| Banner delete | Confirmation on `/banners` | Permanently deletes DB record and best-effort Cloudinary asset cleanup | `DELETE /banners/{id}` | Admin | Confirmation, pending/disabled, not found, cleanup-independent success, failure | `/banners` | Preserve irreversible warning. Do not imply failed best-effort image cleanup means DB deletion failed. |
+| Promos | `/promos` | Search, active/inactive and percentage/fixed filters, pagination, inline active toggle, edit/delete | `GET /promo-codes?page&limit&isActive&search&discountType` | Admin | Skeleton, retryable error, empty/filter-empty, loaded, refreshing, submitting, transient failure | `/promos` | Preserve with URL-backed filters. |
+| Promo create | `/promos/create` | Code, type, value, optional min/max/usage/per-user/expiry, active flag | `POST /promo-codes` | Admin | Validation, date picking, submitting, duplicate/field/general error, success | `/promos/new` | Preserve backend rules and uppercase normalization. |
+| Promo edit | `/promos/:id/edit` | Dedicated detail fetch; supports clearing optional limits and expiry | `GET /promo-codes/{id}`; `PUT /promo-codes/{id}` | Admin | Loading/cache hit, not found, validation, submitting, success/error | `/promos/[id]/edit` | Preserve direct-load and explicit-null semantics. |
+| Promo delete | Confirmation on `/promos` | Warns that codes with history are deactivated; backend always soft-deletes by setting inactive/deletedAt | `DELETE /promo-codes/{id}` | Admin | Confirmation, pending, not found, success/error | `/promos` | Fix wording during migration: deletion is always soft deletion, not only when history exists. |
+| Settings | `/settings`, but absent from sidebar | “Settings — coming soon” placeholder only | No settings endpoint | Authenticated admin route, no feature contract | Placeholder | None until requirements exist | Explicitly excluded from parity. Resolve #114: define a real feature or remove route/navigation references. |
+
+## Destructive and high-impact action register
+
+| Action | Reversible | Current confirmation | Backend guard | Next.js requirement |
+|---|---|---|---|---|
+| Ban user | Yes, via unban | Yes | Cannot ban ADMIN; rejects already banned | Preserve confirmation and show account-access impact. |
+| Unban user | Yes, via ban | Yes | Rejects already unbanned | Preserve confirmation or a clear direct recovery action. |
+| Approve vendor | State can later be suspended | Yes | Rejects already approved | Show selling-access impact. |
+| Reject vendor | Can later be approved | Yes | Cannot reject approved; rejects already rejected | Do not request a reason unless backend stores one; current API has no reason field. |
+| Suspend vendor | Can later be approved | Yes | Only APPROVED may be suspended | Show product/order/earnings access impact. |
+| Change vendor commission | Yes | No current UI | Rate 0–100 or null | Add explicit confirmation and show default-versus-override behavior. |
+| Activate/deactivate product | Yes | Yes | Rejects no-op state transitions | Explain public storefront visibility. |
+| Delete product | Usually no | Yes | Conflicts when order history prevents deletion | Strong confirmation; recommend deactivation on conflict. |
+| Delete category | No | Yes | Blocked by children or attached products | Show dependency counts when contract permits; preserve exact remediation. |
+| Change platform commission | Yes, by another change | Dialog save, no second confirmation | Rate 0–100 | Add impact confirmation and display when it applies. |
+| Delete banner | No | Yes | Requires existing banner; image cleanup is best effort | Strong confirmation and stable mutation state. |
+| Delete promo | Soft/recoverability not exposed | Yes | Always soft-deletes | Label as deactivate/archive unless a restore contract is added. |
+| Inline promo active toggle | Yes | No | Standard promo update validation | Preserve direct reversible action with pending/error feedback. |
+
+## Validation and business rules
+
+### Users and vendors
+
+- User list supports page 1+, limit 1–100, role, banned state, and name/email search.
+- Admin accounts cannot be banned. Ban and unban reject already-completed states.
+- Vendor statuses are `PENDING`, `APPROVED`, `REJECTED`, and `SUSPENDED`.
+- Approve accepts any non-APPROVED current state; reject cannot act on APPROVED; suspend requires APPROVED.
+- Vendor list backend search currently checks store name only.
+- Default and vendor commission rates accept 0–100 inclusive; vendor override accepts null to restore the platform default.
+
+### Products and orders
+
+- Product moderation list supports active state, vendor UUID, category UUID, and text search.
+- Activation/deactivation reject no-op transitions.
+- Product deletion is blocked when foreign-key-protected order history exists.
+- Order status filter values are `PENDING`, `CONFIRMED`, `PROCESSING`, `SHIPPED`, `DELIVERED`, `CANCELLED`, and `REFUNDED`.
+- An order status filter matches if any vendor sub-order has the requested status. The Flutter summary displays only the first vendor sub-order status, so it can disagree with the active filter.
+- Order and revenue date ranges require start <= end and may not exceed 366 days.
+- Admin order screens are read-only under the current API.
+- Revenue reporting currently exposes gross vendor-order amounts only. Platform commission revenue and vendor net-earnings totals are not part of the response contract.
+
+### Categories
+
+- Category name is at least two characters.
+- Parent ID is an optional UUID; edit may set it to null to move a category to root.
+- A category cannot be its own parent; descendant-cycle behavior must be verified/fixed under #74.
+- Category reads currently include only roots, children, and grandchildren. Create/update can assign a deeper parent, so deeper categories may become invisible or uneditable in clients that depend on the returned tree.
+- Delete is blocked when subcategories or products remain.
+- Backend image URL is optional, while the Flutter create form requires an uploaded image.
+- Replacing or deleting a category does not remove its previous Cloudinary image, which can leave orphaned media.
+
+### Promos
+
+- Code is trimmed, uppercased, and 3–30 characters.
+- Type is `PERCENTAGE` or `FIXED`; discount value must be positive.
+- Percentage value cannot exceed 100.
+- Minimum order value and maximum discount are optional and non-negative.
+- Usage and per-user limits are optional positive integers.
+- Expiry is optional and must be in the future when supplied.
+- Updates require at least one changed field and use explicit null to clear optional values.
+- Delete is a soft delete: `isActive=false` and `deletedAt` is set.
+
+### Banners
+
+- Title is trimmed, 1–200 characters.
+- Create requires an uploaded image at the controller/service layer.
+- Link URL is optional and clearable.
+- Position is a non-negative integer; active defaults true.
+- Updates currently require at least one body field. Although the controller accepts a replacement image, an image-only multipart request fails the body schema's at-least-one-field validation; align this contract under #74.
+- Deletion permanently removes the record; old Cloudinary asset cleanup is best effort.
+
+## Required page-state standard
+
+Every migrated page or independently loaded panel must cover:
+
+1. Layout-stable loading state.
+2. Empty and filter-empty states with distinct explanations.
+3. Field-level validation and preserved form input after failure.
+4. Retryable network/server errors without discarding successful sibling data.
+5. Session expiry and wrong-role handling without protected-content flash.
+6. Mutation-pending state that prevents duplicate or conflicting actions.
+7. Confirmation proportional to destructive or financial impact.
+8. Success feedback and targeted authoritative query invalidation.
+9. Stale/no-op conflict handling after concurrent changes.
+10. Responsive desktop/tablet layout and keyboard-visible focus.
+
+## Known Flutter gaps and migration disposition
+
+| Gap | Evidence/current impact | Disposition |
+|---|---|---|
+| Browser-readable JWT storage | Admin Flutter web persists access/refresh tokens locally | **Fix during migration** through #82–#84. |
+| Protected route can render during startup auth check | Router returns no redirect during `AuthInitial`/`AuthLoading`, allowing a deep-linked page to build before authentication resolves | **Fix during migration** with a neutral session-check boundary before protected content. |
+| Fixed desktop-only navigation rail | Shell always renders a horizontal row and narrow 88px rail | **Fix during migration** with responsive accessible navigation. |
+| User detail depends on current list cache | No `GET /admin/users/{id}` repository/backend route | **Fix backend contract under #74**, then implement direct-load detail. |
+| Vendor detail depends on current page cache | No `GET /admin/vendors/{id}` route | **Fix backend contract under #74**. |
+| Product detail is only a list summary | No admin detail endpoint; public detail hides inactive products | **Fix backend contract under #74**. |
+| User UI omits backend ADMIN and banned filters | Flutter exposes Customer/Vendor role chips only | **Fix during migration** with URL-backed complete filters. |
+| Vendor search documentation and implementation differ | OpenAPI says store name or owner email; service searches store name only | **Resolve under #74** and implement the agreed contract. |
+| Vendor commission override cannot be changed | Flutter displays override but repository/UI does not call existing admin commission endpoint | **Fix during migration** in #107. |
+| Product UI omits vendor/category filters | Backend supports both | **Fix during migration** in #108. |
+| Order detail unnecessarily waits for list load | Deep link loads paginated list before calling the existing detail endpoint | **Fix during migration** by fetching detail directly. |
+| Multi-vendor order status is presented ambiguously | Backend status filtering matches any vendor sub-order, but Flutter summaries display only `vendorOrders.first.status` | **Resolve presentation and any aggregate contract under #74**; show per-vendor or explicitly mixed status. |
+| Revenue labels can overstate the available contract | Revenue API returns gross amounts and order counts, not platform commission revenue or vendor net earnings | **Preserve accurate gross/GMV labels**; define additional reporting under #74 if required. |
+| Category image requirement differs | Flutter requires image on create; backend schema permits omission | **Resolve product rule under #74** and align validation. |
+| Category tree reads stop at three levels | Create/update permit deeper parents, but list service returns only roots, children, and grandchildren | **Resolve under #74** by enforcing a maximum depth or returning a complete recursive tree. |
+| Category image cleanup is absent | Update and delete leave old Cloudinary assets behind | **Define cleanup semantics under #74** and make DB success independent from clearly reported best-effort cleanup. |
+| Promo delete explanation is inaccurate | UI suggests conditional soft deletion; service always soft-deletes | **Fix wording during migration** and consider archive terminology. |
+| Banner reorder code may not be reachable | Cubit implements sequential position updates, but list UI inventory does not expose drag/reorder | **Do not count as current parity** until interaction is verified; define under #112 if required. |
+| Multi-request banner reorder is non-atomic | Partial PUT failures can temporarily apply only some positions before refresh | **Fix backend contract if reorder is required**; prefer an atomic reorder endpoint. |
+| Image-only banner update fails validation | Multipart image is parsed, but the body-only update schema rejects the empty body before the controller runs | **Fix under #74** so a replacement image satisfies the update contract. |
+| Settings is an inaccessible placeholder | Route exists, sidebar has no Settings destination, and backend has no contract | **Exclude from parity** until #114 defines it. |
+
+## Parity sign-off checklist
+
+- [ ] All implemented Flutter routes are migrated or explicitly superseded.
+- [ ] Login, refresh, logout, wrong-role denial, and session expiry pass.
+- [ ] Dashboard, users, vendors, products, orders, finance, categories, promos, and banners satisfy their route rows.
+- [ ] User, vendor, and product details support safe direct URLs.
+- [ ] Every destructive/high-impact action matches backend guards and confirmation requirements.
+- [ ] Filters and pagination are server-backed and encoded in URLs.
+- [ ] Commission changes clearly distinguish platform default and vendor override.
+- [ ] Category hierarchy prevents invalid parent relationships and unsafe deletion.
+- [ ] Promo and banner file/form validation matches backend contracts.
+- [ ] Loading, empty, validation, forbidden, error, conflict, pending, and success states are demonstrated.
+- [ ] Settings is implemented from approved requirements or absent from the production navigation/routes.
+- [ ] Critical desktop/tablet and keyboard workflows pass.
+
+## Follow-up issue mapping
+
+- API contract discrepancies and missing detail endpoints: #74
+- Architecture and conventions: #75
+- Browser-safe auth and shared foundation: #77–#85
+- Admin implementation: #103–#114
+- Admin/cross-dashboard validation: #115–#122
+
+## Evidence references
+
+- Routing and shell: `admin_panel/lib/core/config/app_router.dart`, `admin_panel/lib/shared/widgets/admin_shell.dart`
+- Authentication: `admin_panel/lib/features/auth/`, `admin_panel/lib/repositories/auth_repository.dart`, `admin_panel/lib/core/network/`
+- Dashboard and finance: `admin_panel/lib/features/dashboard/`, `admin_panel/lib/features/finance/`, `admin_panel/lib/repositories/admin_dashboard_repository.dart`, `admin_panel/lib/repositories/admin_finance_repository.dart`
+- Users and vendors: `admin_panel/lib/features/users/`, `admin_panel/lib/features/vendors/`, `admin_panel/lib/repositories/admin_user_repository.dart`, `admin_panel/lib/repositories/vendor_repository.dart`
+- Moderation and orders: `admin_panel/lib/features/products/`, `admin_panel/lib/features/orders/`, `admin_panel/lib/repositories/product_moderation_repository.dart`, `admin_panel/lib/repositories/admin_order_repository.dart`
+- Categories, promos, and banners: their corresponding `admin_panel/lib/features/` and `admin_panel/lib/repositories/` directories
+- Backend authentication and authorization: `backend/src/modules/auth/`, `backend/src/middleware/auth.ts`
+- Backend admin behavior: `backend/src/modules/admin/`, `backend/src/modules/category/`, `backend/src/modules/promo/`, `backend/src/modules/banner/`, `backend/src/modules/vendor-payout/`
