@@ -92,8 +92,9 @@ void main() {
     blocTest<CartCubit, CartState>(
       'loadCart emits [CartLoading, CartError] on ApiException',
       build: () {
-        when(() => mockRepo.getCart())
-            .thenThrow(const ApiException('Not found', statusCode: 404));
+        when(
+          () => mockRepo.getCart(),
+        ).thenThrow(const ApiException('Not found', statusCode: 404));
         return CartCubit(repository: mockRepo);
       },
       act: (cubit) => cubit.loadCart(),
@@ -106,8 +107,9 @@ void main() {
     blocTest<CartCubit, CartState>(
       'loadCart emits [CartLoading, CartError] on NetworkException',
       build: () {
-        when(() => mockRepo.getCart())
-            .thenThrow(const NetworkException('No internet'));
+        when(
+          () => mockRepo.getCart(),
+        ).thenThrow(const NetworkException('No internet'));
         return CartCubit(repository: mockRepo);
       },
       act: (cubit) => cubit.loadCart(),
@@ -132,8 +134,9 @@ void main() {
     blocTest<CartCubit, CartState>(
       'addItem emits [CartLoaded(isUpdating:true), CartLoaded] on success',
       build: () {
-        when(() => mockRepo.addItem(any(), any()))
-            .thenAnswer((_) async => _cartWithItem);
+        when(
+          () => mockRepo.addItem(any(), any()),
+        ).thenAnswer((_) async => _cartWithItem);
         return CartCubit(repository: mockRepo);
       },
       seed: () => const CartLoaded(cart: _emptyCart),
@@ -149,24 +152,29 @@ void main() {
     blocTest<CartCubit, CartState>(
       'addItem preserves active promo preview on success',
       build: () {
-        when(() => mockRepo.addItem(any(), any()))
-            .thenAnswer((_) async => _cartWithItem);
+        when(
+          () => mockRepo.addItem(any(), any()),
+        ).thenAnswer((_) async => _cartWithItem);
         return CartCubit(repository: mockRepo);
       },
       seed: () => const CartLoaded(cart: _emptyCart, promoPreview: _testPromo),
       act: (cubit) => cubit.addItem('var-1', 1),
       expect: () => [
         isA<CartLoaded>().having((s) => s.isUpdating, 'isUpdating', true),
-        isA<CartLoaded>()
-            .having((s) => s.promoPreview, 'promoPreview', _testPromo),
+        isA<CartLoaded>().having(
+          (s) => s.promoPreview,
+          'promoPreview',
+          _testPromo,
+        ),
       ],
     );
 
     blocTest<CartCubit, CartState>(
       'addItem emits CartError with previousCart on ApiException',
       build: () {
-        when(() => mockRepo.addItem(any(), any()))
-            .thenThrow(const ApiException('Out of stock', statusCode: 400));
+        when(
+          () => mockRepo.addItem(any(), any()),
+        ).thenThrow(const ApiException('Out of stock', statusCode: 400));
         return CartCubit(repository: mockRepo);
       },
       seed: () => const CartLoaded(cart: _emptyCart),
@@ -184,8 +192,9 @@ void main() {
     blocTest<CartCubit, CartState>(
       'updateQuantity emits [CartLoaded(isUpdating:true), CartLoaded] on success',
       build: () {
-        when(() => mockRepo.updateItem(any(), any()))
-            .thenAnswer((_) async => _updatedCart);
+        when(
+          () => mockRepo.updateItem(any(), any()),
+        ).thenAnswer((_) async => _updatedCart);
         return CartCubit(repository: mockRepo);
       },
       seed: () => const CartLoaded(cart: _cartWithItem),
@@ -196,15 +205,15 @@ void main() {
             .having((s) => s.cart, 'cart', _updatedCart)
             .having((s) => s.isUpdating, 'isUpdating', false),
       ],
-      verify: (_) =>
-          verify(() => mockRepo.updateItem('item-1', 3)).called(1),
+      verify: (_) => verify(() => mockRepo.updateItem('item-1', 3)).called(1),
     );
 
     blocTest<CartCubit, CartState>(
       'updateQuantity emits CartError with previousCart on NetworkException',
       build: () {
-        when(() => mockRepo.updateItem(any(), any()))
-            .thenThrow(const NetworkException('Connection failed'));
+        when(
+          () => mockRepo.updateItem(any(), any()),
+        ).thenThrow(const NetworkException('Connection failed'));
         return CartCubit(repository: mockRepo);
       },
       seed: () => const CartLoaded(cart: _cartWithItem),
@@ -222,16 +231,21 @@ void main() {
     blocTest<CartCubit, CartState>(
       'updateQuantity CartError.previousCart reflects cart (promo not recoverable from previousCart)',
       build: () {
-        when(() => mockRepo.updateItem(any(), any()))
-            .thenThrow(const ApiException('Conflict', statusCode: 409));
+        when(
+          () => mockRepo.updateItem(any(), any()),
+        ).thenThrow(const ApiException('Conflict', statusCode: 409));
         return CartCubit(repository: mockRepo);
       },
-      seed: () => const CartLoaded(cart: _cartWithItem, promoPreview: _testPromo),
+      seed: () =>
+          const CartLoaded(cart: _cartWithItem, promoPreview: _testPromo),
       act: (cubit) => cubit.updateQuantity('item-1', 3),
       expect: () => [
         isA<CartLoaded>().having((s) => s.isUpdating, 'isUpdating', true),
-        isA<CartError>()
-            .having((s) => s.previousCart, 'previousCart', _cartWithItem),
+        isA<CartError>().having(
+          (s) => s.previousCart,
+          'previousCart',
+          _cartWithItem,
+        ),
       ],
     );
 
@@ -240,8 +254,9 @@ void main() {
     blocTest<CartCubit, CartState>(
       'removeItem emits [CartLoaded(isUpdating:true), CartLoaded] on success',
       build: () {
-        when(() => mockRepo.removeItem(any()))
-            .thenAnswer((_) async => _emptyCart);
+        when(
+          () => mockRepo.removeItem(any()),
+        ).thenAnswer((_) async => _emptyCart);
         return CartCubit(repository: mockRepo);
       },
       seed: () => const CartLoaded(cart: _cartWithItem),
@@ -258,8 +273,9 @@ void main() {
     blocTest<CartCubit, CartState>(
       'removeItem emits CartError with previousCart on ApiException',
       build: () {
-        when(() => mockRepo.removeItem(any()))
-            .thenThrow(const ApiException('Not found', statusCode: 404));
+        when(
+          () => mockRepo.removeItem(any()),
+        ).thenThrow(const ApiException('Not found', statusCode: 404));
         return CartCubit(repository: mockRepo);
       },
       seed: () => const CartLoaded(cart: _cartWithItem),
@@ -297,8 +313,9 @@ void main() {
     blocTest<CartCubit, CartState>(
       'clearCart emits CartError with previousCart on ApiException',
       build: () {
-        when(() => mockRepo.clearCart())
-            .thenThrow(const ApiException('Server error', statusCode: 500));
+        when(
+          () => mockRepo.clearCart(),
+        ).thenThrow(const ApiException('Server error', statusCode: 500));
         return CartCubit(repository: mockRepo);
       },
       seed: () => const CartLoaded(cart: _cartWithItem),
@@ -316,15 +333,19 @@ void main() {
     blocTest<CartCubit, CartState>(
       'applyPromo emits [CartLoaded(applying), CartLoaded(preview)] on success',
       build: () {
-        when(() => mockRepo.previewPromo(any()))
-            .thenAnswer((_) async => _testPromo);
+        when(
+          () => mockRepo.previewPromo(any()),
+        ).thenAnswer((_) async => _testPromo);
         return CartCubit(repository: mockRepo);
       },
       seed: () => const CartLoaded(cart: _cartWithItem),
       act: (cubit) => cubit.applyPromo('SAVE10'),
       expect: () => [
-        isA<CartLoaded>()
-            .having((s) => s.isApplyingPromo, 'isApplyingPromo', true),
+        isA<CartLoaded>().having(
+          (s) => s.isApplyingPromo,
+          'isApplyingPromo',
+          true,
+        ),
         isA<CartLoaded>()
             .having((s) => s.promoPreview, 'promoPreview', _testPromo)
             .having((s) => s.isApplyingPromo, 'isApplyingPromo', false),
@@ -332,19 +353,44 @@ void main() {
       verify: (_) => verify(() => mockRepo.previewPromo('SAVE10')).called(1),
     );
 
+    blocTest<CartCubit, CartState>(
+      'applyPromo asks guests to sign in without calling the API',
+      build: () {
+        final tokenStorage = MockTokenStorage();
+        when(() => tokenStorage.hasTokens()).thenAnswer((_) async => false);
+        return CartCubit(repository: mockRepo, tokenStorage: tokenStorage);
+      },
+      seed: () => const CartLoaded(cart: _cartWithItem),
+      act: (cubit) => cubit.applyPromo('SAVE10'),
+      expect: () => [
+        isA<CartLoaded>()
+            .having(
+              (s) => s.promoError,
+              'promoError',
+              'Sign in to apply a promo code',
+            )
+            .having((s) => s.isApplyingPromo, 'isApplyingPromo', false),
+      ],
+      verify: (_) => verifyNever(() => mockRepo.previewPromo(any())),
+    );
+
     // Promo errors stay in CartLoaded — the cart is not lost when a promo fails.
     blocTest<CartCubit, CartState>(
       'applyPromo stays in CartLoaded with promoError (no CartError) on ApiException',
       build: () {
-        when(() => mockRepo.previewPromo(any()))
-            .thenThrow(const ApiException('Invalid promo code', statusCode: 422));
+        when(
+          () => mockRepo.previewPromo(any()),
+        ).thenThrow(const ApiException('Invalid promo code', statusCode: 422));
         return CartCubit(repository: mockRepo);
       },
       seed: () => const CartLoaded(cart: _cartWithItem),
       act: (cubit) => cubit.applyPromo('BADCODE'),
       expect: () => [
-        isA<CartLoaded>()
-            .having((s) => s.isApplyingPromo, 'isApplyingPromo', true),
+        isA<CartLoaded>().having(
+          (s) => s.isApplyingPromo,
+          'isApplyingPromo',
+          true,
+        ),
         isA<CartLoaded>()
             .having((s) => s.promoError, 'promoError', 'Invalid promo code')
             .having((s) => s.isApplyingPromo, 'isApplyingPromo', false),
@@ -355,15 +401,19 @@ void main() {
     blocTest<CartCubit, CartState>(
       'applyPromo stays in CartLoaded with promoError (no CartError) on NetworkException',
       build: () {
-        when(() => mockRepo.previewPromo(any()))
-            .thenThrow(const NetworkException('No internet'));
+        when(
+          () => mockRepo.previewPromo(any()),
+        ).thenThrow(const NetworkException('No internet'));
         return CartCubit(repository: mockRepo);
       },
       seed: () => const CartLoaded(cart: _cartWithItem),
       act: (cubit) => cubit.applyPromo('SAVE10'),
       expect: () => [
-        isA<CartLoaded>()
-            .having((s) => s.isApplyingPromo, 'isApplyingPromo', true),
+        isA<CartLoaded>().having(
+          (s) => s.isApplyingPromo,
+          'isApplyingPromo',
+          true,
+        ),
         isA<CartLoaded>()
             .having((s) => s.promoError, 'promoError', 'No internet')
             .having((s) => s.isApplyingPromo, 'isApplyingPromo', false),
@@ -409,8 +459,9 @@ void main() {
     blocTest<CartCubit, CartState>(
       'addItem emits CartError with null previousCart when state is not CartLoaded',
       build: () {
-        when(() => mockRepo.addItem(any(), any()))
-            .thenThrow(const ApiException('error', statusCode: 500));
+        when(
+          () => mockRepo.addItem(any(), any()),
+        ).thenThrow(const ApiException('error', statusCode: 500));
         return CartCubit(repository: mockRepo);
       },
       // default initial state is CartInitial — not CartLoaded
@@ -425,8 +476,7 @@ void main() {
     blocTest<CartCubit, CartState>(
       'loadCart emits CartError via generic catch for non-ApiException errors',
       build: () {
-        when(() => mockRepo.getCart())
-            .thenThrow(Exception('unexpected error'));
+        when(() => mockRepo.getCart()).thenThrow(Exception('unexpected error'));
         return CartCubit(repository: mockRepo);
       },
       act: (cubit) => cubit.loadCart(),

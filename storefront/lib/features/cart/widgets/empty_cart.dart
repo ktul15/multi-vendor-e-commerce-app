@@ -29,7 +29,9 @@ class EmptyCartWidget extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Text(
               'Add some products to get started',
-              style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.body.copyWith(
+                color: AppColors.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.xl),

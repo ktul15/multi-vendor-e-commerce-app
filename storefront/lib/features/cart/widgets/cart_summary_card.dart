@@ -25,13 +25,13 @@ class CartSummaryCard extends StatelessWidget {
           children: [
             _SummaryRow(
               label: 'Subtotal',
-              value: '\$${subtotal.toStringAsFixed(2)}',
+              value: '₹${subtotal.toStringAsFixed(2)}',
             ),
             if (promoPreview != null) ...[
               const SizedBox(height: AppSpacing.sm),
               _SummaryRow(
                 label: 'Promo (${promoPreview!.code})',
-                value: '-\$${promoPreview!.discountAmount.toStringAsFixed(2)}',
+                value: '-₹${promoPreview!.discountAmount.toStringAsFixed(2)}',
                 valueColor: AppColors.success,
               ),
             ],
@@ -40,7 +40,7 @@ class CartSummaryCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             _SummaryRow(
               label: 'Total',
-              value: '\$${total.toStringAsFixed(2)}',
+              value: '₹${total.toStringAsFixed(2)}',
               bold: true,
             ),
           ],

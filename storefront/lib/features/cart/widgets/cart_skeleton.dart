@@ -49,11 +49,7 @@ class CartSkeleton extends StatelessWidget {
         const SizedBox(height: AppSpacing.base),
 
         // Checkout button placeholder
-        SkeletonBox(
-          width: double.infinity,
-          height: 48,
-          radius: AppRadius.md,
-        ),
+        SkeletonBox(width: double.infinity, height: 48, radius: AppRadius.md),
       ],
     );
   }
@@ -83,11 +79,23 @@ class _CartItemSkeleton extends StatelessWidget {
                 const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
-                    const SkeletonBox(width: 28, height: 28, radius: AppRadius.sm),
+                    const SkeletonBox(
+                      width: 28,
+                      height: 28,
+                      radius: AppRadius.sm,
+                    ),
                     const SizedBox(width: AppSpacing.sm),
-                    const SkeletonBox(width: 28, height: 28, radius: AppRadius.sm),
+                    const SkeletonBox(
+                      width: 28,
+                      height: 28,
+                      radius: AppRadius.sm,
+                    ),
                     const SizedBox(width: AppSpacing.sm),
-                    const SkeletonBox(width: 28, height: 28, radius: AppRadius.sm),
+                    const SkeletonBox(
+                      width: 28,
+                      height: 28,
+                      radius: AppRadius.sm,
+                    ),
                   ],
                 ),
               ],

@@ -144,6 +144,15 @@ class CartCubit extends Cubit<CartState> {
   Future<void> applyPromo(String code) async {
     final current = state;
     if (current is! CartLoaded) return;
+    if (!await _isAuthenticated) {
+      emit(
+        current.copyWith(
+          isApplyingPromo: false,
+          promoError: 'Sign in to apply a promo code',
+        ),
+      );
+      return;
+    }
     // Clear any previous promo error and show the loading spinner.
     emit(current.copyWith(isApplyingPromo: true, clearPromoError: true));
     try {

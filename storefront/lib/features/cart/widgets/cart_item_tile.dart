@@ -76,7 +76,7 @@ class CartItemTile extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '\$${item.variantPrice.toStringAsFixed(2)}',
+                        '₹${item.variantPrice.toStringAsFixed(2)}',
                         style: AppTextStyles.body.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w600,

@@ -55,10 +55,8 @@ class CartVendorSection extends StatelessWidget {
             endIndent: AppSpacing.base,
             color: AppColors.divider,
           ),
-          itemBuilder: (context, index) => CartItemTile(
-            item: group.items[index],
-            isUpdating: isUpdating,
-          ),
+          itemBuilder: (context, index) =>
+              CartItemTile(item: group.items[index], isUpdating: isUpdating),
         ),
         const Divider(height: 1, color: AppColors.border),
       ],
