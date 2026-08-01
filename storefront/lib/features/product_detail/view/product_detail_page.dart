@@ -154,7 +154,7 @@ class _LoadedView extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Text(
-                            '\$${state.displayPrice.toStringAsFixed(2)}',
+                            '₹${state.displayPrice.toStringAsFixed(2)}',
                             style: AppTextStyles.h3.copyWith(
                               color: AppColors.primary,
                             ),
@@ -310,8 +310,12 @@ class _AddToCartBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasVariants = state.product.variants.isNotEmpty;
+    final hasSelectableOptions = state.product.variants.any(
+      (variant) => variant.size != null || variant.color != null,
+    );
     final needsVariant =
-        state.product.variants.isNotEmpty && state.selectedVariant == null;
+        hasVariants && hasSelectableOptions && state.selectedVariant == null;
 
     return SafeArea(
       child: Container(
@@ -338,7 +342,7 @@ class _AddToCartBar extends StatelessWidget {
               children: [
                 Text('Total', style: AppTextStyles.caption),
                 Text(
-                  '\$${state.displayPrice.toStringAsFixed(2)}',
+                  '₹${state.displayPrice.toStringAsFixed(2)}',
                   style: AppTextStyles.h4.copyWith(color: AppColors.primary),
                 ),
               ],
@@ -346,11 +350,16 @@ class _AddToCartBar extends StatelessWidget {
             const SizedBox(width: AppSpacing.base),
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: state.isInStock && !needsVariant
+                onPressed: hasVariants && state.isInStock && !needsVariant
                     ? () async {
                         final variant =
                             state.selectedVariant ??
-                            state.product.variants.first;
+                            (state.product.variants.isEmpty
+                                ? null
+                                : state.product.variants.first);
+                        // Keep this guard so inconsistent API/state data can
+                        // never crash the UI.
+                        if (variant == null) return;
                         final isAuthenticated =
                             sl<AuthBloc>().state is AuthAuthenticated;
                         await context.read<CartCubit>().addItem(
@@ -380,7 +389,9 @@ class _AddToCartBar extends StatelessWidget {
                     : null,
                 icon: const Icon(Icons.shopping_cart_outlined, size: 20),
                 label: Text(
-                  needsVariant
+                  !hasVariants
+                      ? 'Unavailable'
+                      : needsVariant
                       ? 'Select options'
                       : state.isInStock
                       ? 'Add to Cart'

@@ -8,8 +8,8 @@ class ProductDetailCubit extends Cubit<ProductDetailState> {
   final ProductDetailRepository _repository;
 
   ProductDetailCubit({required ProductDetailRepository repository})
-      : _repository = repository,
-        super(const ProductDetailInitial());
+    : _repository = repository,
+      super(const ProductDetailInitial());
 
   Future<void> loadProduct(String id) async {
     if (state is ProductDetailLoading) return;
@@ -29,9 +29,8 @@ class ProductDetailCubit extends Cubit<ProductDetailState> {
   void selectVariant(VariantModel? variant) {
     final current = state;
     if (current is! ProductDetailLoaded) return;
-    emit(current.copyWith(
-      selectedVariant: variant,
-      clearVariant: variant == null,
-    ));
+    emit(
+      current.copyWith(selectedVariant: variant, clearVariant: variant == null),
+    );
   }
 }

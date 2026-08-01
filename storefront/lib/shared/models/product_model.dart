@@ -87,7 +87,9 @@ class ProductModel extends Equatable {
     return variants.map((v) => v.price).reduce((a, b) => a < b ? a : b);
   }
 
-  bool get isInStock => variants.isEmpty || variants.any((v) => v.stock > 0);
+  // Cart items require a concrete variant ID. A product without variants is
+  // therefore not purchasable, even if it has a base price.
+  bool get isInStock => variants.any((v) => v.stock > 0);
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     final vendor = json['vendor'] as Map<String, dynamic>?;
