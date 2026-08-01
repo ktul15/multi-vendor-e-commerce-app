@@ -107,7 +107,7 @@ class _RevenueLineChart extends StatelessWidget {
               showTitles: true,
               reservedSize: 52,
               getTitlesWidget: (value, meta) => Text(
-                '\$${value.toStringAsFixed(0)}',
+                '₹${value.toStringAsFixed(0)}',
                 style: AppTextStyles.caption.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -167,7 +167,7 @@ class _RevenueLineChart extends StatelessWidget {
             getTooltipItems: (touchedSpots) => touchedSpots.map((s) {
               final point = series[s.spotIndex];
               return LineTooltipItem(
-                '${point.periodStart}\n\$${point.revenue.toStringAsFixed(2)}',
+                '${point.periodStart}\n₹${point.revenue.toStringAsFixed(2)}',
                 AppTextStyles.caption.copyWith(color: Colors.white),
               );
             }).toList(),

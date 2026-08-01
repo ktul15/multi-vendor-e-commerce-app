@@ -49,7 +49,7 @@ class ProductCard extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        '\$${product.displayPrice.toStringAsFixed(2)}',
+                        '₹${product.displayPrice.toStringAsFixed(2)}',
                         style: AppTextStyles.body.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w700,

@@ -38,14 +38,8 @@ class _CheckoutSuccessPageState extends State<CheckoutSuccessPage>
       duration: const Duration(milliseconds: 400),
     );
 
-    _scaleAnim = CurvedAnimation(
-      parent: _scaleCtrl,
-      curve: Curves.elasticOut,
-    );
-    _fadeAnim = CurvedAnimation(
-      parent: _fadeCtrl,
-      curve: Curves.easeIn,
-    );
+    _scaleAnim = CurvedAnimation(parent: _scaleCtrl, curve: Curves.elasticOut);
+    _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeIn);
 
     // Start animations sequentially.
     // Using addStatusListener + mounted check instead of .then() to avoid
@@ -112,8 +106,9 @@ class _CheckoutSuccessPageState extends State<CheckoutSuccessPage>
                       const SizedBox(height: AppSpacing.sm),
                       Text(
                         'Your order has been confirmed.',
-                        style: AppTextStyles.body
-                            .copyWith(color: AppColors.textSecondary),
+                        style: AppTextStyles.body.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: AppSpacing.xl),
@@ -131,8 +126,9 @@ class _CheckoutSuccessPageState extends State<CheckoutSuccessPage>
                           children: [
                             Text(
                               'Order Number',
-                              style: AppTextStyles.caption
-                                  .copyWith(color: AppColors.textSecondary),
+                              style: AppTextStyles.caption.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                             const SizedBox(height: AppSpacing.xs),
                             Text(
@@ -147,9 +143,10 @@ class _CheckoutSuccessPageState extends State<CheckoutSuccessPage>
                       ),
                       const SizedBox(height: AppSpacing.md),
                       Text(
-                        'Total: \$${widget.order.total.toStringAsFixed(2)}',
-                        style: AppTextStyles.body
-                            .copyWith(fontWeight: FontWeight.w600),
+                        'Total: ₹${widget.order.total.toStringAsFixed(2)}',
+                        style: AppTextStyles.body.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
@@ -159,7 +156,8 @@ class _CheckoutSuccessPageState extends State<CheckoutSuccessPage>
                   onPressed: () => context.go(AppRoutes.home),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
-                        vertical: AppSpacing.md),
+                      vertical: AppSpacing.md,
+                    ),
                   ),
                   child: const Text('Continue Shopping'),
                 ),

@@ -58,9 +58,7 @@ class TopProductsTable extends StatelessWidget {
                           ),
                         ),
                         DataCell(Text(p.orderCount.toString())),
-                        DataCell(
-                          Text('\$${p.totalRevenue.toStringAsFixed(2)}'),
-                        ),
+                        DataCell(Text('₹${p.totalRevenue.toStringAsFixed(2)}')),
                       ],
                     );
                   }).toList(),

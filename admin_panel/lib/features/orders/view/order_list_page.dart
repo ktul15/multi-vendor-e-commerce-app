@@ -377,7 +377,8 @@ class _OrderTable extends StatelessWidget {
                         DataCell(
                           Text(
                             NumberFormat.currency(
-                              symbol: '\$',
+                              locale: 'en_IN',
+                              symbol: '₹',
                             ).format(order.total),
                             style: const TextStyle(fontWeight: FontWeight.w500),
                           ),

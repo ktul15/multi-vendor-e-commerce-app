@@ -109,7 +109,7 @@ async function main() {
 
     console.log(`  ✅ Inserted ${productsData.length} diverse products!`);
     console.log('🌱 Seeding complete! You can now test:');
-    console.log('- Min/Max price filters (Try $10-$50 to get earbuds, canvas shoes, cables, sandals, power banks)');
+    console.log('- Min/Max price filters (Try ₹10-₹50 to get earbuds, canvas shoes, cables, sandals, power banks)');
     console.log('- Rating filters (Try >= 4 to get headphones, pro runners, smart watches, etc.)');
     console.log('- inStock filters (Try true vs false)');
     console.log('- Sorting by price_asc, price_desc, rating, popular, newest');

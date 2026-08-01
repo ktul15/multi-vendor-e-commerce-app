@@ -97,8 +97,8 @@ class AdminProductModel extends Equatable {
     );
   }
 
-  /// e.g. "$12.99"
-  String get formattedPrice => '\$${basePrice.toStringAsFixed(2)}';
+  /// e.g. "₹12.99"
+  String get formattedPrice => '₹${basePrice.toStringAsFixed(2)}';
 
   /// e.g. "Apr 7, 2026"
   String get formattedDate {

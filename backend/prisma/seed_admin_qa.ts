@@ -635,7 +635,7 @@ async function seedOrders(
         payment: {
           create: {
             amount: money(total),
-            currency: Currency.USD,
+            currency: Currency.INR,
             method:
               number % 5 === 0
                 ? PaymentMethod.CASH_ON_DELIVERY
@@ -683,7 +683,7 @@ async function seedOrders(
           commissionRate: money(commissionRate),
           commissionAmount: money(commissionAmount),
           netAmount: money(netAmount),
-          currency: Currency.USD,
+          currency: Currency.INR,
           status:
             number % 4 === 0
               ? EarningStatus.TRANSFERRED
@@ -805,7 +805,7 @@ async function seedVendorPayouts(vendors: SeedVendor[]) {
         vendorProfileId: vendors[index]!.profileId,
         stripePayoutId: `po_qa_${RUN_ID}_${index + 1}`,
         amount: money(75 + index * 25.5),
-        currency: Currency.USD,
+        currency: Currency.INR,
         status:
           index % 3 === 0
             ? PayoutStatus.PAID

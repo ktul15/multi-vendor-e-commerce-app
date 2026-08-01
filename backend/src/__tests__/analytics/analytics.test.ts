@@ -103,7 +103,7 @@ async function createVendorOrder(opts: {
         commissionAmount: commission,
         netAmount: gross - commission,
         commissionRate: 10,
-        currency: 'USD',
+        currency: 'INR',
         status: 'TRANSFERRED',
         ...(createdAt && { createdAt }),
       },

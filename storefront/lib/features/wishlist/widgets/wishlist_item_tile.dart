@@ -69,7 +69,7 @@ class WishlistItemTile extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        '\$${product.basePrice.toStringAsFixed(2)}',
+                        '₹${product.basePrice.toStringAsFixed(2)}',
                         style: AppTextStyles.h6.copyWith(
                           color: AppColors.primary,
                         ),

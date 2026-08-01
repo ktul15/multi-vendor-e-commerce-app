@@ -366,7 +366,7 @@ class _PromoFormPageState extends State<PromoFormPage> {
                                   ? '10 (for 10%)'
                                   : '5.00',
                               prefixText: _discountType == 'FIXED'
-                                  ? '\$ '
+                                  ? '₹ '
                                   : null,
                               suffixText: _discountType == 'PERCENTAGE'
                                   ? '%'
@@ -408,7 +408,7 @@ class _PromoFormPageState extends State<PromoFormPage> {
                                   decoration: const InputDecoration(
                                     labelText: 'Min Order Value',
                                     hintText: '50.00',
-                                    prefixText: '\$ ',
+                                    prefixText: '₹ ',
                                     helperText: 'Leave blank for no minimum',
                                   ),
                                   textInputAction: TextInputAction.next,
@@ -434,7 +434,7 @@ class _PromoFormPageState extends State<PromoFormPage> {
                                   decoration: const InputDecoration(
                                     labelText: 'Max Discount',
                                     hintText: '20.00',
-                                    prefixText: '\$ ',
+                                    prefixText: '₹ ',
                                     helperText: 'Leave blank for no cap',
                                   ),
                                   textInputAction: TextInputAction.next,

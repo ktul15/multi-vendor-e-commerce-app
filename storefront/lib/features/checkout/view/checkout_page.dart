@@ -304,7 +304,7 @@ class _SummaryStepBody extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
               ),
-              child: Text('Pay \$${total.toStringAsFixed(2)}'),
+              child: Text('Pay ₹${total.toStringAsFixed(2)}'),
             ),
           ),
         ),

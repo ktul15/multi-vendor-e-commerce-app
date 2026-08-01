@@ -46,7 +46,7 @@ class ProductsTable extends StatelessWidget {
                   child: SingleLineText(p.name),
                 ),
               ),
-              DataCell(Text('\$${p.basePrice.toStringAsFixed(2)}')),
+              DataCell(Text('₹${p.basePrice.toStringAsFixed(2)}')),
               DataCell(Text(p.variants.length.toString())),
               DataCell(_StatusBadge(isActive: p.isActive)),
               DataCell(

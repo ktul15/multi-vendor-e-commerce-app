@@ -53,7 +53,7 @@ class OrdersTable extends StatelessWidget {
                 ),
               ),
               DataCell(Text(o.items.length.toString())),
-              DataCell(Text('\$${o.subtotal.toStringAsFixed(2)}')),
+              DataCell(Text('₹${o.subtotal.toStringAsFixed(2)}')),
               DataCell(_StatusChip(status: o.status)),
               DataCell(
                 Text(

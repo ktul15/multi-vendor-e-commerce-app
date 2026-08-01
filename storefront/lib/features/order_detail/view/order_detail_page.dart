@@ -57,17 +57,17 @@ class _OrderDetailView extends StatelessWidget {
       child: BlocBuilder<OrderDetailCubit, OrderDetailState>(
         builder: (context, state) => switch (state) {
           OrderDetailInitial() || OrderDetailLoading() => Scaffold(
-              appBar: AppBar(title: const Text('Order Details')),
-              body: SkeletonContainer(child: const OrderDetailSkeleton()),
-            ),
+            appBar: AppBar(title: const Text('Order Details')),
+            body: SkeletonContainer(child: const OrderDetailSkeleton()),
+          ),
           OrderDetailError(:final message, :final orderId) => Scaffold(
-              appBar: AppBar(title: const Text('Order Details')),
-              body: ErrorState(
-                message: message,
-                onRetry: () =>
-                    context.read<OrderDetailCubit>().loadOrder(orderId),
-              ),
+            appBar: AppBar(title: const Text('Order Details')),
+            body: ErrorState(
+              message: message,
+              onRetry: () =>
+                  context.read<OrderDetailCubit>().loadOrder(orderId),
             ),
+          ),
           OrderDetailLoaded() => _LoadedView(state: state),
         },
       ),
@@ -176,8 +176,11 @@ class _TrackingNumberRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.local_shipping_outlined,
-                size: 20, color: AppColors.primary),
+            const Icon(
+              Icons.local_shipping_outlined,
+              size: 20,
+              color: AppColors.primary,
+            ),
             const SizedBox(width: AppSpacing.sm),
             Text('Tracking', style: AppTextStyles.caption),
             const SizedBox(width: AppSpacing.sm),
@@ -236,7 +239,10 @@ class _OrderSummaryCard extends StatelessWidget {
             if (order.discount > 0) ...[
               const SizedBox(height: AppSpacing.sm),
               _SummaryRow(
-                  label: 'Discount', amount: -order.discount, isDiscount: true),
+                label: 'Discount',
+                amount: -order.discount,
+                isDiscount: true,
+              ),
             ],
             if (order.tax > 0) ...[
               const SizedBox(height: AppSpacing.sm),
@@ -267,8 +273,8 @@ class _SummaryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final amountStr = isDiscount
-        ? '-\$${amount.abs().toStringAsFixed(2)}'
-        : '\$${amount.toStringAsFixed(2)}';
+        ? '-₹${amount.abs().toStringAsFixed(2)}'
+        : '₹${amount.toStringAsFixed(2)}';
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -284,8 +290,8 @@ class _SummaryRow extends StatelessWidget {
           style: isTotal
               ? AppTextStyles.h5.copyWith(color: AppColors.primary)
               : isDiscount
-                  ? AppTextStyles.body.copyWith(color: AppColors.success)
-                  : AppTextStyles.body.copyWith(fontWeight: FontWeight.w500),
+              ? AppTextStyles.body.copyWith(color: AppColors.success)
+              : AppTextStyles.body.copyWith(fontWeight: FontWeight.w500),
         ),
       ],
     );
@@ -321,7 +327,9 @@ class _CancellationReasonCard extends StatelessWidget {
                 children: [
                   Text(
                     'Cancellation Reason',
-                    style: AppTextStyles.caption.copyWith(color: AppColors.error),
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.error,
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(reason, style: AppTextStyles.body),
@@ -341,10 +349,7 @@ class _CancelOrderButton extends StatelessWidget {
   final String orderId;
   final bool isCancelling;
 
-  const _CancelOrderButton({
-    required this.orderId,
-    required this.isCancelling,
-  });
+  const _CancelOrderButton({required this.orderId, required this.isCancelling});
 
   @override
   Widget build(BuildContext context) {
@@ -406,13 +411,11 @@ class _CancelOrderButton extends StatelessWidget {
               Navigator.of(dialogContext).pop();
               if (!context.mounted) return;
               context.read<OrderDetailCubit>().cancelOrder(
-                    orderId,
-                    reason: reason.isNotEmpty ? reason : null,
-                  );
+                orderId,
+                reason: reason.isNotEmpty ? reason : null,
+              );
             },
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.error,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('Cancel Order'),
           ),
         ],

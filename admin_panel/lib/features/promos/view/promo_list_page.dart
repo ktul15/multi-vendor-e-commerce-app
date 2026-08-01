@@ -308,7 +308,7 @@ class _LoadedView extends StatelessWidget {
                               DataCell(
                                 Text(
                                   promo.minOrderValue != null
-                                      ? '\$${promo.minOrderValue!.toStringAsFixed(2)}'
+                                      ? '₹${promo.minOrderValue!.toStringAsFixed(2)}'
                                       : '—',
                                   style: TextStyle(
                                     color: promo.minOrderValue == null

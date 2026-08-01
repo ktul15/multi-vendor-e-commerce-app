@@ -138,8 +138,8 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                     children: [
                       Text('Price Range', style: AppTextStyles.h6),
                       Text(
-                        '\$${_priceRange.start.toStringAsFixed(0)}'
-                        ' – \$${_priceRange.end.toStringAsFixed(0)}',
+                        '₹${_priceRange.start.toStringAsFixed(0)}'
+                        ' – ₹${_priceRange.end.toStringAsFixed(0)}',
                         style: AppTextStyles.body.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w600,

@@ -5,7 +5,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../features/dashboard/models/admin_order_model.dart';
 import 'order_status_badge.dart';
 
-final _currencyFormat = NumberFormat.currency(symbol: '\$');
+final _currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
 
 class OrderRow extends StatelessWidget {
   final AdminOrderModel order;

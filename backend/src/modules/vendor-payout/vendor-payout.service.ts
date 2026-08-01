@@ -421,7 +421,7 @@ export class VendorPayoutService {
       currencyUpper as Currency
     )
       ? (currencyUpper as Currency)
-      : 'USD';
+      : 'INR';
 
     await prisma.vendorPayout.upsert({
       where: { stripePayoutId: payout.id },

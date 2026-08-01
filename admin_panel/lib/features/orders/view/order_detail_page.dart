@@ -12,7 +12,7 @@ import '../widgets/order_status_badge.dart';
 
 final _dateFormat = DateFormat('MMM d, yyyy');
 final _dateTimeFormat = DateFormat('MMM d, yyyy · h:mm a');
-final _currencyFormat = NumberFormat.currency(symbol: '\$');
+final _currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
 
 class OrderDetailPage extends StatefulWidget {
   final String orderId;

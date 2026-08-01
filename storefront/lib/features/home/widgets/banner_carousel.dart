@@ -33,7 +33,7 @@ const _banners = [
     gradient: [Color(0xFFFF6584), Color(0xFFFF9CAD)],
   ),
   _BannerData(
-    title: 'Free Shipping\nOn Orders \$50+',
+    title: 'Free Shipping\nOn Orders ₹50+',
     subtitle: 'Shop your favourites with no delivery fee',
     cta: 'Start Shopping',
     gradient: [Color(0xFF10B981), Color(0xFF34D399)],
@@ -90,8 +90,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
             controller: _pageController,
             itemCount: _banners.length,
             onPageChanged: (index) => setState(() => _currentPage = index),
-            itemBuilder: (context, index) =>
-                _BannerCard(data: _banners[index]),
+            itemBuilder: (context, index) => _BannerCard(data: _banners[index]),
           ),
         ),
         const SizedBox(height: AppSpacing.sm),

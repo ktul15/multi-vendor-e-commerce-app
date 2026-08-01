@@ -386,7 +386,7 @@ model Payment {
   id                    String        @id @default(uuid())
   orderId               String        @unique
   amount                Decimal       @db.Decimal(10, 2)
-  currency              Currency      @default(USD)
+  currency              Currency      @default(INR)
   method                PaymentMethod
   status                PaymentStatus @default(PENDING)
   stripePaymentIntentId String?       @unique
@@ -528,7 +528,7 @@ model VendorEarning {
   commissionRate   Decimal       @db.Decimal(5, 2)
   commissionAmount Decimal       @db.Decimal(10, 2)
   netAmount        Decimal       @db.Decimal(10, 2)
-  currency         Currency      @default(USD)
+  currency         Currency      @default(INR)
   status           EarningStatus @default(PENDING)
   stripeTransferId String?       @unique
   transferredAt    DateTime?
@@ -551,7 +551,7 @@ model VendorPayout {
   vendorProfileId String
   stripePayoutId  String       @unique
   amount          Decimal      @db.Decimal(10, 2)
-  currency        Currency     @default(USD)
+  currency        Currency     @default(INR)
   status          PayoutStatus @default(PENDING)
   arrivalDate     DateTime?
   failureReason   String?

@@ -46,7 +46,7 @@ class OrderPaymentSection extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             _InfoRow(
               label: 'Amount',
-              value: '\$${payment.amount.toStringAsFixed(2)}',
+              value: '₹${payment.amount.toStringAsFixed(2)}',
             ),
             if (payment.paidAt != null) ...[
               const SizedBox(height: AppSpacing.sm),

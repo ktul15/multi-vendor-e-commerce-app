@@ -83,11 +83,11 @@ class _ItemRow extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Qty: ${item.quantity}  \u00d7  \$${item.unitPrice.toStringAsFixed(2)}',
+                    'Qty: ${item.quantity}  \u00d7  ₹${item.unitPrice.toStringAsFixed(2)}',
                     style: AppTextStyles.bodySmall,
                   ),
                   Text(
-                    '\$${item.totalPrice.toStringAsFixed(2)}',
+                    '₹${item.totalPrice.toStringAsFixed(2)}',
                     style: AppTextStyles.body.copyWith(
                       fontWeight: FontWeight.w600,
                       color: AppColors.primary,

@@ -13,8 +13,18 @@ class OrderCard extends StatelessWidget {
   const OrderCard({super.key, required this.order});
 
   static const _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   static String _formatDate(DateTime dt) =>
@@ -43,58 +53,58 @@ class OrderCard extends StatelessWidget {
           pathParameters: {'id': order.id},
         ),
         child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.base),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Header: order number + status badge ──
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    order.orderNumber,
-                    style: AppTextStyles.h6,
-                    overflow: TextOverflow.ellipsis,
+          padding: const EdgeInsets.all(AppSpacing.base),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Header: order number + status badge ──
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      order.orderNumber,
+                      style: AppTextStyles.h6,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-                OrderStatusBadge(status: order.overallStatus),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
+                  OrderStatusBadge(status: order.overallStatus),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
 
-            // ── Date + item count ──
-            Row(
-              children: [
-                const Icon(
-                  Icons.calendar_today_outlined,
-                  size: 14,
-                  color: AppColors.textSecondary,
-                ),
-                const SizedBox(width: AppSpacing.xs),
-                Text(dateStr, style: AppTextStyles.caption),
-                const SizedBox(width: AppSpacing.base),
-                const Icon(
-                  Icons.shopping_bag_outlined,
-                  size: 14,
-                  color: AppColors.textSecondary,
-                ),
-                const SizedBox(width: AppSpacing.xs),
-                Text(
-                  '$itemCount ${itemCount == 1 ? 'item' : 'items'}',
-                  style: AppTextStyles.caption,
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.md),
+              // ── Date + item count ──
+              Row(
+                children: [
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    size: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Text(dateStr, style: AppTextStyles.caption),
+                  const SizedBox(width: AppSpacing.base),
+                  const Icon(
+                    Icons.shopping_bag_outlined,
+                    size: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Text(
+                    '$itemCount ${itemCount == 1 ? 'item' : 'items'}',
+                    style: AppTextStyles.caption,
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
 
-            // ── Footer: total ──
-            Text(
-              '\$${order.total.toStringAsFixed(2)}',
-              style: AppTextStyles.h5.copyWith(color: AppColors.primary),
-            ),
-          ],
+              // ── Footer: total ──
+              Text(
+                '₹${order.total.toStringAsFixed(2)}',
+                style: AppTextStyles.h5.copyWith(color: AppColors.primary),
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }

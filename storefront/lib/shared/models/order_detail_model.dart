@@ -149,7 +149,7 @@ class PaymentDetail extends Equatable {
     return PaymentDetail(
       id: json['id'] as String,
       amount: _toDouble(json['amount']),
-      currency: json['currency'] as String? ?? 'USD',
+      currency: json['currency'] as String? ?? 'INR',
       method: json['method'] as String,
       status: json['status'] as String,
       stripePaymentIntentId: json['stripePaymentIntentId'] as String?,

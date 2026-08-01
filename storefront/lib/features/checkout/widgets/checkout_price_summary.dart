@@ -76,7 +76,7 @@ class _Row extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sign = value < 0 ? '-' : '';
-    final display = '$sign\$${value.abs().toStringAsFixed(2)}';
+    final display = '$sign₹${value.abs().toStringAsFixed(2)}';
     return ResponsiveMetadataRow(
       label: label,
       value: display,

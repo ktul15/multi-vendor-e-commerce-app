@@ -156,7 +156,7 @@ class _LineChart extends StatelessWidget {
                   return const SizedBox.shrink();
                 }
                 return Text(
-                  '\$${value.toInt()}',
+                  '₹${value.toInt()}',
                   style: AppTextStyles.caption.copyWith(
                     color: AppColors.textSecondary,
                     fontSize: 10,
@@ -204,7 +204,7 @@ class _LineChart extends StatelessWidget {
             getTooltipItems: (spots) => spots
                 .map(
                   (s) => LineTooltipItem(
-                    '\$${s.y.toStringAsFixed(2)}',
+                    '₹${s.y.toStringAsFixed(2)}',
                     AppTextStyles.caption.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,

@@ -59,7 +59,7 @@ class RecentOrdersTable extends StatelessWidget {
                         DataCell(Text(o.orderNumber)),
                         DataCell(Text(o.customerName ?? '—')),
                         DataCell(_StatusChip(status: o.status)),
-                        DataCell(Text('\$${o.subtotal.toStringAsFixed(2)}')),
+                        DataCell(Text('₹${o.subtotal.toStringAsFixed(2)}')),
                         DataCell(
                           Text(
                             '${o.createdAt.year}-'

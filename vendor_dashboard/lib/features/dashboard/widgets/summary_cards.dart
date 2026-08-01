@@ -20,19 +20,19 @@ class SummaryCards extends StatelessWidget {
       ),
       _CardData(
         title: 'Gross Revenue',
-        value: '\$${summary.revenue.gross.toStringAsFixed(2)}',
+        value: '₹${summary.revenue.gross.toStringAsFixed(2)}',
         icon: Icons.attach_money,
         color: AppColors.success,
       ),
       _CardData(
         title: 'Net Earnings',
-        value: '\$${summary.revenue.net.toStringAsFixed(2)}',
+        value: '₹${summary.revenue.net.toStringAsFixed(2)}',
         icon: Icons.account_balance_wallet_outlined,
         color: AppColors.secondary,
       ),
       _CardData(
         title: 'Commission Paid',
-        value: '\$${summary.revenue.commission.toStringAsFixed(2)}',
+        value: '₹${summary.revenue.commission.toStringAsFixed(2)}',
         icon: Icons.percent,
         color: AppColors.error,
       ),
