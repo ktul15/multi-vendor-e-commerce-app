@@ -1,0 +1,234 @@
+# Dashboard API Contract Audit
+
+Status: Baseline for issue #74
+
+Clients: `vendor_dashboard/` and `admin_panel/` (Flutter)
+
+Target clients: `apps/vendor-dashboard/` and `apps/admin-panel/` (Next.js)
+
+API base path: `/api/v1`
+
+Baseline verified: 2026-08-01 at commit `d878423a18024783b249c26f442a5e1023c4f8c1`
+
+## Purpose
+
+This document is the HTTP contract inventory for migrating both dashboards. It maps every request made by the Flutter repositories, the backend capabilities required by the parity contracts, runtime request and response shapes, authorization, pagination, filtering, uploads, redirects, errors, and OpenAPI gaps. Runtime route, validation, controller, and service behavior is authoritative where it differs from generated OpenAPI.
+
+## Shared conventions
+
+### Authentication and authorization
+
+- Protected calls currently send `Authorization: Bearer <access-token>`.
+- Login and registration return `data: { user, tokens: { accessToken, refreshToken } }`. `POST /auth/refresh` accepts `{ "refreshToken": string }` and instead returns `data: { accessToken, refreshToken }` directly.
+- The Flutter clients store tokens in browser-readable preferences. The Next.js migration replaces this boundary with browser-safe cookies in #82–#84; application code must not assume tokens are readable by JavaScript.
+- A 401 means the session is absent or invalid. A 403 means the identity is valid but lacks the required role, vendor approval, or resource access.
+- Backend middleware and service ownership checks remain authoritative; hiding a web control is not authorization.
+
+### Success envelopes
+
+Unless a row states otherwise, JSON responses use:
+
+```json
+{
+  "success": true,
+  "message": "Human-readable result",
+  "data": {}
+}
+```
+
+Most product, order, admin, promo, and banner list endpoints place pagination inside `data`:
+
+```json
+{
+  "success": true,
+  "data": {
+    "items": [],
+    "meta": { "total": 0, "page": 1, "limit": 20, "totalPages": 1 }
+  }
+}
+```
+
+Vendor payout lists use a second family: `data: { earnings, pagination }` or `data: { payouts, pagination }`. Those services calculate `totalPages` with `Math.ceil`, so an empty payout result has zero pages; most `items/meta` services clamp an empty result to one page. Generated clients must model these runtime families until #130 standardizes them, and no client may infer authorization or ownership from an empty list.
+
+Exceptions to the success envelope include `DELETE /admin/products/{id}` and `DELETE /banners/{id}` (both HTTP 204 with an empty body), plus the Stripe Connect webhook acknowledgement (`{ "received": true }`). Category deletion returns the normal HTTP 200 success envelope with `data: null`.
+
+### Error envelopes
+
+Runtime errors are normalized by the global error handler:
+
+```json
+{
+  "success": false,
+  "message": "Human-readable error",
+  "errors": [{ "field": "optional.path", "message": "Validation detail" }]
+}
+```
+
+- `errors` is primarily present for validation failures and may be absent for operational errors.
+- Expected statuses include 400 validation/business rule, 401 unauthenticated, 403 forbidden, 404 missing resource, 409 explicitly mapped conflict/no-op, 413 upload too large, 429 rate limited, and 500 unexpected or unmapped database failure. Similar business failures are not yet mapped consistently.
+- The web client should map `errors[].field` to form controls, retain `message` as the fallback, and never expose raw Stripe, Prisma, Zod, or stack-trace text.
+- Unknown errors expose `err.message` in development and a generic message in production; dashboard clients must use safe user-facing fallbacks in either environment.
+- Mutation clients must handle stale 404/409 responses and refresh authoritative data rather than assuming the cached state remains valid.
+
+## Vendor dashboard request inventory
+
+| Capability | Method and path | Request contract | Runtime response `data` | Access | Pagination/filtering and notable errors | OpenAPI status |
+|---|---|---|---|---|---|---|
+| Sign in | `POST /auth/login` | JSON `email`, `password` | `user`, `tokens.accessToken`, `tokens.refreshToken` | Public | 400 validation, 401 invalid credentials, 403 banned | Documented; web cookie contract will supersede token delivery. |
+| Register vendor | `POST /auth/register` | JSON `name`, `email`, `password`, `role=VENDOR`, `storeName` | pending vendor `user`, `tokens` | Public | 400 validation; duplicate email is handled, but duplicate store name can surface as an unmapped 500 | OpenAPI/error mapping must be aligned under #130. |
+| Restore identity | `GET /auth/profile` | None | authenticated user identity and role | Authenticated | 401 invalid/expired token | Documented. |
+| Refresh session | `POST /auth/refresh` | JSON `refreshToken` | direct `accessToken`, `refreshToken` fields (no nested `tokens`) | Public with valid refresh token | 400 validation, 401 invalid/revoked token | OpenAPI omits the returned `refreshToken`; correct under #130 before cookie replacement #82. |
+| Logout | `POST /auth/logout` | Optional JSON `refreshToken` | acknowledgement | Public; token possession enables a blacklist attempt | Returns 200 even when the token is absent, invalid, or expired; local logout must complete on network failure | Documented with `security: []`; browser-cookie replacement belongs to #82. |
+| Read category tree | `GET /categories` | None | category roots with nested children | Public | No pagination; runtime returns only three levels | Documentation does not disclose the three-level limit. |
+| Read vendor profile | `GET /vendor-profile/me` | None | Prisma profile including `storeLogo`, `storeBanner`, their public IDs, status, and Stripe fields | Vendor, any profile status | 404 when profile missing | OpenAPI uses `logoUrl`/`bannerUrl` and omits runtime/internal fields; define a stable DTO under #130. |
+| Update vendor profile | `PUT /vendor-profile/me` | JSON or multipart: optional `storeName`, `description`, `logo`, `banner` | updated vendor profile | Vendor; PENDING or APPROVED | Service rejects a true no-op with operational 400; image-only requests are valid; 403 rejected/suspended; store-name uniqueness is an operational error | At-least-one-change behavior is enforced in the service, though the 400 has no field-level validation errors. |
+| Dashboard/earnings summary | `GET /analytics/vendor/summary` | Optional ISO `startDate`, `endDate` | nested `orders`, `revenue`, `dateRange` | Approved vendor | Date range ordered, maximum 366 days | OpenAPI incorrectly shows flat `totalRevenue`, `orderCount`, and `averageOrderValue`; fix under #130. |
+| Sales series | `GET /analytics/vendor/sales` | `period=day|week|month`; optional ISO dates | `period`, `series` (`periodStart`, `orderCount`, `revenue`), `dateRange` | Approved vendor | Same date rules | OpenAPI incorrectly shows a direct array with `date`, `revenue`, `orders`; fix under #130. |
+| Top products | `GET /analytics/vendor/top-products` | `limit` plus optional ISO dates | `products` (`rank`, `orderCount`, `totalRevenue`), `dateRange` | Approved vendor | Limit 1–20; same date rules | OpenAPI incorrectly shows a direct array with `revenue` and `unitsSold`; fix under #130. |
+| List current vendor orders | `GET /orders/vendor` | `page`, `limit`, optional vendor-order `status` | `items`, `meta` | Approved vendor | Page >=1, limit 1–100; all vendor-order statuses | Documented. |
+| Advance vendor order | `PUT /orders/vendor/{vendorOrderId}/status` | JSON `status`; `trackingNumber` and `trackingCarrier` required for SHIPPED | updated vendor order | Approved owning vendor | Forward one step only; tracking and stale/invalid transitions return 400; ownership returns 403 | OpenAPI/status examples must match runtime under #130. |
+| List current vendor products | `GET /products?vendorId={userId}` | `page`, `limit`, vendor user ID | active public `items`, `meta` | Public read | Page >=1, limit 1–100; excludes inactive products | Documented as public catalog, but unsuitable as an authenticated inventory contract. |
+| Create product | `POST /products` | JSON category, name, description, base price, optional images/tags/isActive, non-empty variants | product with variants | Approved vendor | Validation; 404 category; nested duplicate SKU is not mapped and can become 500 | Error mapping must be stabilized in #129/#130. |
+| Update product | `PUT /products/{productId}` | JSON optional category/name/description/basePrice/images/tags/isActive; empty object currently passes schema | updated product | Approved owning vendor | 403 ownership; 404 product/category; empty no-op is accepted | Require a changed field under #129 and document through #130. |
+| Delete product | `DELETE /products/{productId}` | None | null on success envelope | Approved owning vendor | 403 ownership, 404 missing; order-history FK is unmapped and can become 500 | Map the constraint to an actionable conflict under #129/#130. |
+| Add variant | `POST /products/{productId}/variants` | JSON `sku`, `price`, `stock`, optional `size`, `color` | created variant | Approved owning vendor | Duplicate SKU returns 400 | Align consistent conflict semantics under #129/#130. |
+| Update variant | `PUT /products/{productId}/variants/{variantId}` | JSON optional variant fields; empty object currently passes schema | updated variant | Approved owning vendor | 404 product/variant; duplicate SKU returns 400; empty no-op is accepted | No variant-delete endpoint exists; stabilize lifecycle/errors under #129/#130. |
+
+### Vendor web-required backend capabilities absent from Flutter
+
+| Capability | Method and path | Request contract | Runtime response `data` | Access | Pagination/redirect behavior | OpenAPI status |
+|---|---|---|---|---|---|---|
+| Start Stripe Connect | `POST /vendor-payouts/connect/onboard` | No body | Stripe-hosted `url` | Approved vendor | Browser performs a top-level external navigation | Documented. |
+| Refresh Connect link | `GET /vendor-payouts/connect/onboard/refresh` | No body | fresh Stripe-hosted `url` | Approved vendor | Used by Stripe refresh URL; must avoid redirect loops | Documented. |
+| Reconcile Connect return | `GET /vendor-payouts/connect/status` | No body | `onboardingStatus`, `chargesEnabled`, `payoutsEnabled`, `detailsSubmitted` | Vendor, any profile status | Called after return and on refocus; status is authoritative, not return query parameters | OpenAPI incorrectly exposes `connected`; fix under #130. |
+| List vendor earnings | `GET /vendor-payouts/earnings` | page, limit, optional status/startDate/endDate | `earnings`, `pagination` | Approved vendor | Empty result has `totalPages: 0` | Documented; pagination family differs from dashboard lists. |
+| Earnings summary by status | `GET /vendor-payouts/earnings/summary` | None | `pending`, `transferred`, `failed`, `reversed` buckets; each has count, grossAmount, commissionAmount, netAmount | Approved vendor | Not paginated | OpenAPI incorrectly shows `totalEarnings`, `pendingBalance`, and `transferred`; fix under #130. |
+| List payouts | `GET /vendor-payouts/payouts` | page, limit, optional status | `payouts`, `pagination` | Approved vendor | Empty result has `totalPages: 0` | Documented; pagination family differs from dashboard lists. |
+
+Missing vendor contracts:
+
+- An authenticated `GET /vendor/products` (or equivalent) derived from the session, including inactive inventory and server search/filter/sort.
+- An ownership-scoped `GET /orders/vendor/{vendorOrderId}` for bookmarkable order detail.
+- A variant deletion/reconciliation contract if persisted variants may be removed by the editor.
+
+## Admin panel request inventory
+
+| Capability | Method and path | Request/query contract | Runtime response `data` | Access | Pagination/filtering and notable errors | OpenAPI status |
+|---|---|---|---|---|---|---|
+| Admin session | Auth endpoints above | Login/profile/refresh/logout as above; client additionally requires role ADMIN | user/tokens or profile | Public/authenticated | Client rejects a valid non-admin identity | Documented; cookie migration #82–#84. |
+| Dashboard stats | `GET /admin/dashboard` | None | user/vendor/product/order counts and runtime key `platformRevenue` calculated from commission amounts | Admin | Not paginated | OpenAPI instead uses key `totalRevenue` with gross-sounding semantics; correct both key and commission-revenue meaning under #130. |
+| List users | `GET /admin/users` | page, limit, optional role, `isBanned`, search | user summaries, `meta` | Admin | Page >=1, limit 1–100; search name/email | Documented. |
+| Ban/unban user | `PATCH /admin/users/{userId}/ban` or `/unban` | UUID path, no body | updated user summary | Admin | Cannot ban ADMIN; 404, 409 no-op | Documented. |
+| List vendors | `GET /admin/vendors` | page, limit, optional status/search | vendor summaries, `meta` | Admin | Search runtime matches store name only | OpenAPI incorrectly claims owner-email search. |
+| Vendor lifecycle | `PATCH /admin/vendors/{vendorProfileId}/{approve|reject|suspend}` | Vendor-profile UUID path, no body | updated vendor summary | Admin | Approve/reject no-op returns 409; suspending a non-approved profile returns 400 | Documented paths; status examples need alignment under #130. |
+| Vendor commission override | `PATCH /admin/vendors/{vendorProfileId}/commission` | Vendor-profile UUID path; JSON `rate` number 0–100 or null | `id`, `storeName`, `commissionRate` | Admin | Null reverts to default; 404 vendor profile | Documented; absent from Flutter UI. Effective default is not returned by this mutation. |
+| List moderated products | `GET /admin/products` | page, limit, optional `isActive`, search, vendorId, categoryId | product summaries, `meta` | Admin | Page >=1, limit 1–100 | Documented. |
+| Activate/deactivate product | `PATCH /admin/products/{productId}/{activate|deactivate}` | UUID path, no body | updated product summary | Admin | 404, 409 no-op | Documented. |
+| Delete product | `DELETE /admin/products/{productId}` | UUID path | HTTP 204, empty body | Admin | Order-history constraint is mapped to 409 | OpenAPI/generated clients must model the no-content exception. |
+| List orders | `GET /admin/orders` | page, limit, optional vendor-order status, dates, userId, vendorId | order summaries, `meta` | Admin | Status matches any vendor sub-order; maximum 366-day range | Documentation does not explain mixed/any-sub-order status semantics. |
+| Order detail | `GET /admin/orders/{orderId}` | UUID path | customer, address, payment, vendor orders, items, tracking | Admin | 404 missing | Documented. |
+| Gross revenue | `GET /admin/revenue` | period plus optional dates | `period`, gross `series`, `dateRange`; Flutter computes total revenue and orders from the series | Admin | Maximum 366-day range | OpenAPI/clients must not expect server-provided totals or imply commission/vendor-net reporting. |
+| Read default commission | `GET /admin/commission` | None | `rate`, `source` | Admin | Source is database or environment | Documented. |
+| Set default commission | `PATCH /admin/commission` | JSON `rate` number 0–100 | updated `rate` | Admin | Validation 400 | Documented. |
+| Category tree | `GET /categories` | None | three-level tree | Public | No pagination | Depth limitation omitted. |
+| Create category | `POST /categories` | JSON `name`, optional image URL/parentId; or multipart `name`, optional parentId and optional `image` file | category | Admin | Backend accepts no image, URL, or file; parent UUID/upload errors return 400 | Backend/OpenAPI optionality aligns; only Flutter requires an image. Media lifecycle remains incomplete. |
+| Update category | `PUT /categories/{id}` | JSON or multipart optional name/image/parent changes; empty object currently passes schema | updated category | Admin | Self-parent blocked; descendant cycles not fully guarded; empty no-op is accepted | Docs omit depth/cycle/orphaned-image behavior and should reject no-op updates under #131/#130. |
+| Delete category | `DELETE /categories/{id}` | Path ID | HTTP 200 success envelope with `data: null` | Admin | Children/product dependency errors return 400; stored image is not cleaned up | Media cleanup and status semantics must be documented. |
+| List promos | `GET /promo-codes` | page, limit, optional active/search/type | promo `items`, `meta` | Admin | Server pagination/filtering | Documented. |
+| Promo detail | `GET /promo-codes/{id}` | UUID path | promo | Admin | 404 missing/deleted | Documented. |
+| Create/update promo | `POST /promo-codes`; `PUT /promo-codes/{id}` | Code/type/value and optional limits/expiry/active; null clears optional update fields | promo | Admin | Validation, duplicate 409, future expiry | Documented. |
+| Delete promo | `DELETE /promo-codes/{id}` | UUID path | updated soft-deleted promo record | Admin | HTTP 200; always sets inactive/deleted state | OpenAPI/UI should call this archive/deactivate or explicitly document soft deletion. |
+| List banners | `GET /banners/all` | page, limit, optional active | banner `items`, `meta` | Admin | Server pagination/filtering | Documented. |
+| Banner detail | `GET /banners/{id}` | UUID path | banner | Admin | 404 missing | Documented. |
+| Create banner | `POST /banners` | Multipart title, image, optional URL, position, active | banner | Admin | Image required; upload limit/type errors | Documented. |
+| Update banner | `PUT /banners/{id}` | JSON or multipart changed fields and optional image | banner | Admin | Runtime rejects image-only multipart because validation checks body before controller | OpenAPI permits image-only replacement, contradicting runtime. |
+| Delete banner | `DELETE /banners/{id}` | UUID path | HTTP 204, empty body | Admin | DB deletion succeeds independently of best-effort Cloudinary cleanup | OpenAPI incorrectly documents HTTP 200; cleanup semantics are also omitted. |
+
+Missing admin contracts:
+
+- `GET /admin/users/{userId}` for direct-load user detail.
+- `GET /admin/vendors/{vendorProfileId}` for direct-load vendor detail; do not confuse this with payout endpoints whose `vendorId` is a user ID.
+- `GET /admin/products/{productId}` that includes inactive products, media, tags, variants, vendor, category, ratings, and inventory.
+- A defined aggregate or explicitly per-vendor status representation for multi-vendor order summaries.
+- Platform commission-revenue and vendor-net reporting if those metrics remain in the admin finance requirements.
+- An atomic banner reorder endpoint if drag/reorder remains a requirement.
+
+## Upload contracts
+
+| Resource | Content type and fields | Runtime limits/processing | Required web behavior | Gap |
+|---|---|---|---|---|
+| Vendor profile | `multipart/form-data`; text plus `logo` and/or `banner` | Service uploads new assets, rolls them back if the DB update fails, commits the DB change, then deletes replaced old assets best effort | Validate type/size before submit, show progress, retain text on failure, invalidate profile after success | Runtime lifecycle is defined; #133 should make cleanup observability and OpenAPI examples explicit. |
+| Category | JSON URL or multipart `image`; text `name`, optional `parentId` | Controller uploads file to Cloudinary | Support create/replace and explicit parent clearing without encoding accidental empty UUIDs | Required-image rule differs by client/backend; old/delete asset cleanup absent. |
+| Banner | Multipart `image` on create; JSON or multipart on update | Create requires image; deletion and replacement perform best-effort cleanup where implemented | Support upload progress/retry; DB mutation result remains authoritative when cleanup is best effort | Image-only update is documented but rejected before controller. |
+| Product | Current API accepts image URL arrays, not dashboard file uploads | No product multipart upload route | Web product media UI needs an explicit upload/storage contract before #93 | Product media upload endpoint is missing. |
+
+The upload middleware permits JPEG, PNG, and WebP images, limits each file to 5 MB, and reports type/size errors through the global error envelope. Field-count limits are route-specific (`single` or bounded arrays) and must remain declared in OpenAPI and shared validation so the browser can reject invalid selections early.
+
+## Stripe Connect redirect contract
+
+1. An approved vendor requests `POST /vendor-payouts/connect/onboard`.
+2. The backend creates/reuses the Stripe connected account and account link, returning a Stripe-hosted HTTPS URL.
+3. The browser performs a top-level navigation to that URL. The URL must never be embedded as trusted application HTML or accepted from a client-provided redirect target.
+4. Stripe returns to the backend-configured application return route. The web app ignores return parameters as proof of completion and calls `GET /vendor-payouts/connect/status`.
+5. If Stripe sends the vendor to the refresh route, the application calls the refresh endpoint once, navigates to the returned URL, and guards against loops/failures.
+6. `onboardingStatus`, `chargesEnabled`, `payoutsEnabled`, and `detailsSubmitted` control the restricted or incomplete UI. There is no `connected` response field. Webhooks/backend reconciliation remain authoritative for money movement.
+
+Environment-specific return and refresh origins must be allowlisted configuration, not request input. The browser flow must cover popup blockers only if a popup is used; top-level navigation is the preferred baseline.
+
+## OpenAPI discrepancy register
+
+| ID | Runtime/documentation discrepancy | Migration decision | Follow-up |
+|---|---|---|---|
+| API-01 | No authenticated vendor inventory endpoint; public catalog excludes inactive products and trusts a query vendor ID | Add session-derived vendor inventory list/detail contract | #129 |
+| API-02 | No vendor-owned order-detail endpoint | Add direct-load detail endpoint | #129 |
+| API-03 | No admin user/vendor/product detail endpoints | Add admin detail contracts with role enforcement | #134 |
+| API-04 | Vendor search OpenAPI claims owner email; service searches store name only | Decide and align runtime, validation tests, and OpenAPI | #134 |
+| API-05 | Category reads stop at three levels while writes permit deeper/cyclic descendants | Return a complete tree or enforce a documented maximum depth and cycle prevention | #131 |
+| API-06 | Category image requiredness differs and replacement/delete leave orphaned media | Define requiredness and cleanup semantics | #131 |
+| API-07 | Banner OpenAPI permits image-only update but runtime body validation rejects it | Make uploaded image satisfy update validation | #133 |
+| API-08 | Banner reorder is multi-request/non-atomic and may be unreachable in Flutter | Add atomic reorder only if #112 retains the requirement | Link to #112 plus backend follow-up if retained. |
+| API-09 | Product, variant, and category update schemas accept empty objects and permit no-op mutations | Require at least one meaningful field and document the validation error | #129, #131, #130 |
+| API-10 | Admin order filtering uses any vendor sub-order while summary clients display the first status | Define per-vendor/mixed/aggregate representation and document filter semantics | #134 |
+| API-11 | Admin dashboard runtime returns `platformRevenue` as commission revenue while OpenAPI uses `totalRevenue` with gross-sounding semantics; `/admin/revenue` returns only gross series/dateRange and no totals | Correct keys, metric meanings, and response shapes; keep GMV labels or add an approved reporting contract | #130; frontend #113 |
+| API-12 | Product media has URL fields but no dashboard upload endpoint | Define secure media upload lifecycle | #135; frontend #93 |
+| API-13 | Promo delete is always soft delete but naming/documentation can imply permanent deletion | Document as archive/soft delete consistently | Link to #111. |
+| API-14 | Several upload cleanup behaviors are absent or best effort without a common response contract | Define mutation success versus media-cleanup observability | #131, #133, #135 |
+| API-15 | Refresh returns direct access/refresh token fields while login/register nest them under `tokens`; OpenAPI omits the refresh response's `refreshToken` | Preserve distinct schemas or standardize them during cookie migration and correct the spec | #82, #130 |
+| API-16 | Payout lists use resource-specific arrays plus `pagination` and zero empty pages; most dashboard lists use `items/meta` and one empty page | Standardize or explicitly generate both pagination families | #130 |
+| API-17 | Duplicate store/SKU and product deletion FK failures are inconsistently mapped to 400 or unknown 500 instead of stable conflict responses | Add explicit safe error mapping and integration tests | #129, #130 |
+| API-18 | Business-rule failures inconsistently use 400 and 409 across order/vendor/category mutations | Document intentional semantics and align OpenAPI examples/tests | #130, #134 |
+| API-19 | Admin product delete returns 204 while most mutations return a success envelope | Model the no-content response explicitly in OpenAPI/generated clients | #130 |
+| API-20 | Vendor profile, analytics, Connect-status, and earnings-summary OpenAPI examples use keys/shapes that differ materially from runtime | Define stable DTOs and correct generated schemas/examples with contract tests | #130 |
+| API-21 | Banner delete returns 204 empty while OpenAPI documents 200 | Model the no-content response and cleanup semantics | #133, #130 |
+
+## Follow-up issue requirements
+
+Confirmed gaps should be grouped into implementation-sized backend issues rather than hidden inside frontend work:
+
+1. #129 — vendor inventory, vendor order detail, variant lifecycle/no-op validation, and stable vendor product error mapping; blocks #89, #90, #92, and #94.
+2. #134 — admin user/vendor/product details, vendor search, and multi-vendor order semantics; blocks #105, #106, #108, and #109.
+3. #131 — category hierarchy, cycle/no-op validation, optional-image policy, and media cleanup; blocks #91 and #110.
+4. #133 — upload/OpenAPI alignment for vendor-profile lifecycle and banners, including image-only update; blocks #96 and #112.
+5. #135 — product media upload/storage contract; blocks #93.
+6. #130 — final OpenAPI reconciliation and contract-test coverage across both dashboards; blocks #81 and depends on the contract issues above.
+
+## Contract sign-off checklist
+
+- [ ] Every Flutter vendor/admin repository call appears in an inventory table.
+- [ ] Every web-required Stripe/payout capability appears in an inventory table.
+- [ ] Requests, responses, authorization, pagination, filters, and expected error states are explicit.
+- [ ] JSON, multipart, browser-cookie, and external redirect boundaries are defined.
+- [ ] Runtime/OpenAPI mismatches have a migration decision.
+- [ ] Every confirmed gap links to an implementation issue and dependent frontend issue.
+- [ ] Generated client work in #81 consumes the corrected spec rather than hand-maintained duplicate types.
+- [ ] Contract tests cover permission, validation, pagination, not-found, conflict, upload, and redirect cases.
+
+## Evidence references
+
+- Dashboard clients: `vendor_dashboard/lib/repositories/`, `admin_panel/lib/repositories/`, and their model consumers under `lib/features/`
+- Route registration: `backend/src/app.ts` and each `backend/src/modules/*/*.routes.ts`
+- Runtime request validation: each module's `*.validation.ts`, `backend/src/middleware/validate.ts`, and `backend/src/middleware/upload.ts`
+- Runtime response/error behavior: controllers, services, `backend/src/middleware/errorHandler.ts`, and `backend/src/utils/apiResponse.ts`
+- Authorization: `backend/src/middleware/auth.ts`, vendor-status helpers, and ownership checks in services
+- OpenAPI generation: `backend/src/config/swagger.ts` and `@openapi` blocks in route files
+- Migration requirements: `docs/migrations/vendor-dashboard-parity-matrix.md` and `docs/migrations/admin-panel-parity-matrix.md`
