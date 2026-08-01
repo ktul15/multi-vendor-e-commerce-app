@@ -9,8 +9,8 @@ class ReviewListCubit extends Cubit<ReviewListState> {
   ReviewListCubit({
     required ReviewRepository repository,
     required this.productId,
-  })  : _repository = repository,
-        super(const ReviewListInitial());
+  }) : _repository = repository,
+       super(const ReviewListInitial());
 
   /// Load the first page of reviews.
   Future<void> loadReviews() async {
@@ -18,17 +18,14 @@ class ReviewListCubit extends Cubit<ReviewListState> {
     if (current is ReviewListLoaded && current.isLoading) return;
 
     final sort = current is ReviewListLoaded ? current.sort : 'newest';
-    final filterRating =
-        current is ReviewListLoaded ? current.filterRating : null;
+    final filterRating = current is ReviewListLoaded
+        ? current.filterRating
+        : null;
 
     if (current is ReviewListLoaded) {
       emit(current.copyWith(isLoading: true, clearError: true));
     } else {
-      emit(const ReviewListLoaded(
-        reviews: [],
-        total: 0,
-        isLoading: true,
-      ));
+      emit(const ReviewListLoaded(reviews: [], total: 0, isLoading: true));
     }
 
     try {
@@ -38,14 +35,16 @@ class ReviewListCubit extends Cubit<ReviewListState> {
         rating: filterRating,
         sort: sort,
       );
-      emit(ReviewListLoaded(
-        reviews: result.items,
-        total: result.total,
-        page: result.page,
-        totalPages: result.totalPages,
-        filterRating: filterRating,
-        sort: sort,
-      ));
+      emit(
+        ReviewListLoaded(
+          reviews: result.items,
+          total: result.total,
+          page: result.page,
+          totalPages: result.totalPages,
+          filterRating: filterRating,
+          sort: sort,
+        ),
+      );
     } catch (e) {
       final s = state;
       if (s is ReviewListLoaded) {
@@ -70,13 +69,15 @@ class ReviewListCubit extends Cubit<ReviewListState> {
         rating: current.filterRating,
         sort: current.sort,
       );
-      emit(current.copyWith(
-        reviews: [...current.reviews, ...result.items],
-        total: result.total,
-        page: result.page,
-        totalPages: result.totalPages,
-        isLoadingMore: false,
-      ));
+      emit(
+        current.copyWith(
+          reviews: [...current.reviews, ...result.items],
+          total: result.total,
+          page: result.page,
+          totalPages: result.totalPages,
+          isLoadingMore: false,
+        ),
+      );
     } catch (e) {
       emit(current.copyWith(isLoadingMore: false, error: e.toString()));
     }

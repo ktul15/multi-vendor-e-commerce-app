@@ -40,10 +40,7 @@ class RatingBreakdown extends StatelessWidget {
             ),
             StarRatingDisplay(rating: avgRating, size: 16),
             const SizedBox(height: AppSpacing.xs),
-            Text(
-              '$totalReviews reviews',
-              style: AppTextStyles.caption,
-            ),
+            Text('$totalReviews reviews', style: AppTextStyles.caption),
           ],
         ),
         const SizedBox(width: AppSpacing.xl),
@@ -53,8 +50,7 @@ class RatingBreakdown extends StatelessWidget {
             children: List.generate(5, (i) {
               final star = 5 - i;
               final count = ratingCounts[star] ?? 0;
-              final fraction =
-                  totalReviews > 0 ? count / totalReviews : 0.0;
+              final fraction = totalReviews > 0 ? count / totalReviews : 0.0;
               final isSelected = selectedRating == star;
 
               return GestureDetector(
@@ -66,8 +62,9 @@ class RatingBreakdown extends StatelessWidget {
                       Text(
                         '$star',
                         style: AppTextStyles.caption.copyWith(
-                          fontWeight:
-                              isSelected ? FontWeight.w700 : FontWeight.w500,
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
                           color: isSelected
                               ? AppColors.primary
                               : AppColors.textSecondary,
@@ -77,7 +74,9 @@ class RatingBreakdown extends StatelessWidget {
                       Icon(
                         Icons.star_rounded,
                         size: 12,
-                        color: isSelected ? AppColors.primary : AppColors.rating,
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.rating,
                       ),
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(

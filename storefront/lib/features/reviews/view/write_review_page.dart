@@ -55,9 +55,9 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
 
   void _submit() {
     if (_rating == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a rating')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a rating')));
       return;
     }
 
@@ -85,9 +85,9 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
             );
             context.pop(true);
           } else if (state is WriteReviewDeleted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Review deleted')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Review deleted')));
             context.pop(true);
           } else if (state is WriteReviewError) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -182,9 +182,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                                 ),
                               )
                             : Text(
-                                _isEditing
-                                    ? 'Update Review'
-                                    : 'Submit Review',
+                                _isEditing ? 'Update Review' : 'Submit Review',
                               ),
                       ),
                     );

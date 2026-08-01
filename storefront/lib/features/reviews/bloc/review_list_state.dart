@@ -78,14 +78,14 @@ class ReviewListLoaded extends ReviewListState {
 
   @override
   List<Object?> get props => [
-        reviews,
-        total,
-        page,
-        totalPages,
-        isLoading,
-        isLoadingMore,
-        error,
-        filterRating,
-        sort,
-      ];
+    reviews,
+    total,
+    page,
+    totalPages,
+    isLoading,
+    isLoadingMore,
+    error,
+    filterRating,
+    sort,
+  ];
 }

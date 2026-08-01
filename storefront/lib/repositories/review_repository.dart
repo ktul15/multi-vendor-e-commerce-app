@@ -15,10 +15,7 @@ class ReviewRepository {
     int? rating,
     String? sort,
   }) async {
-    final params = <String, String>{
-      'page': '$page',
-      'limit': '$limit',
-    };
+    final params = <String, String>{'page': '$page', 'limit': '$limit'};
     if (rating != null) params['rating'] = '$rating';
     if (sort != null) params['sort'] = sort;
 
@@ -48,10 +45,7 @@ class ReviewRepository {
   }
 
   /// Fetch the current user's reviews with pagination.
-  Future<ReviewsPageData> getMyReviews({
-    int page = 1,
-    int limit = 10,
-  }) async {
+  Future<ReviewsPageData> getMyReviews({int page = 1, int limit = 10}) async {
     final body = await _client.get(
       '/reviews/my-reviews',
       queryParameters: {'page': '$page', 'limit': '$limit'},
@@ -83,10 +77,7 @@ class ReviewRepository {
     required int rating,
     String? comment,
   }) async {
-    final payload = <String, dynamic>{
-      'productId': productId,
-      'rating': rating,
-    };
+    final payload = <String, dynamic>{'productId': productId, 'rating': rating};
     if (comment != null && comment.isNotEmpty) {
       payload['comment'] = comment;
     }

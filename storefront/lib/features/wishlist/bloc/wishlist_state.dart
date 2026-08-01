@@ -64,13 +64,13 @@ class WishlistLoaded extends WishlistState {
 
   @override
   List<Object?> get props => [
-        items,
-        total,
-        page,
-        totalPages,
-        isLoading,
-        isLoadingMore,
-        error,
-        productIds,
-      ];
+    items,
+    total,
+    page,
+    totalPages,
+    isLoading,
+    isLoadingMore,
+    error,
+    productIds,
+  ];
 }

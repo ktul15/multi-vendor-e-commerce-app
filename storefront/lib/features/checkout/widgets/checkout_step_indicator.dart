@@ -6,10 +6,10 @@ class CheckoutStepIndicator extends StatelessWidget {
   final int currentStep; // 1-indexed: 1 = Address, 2 = Summary, 3 = Payment
 
   const CheckoutStepIndicator({super.key, required this.currentStep})
-      : assert(
-          currentStep >= 1 && currentStep <= 3,
-          'currentStep must be between 1 and 3',
-        );
+    : assert(
+        currentStep >= 1 && currentStep <= 3,
+        'currentStep must be between 1 and 3',
+      );
 
   static const _labels = ['Address', 'Summary', 'Payment'];
 
@@ -58,8 +58,9 @@ class _StepCircle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        (isActive || isDone) ? AppColors.primary : AppColors.textSecondary;
+    final color = (isActive || isDone)
+        ? AppColors.primary
+        : AppColors.textSecondary;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -69,7 +70,9 @@ class _StepCircle extends StatelessWidget {
           height: 28,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: (isActive || isDone) ? AppColors.primary : Colors.transparent,
+            color: (isActive || isDone)
+                ? AppColors.primary
+                : Colors.transparent,
             border: Border.all(color: color, width: 2),
           ),
           child: Center(

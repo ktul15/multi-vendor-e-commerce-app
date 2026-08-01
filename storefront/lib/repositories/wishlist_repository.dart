@@ -8,10 +8,7 @@ class WishlistRepository {
   WishlistRepository({required HttpClient client}) : _client = client;
 
   /// Fetch the user's wishlist with pagination.
-  Future<WishlistPageData> getWishlist({
-    int page = 1,
-    int limit = 10,
-  }) async {
+  Future<WishlistPageData> getWishlist({int page = 1, int limit = 10}) async {
     final body = await _client.get(
       '/wishlist',
       queryParameters: {'page': '$page', 'limit': '$limit'},

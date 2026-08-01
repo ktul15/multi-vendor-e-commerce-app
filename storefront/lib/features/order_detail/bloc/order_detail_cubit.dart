@@ -8,8 +8,8 @@ class OrderDetailCubit extends Cubit<OrderDetailState> {
   final OrderRepository _repository;
 
   OrderDetailCubit({required OrderRepository repository})
-      : _repository = repository,
-        super(const OrderDetailInitial());
+    : _repository = repository,
+      super(const OrderDetailInitial());
 
   Future<void> loadOrder(String id) async {
     if (state is OrderDetailLoading) return;

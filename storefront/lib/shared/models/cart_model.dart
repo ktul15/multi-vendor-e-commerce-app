@@ -67,21 +67,21 @@ class CartItemModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        cartId,
-        quantity,
-        variantId,
-        variantSize,
-        variantColor,
-        variantPrice,
-        variantStock,
-        variantSku,
-        productId,
-        productName,
-        productImages,
-        vendorId,
-        vendorName,
-      ];
+    id,
+    cartId,
+    quantity,
+    variantId,
+    variantSize,
+    variantColor,
+    variantPrice,
+    variantStock,
+    variantSku,
+    productId,
+    productName,
+    productImages,
+    vendorId,
+    vendorName,
+  ];
 }
 
 class CartVendorGroup extends Equatable {
@@ -125,11 +125,13 @@ class CartModel extends Equatable {
       map.putIfAbsent(item.vendorId, () => []).add(item);
     }
     return map.entries
-        .map((e) => CartVendorGroup(
-              vendorId: e.key,
-              vendorName: e.value.first.vendorName,
-              items: e.value,
-            ))
+        .map(
+          (e) => CartVendorGroup(
+            vendorId: e.key,
+            vendorName: e.value.first.vendorName,
+            items: e.value,
+          ),
+        )
         .toList();
   }
 
@@ -181,12 +183,12 @@ class PromoPreviewModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        code,
-        discountType,
-        discountValue,
-        maxDiscount,
-        discountAmount,
-        subtotal,
-        total,
-      ];
+    code,
+    discountType,
+    discountValue,
+    maxDiscount,
+    discountAmount,
+    subtotal,
+    total,
+  ];
 }

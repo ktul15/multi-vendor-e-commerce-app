@@ -6,8 +6,8 @@ class WishlistCubit extends Cubit<WishlistState> {
   final WishlistRepository _repository;
 
   WishlistCubit({required WishlistRepository repository})
-      : _repository = repository,
-        super(const WishlistInitial());
+    : _repository = repository,
+      super(const WishlistInitial());
 
   /// Load the first page of the wishlist.
   Future<void> loadWishlist() async {
@@ -17,24 +17,28 @@ class WishlistCubit extends Cubit<WishlistState> {
     if (current is WishlistLoaded) {
       emit(current.copyWith(isLoading: true, clearError: true));
     } else {
-      emit(const WishlistLoaded(
-        items: [],
-        total: 0,
-        isLoading: true,
-        productIds: {},
-      ));
+      emit(
+        const WishlistLoaded(
+          items: [],
+          total: 0,
+          isLoading: true,
+          productIds: {},
+        ),
+      );
     }
 
     try {
       final result = await _repository.getWishlist(page: 1);
       final ids = result.items.map((i) => i.productId).toSet();
-      emit(WishlistLoaded(
-        items: result.items,
-        total: result.total,
-        page: result.page,
-        totalPages: result.totalPages,
-        productIds: ids,
-      ));
+      emit(
+        WishlistLoaded(
+          items: result.items,
+          total: result.total,
+          page: result.page,
+          totalPages: result.totalPages,
+          productIds: ids,
+        ),
+      );
     } catch (e) {
       final s = state;
       if (s is WishlistLoaded) {
@@ -55,14 +59,16 @@ class WishlistCubit extends Cubit<WishlistState> {
       final nextPage = current.page + 1;
       final result = await _repository.getWishlist(page: nextPage);
       final newIds = result.items.map((i) => i.productId).toSet();
-      emit(current.copyWith(
-        items: [...current.items, ...result.items],
-        total: result.total,
-        page: result.page,
-        totalPages: result.totalPages,
-        isLoadingMore: false,
-        productIds: {...current.productIds, ...newIds},
-      ));
+      emit(
+        current.copyWith(
+          items: [...current.items, ...result.items],
+          total: result.total,
+          page: result.page,
+          totalPages: result.totalPages,
+          isLoadingMore: false,
+          productIds: {...current.productIds, ...newIds},
+        ),
+      );
     } catch (e) {
       emit(current.copyWith(isLoadingMore: false, error: e.toString()));
     }
@@ -73,19 +79,13 @@ class WishlistCubit extends Cubit<WishlistState> {
     final current = state;
     if (current is! WishlistLoaded) {
       // Bootstrap a minimal loaded state so the heart icon updates.
-      emit(WishlistLoaded(
-        items: const [],
-        total: 0,
-        productIds: {productId},
-      ));
+      emit(WishlistLoaded(items: const [], total: 0, productIds: {productId}));
       try {
         final action = await _repository.toggle(productId);
         final s = state;
         if (s is WishlistLoaded) {
           if (action == 'removed') {
-            emit(s.copyWith(
-              productIds: {...s.productIds}..remove(productId),
-            ));
+            emit(s.copyWith(productIds: {...s.productIds}..remove(productId)));
           }
         }
       } catch (_) {
@@ -98,16 +98,18 @@ class WishlistCubit extends Cubit<WishlistState> {
 
     // Optimistic update
     if (wasInWishlist) {
-      final updated = current.items.where((i) => i.productId != productId).toList();
-      emit(current.copyWith(
-        items: updated,
-        total: current.total - 1,
-        productIds: {...current.productIds}..remove(productId),
-      ));
+      final updated = current.items
+          .where((i) => i.productId != productId)
+          .toList();
+      emit(
+        current.copyWith(
+          items: updated,
+          total: current.total - 1,
+          productIds: {...current.productIds}..remove(productId),
+        ),
+      );
     } else {
-      emit(current.copyWith(
-        productIds: {...current.productIds, productId},
-      ));
+      emit(current.copyWith(productIds: {...current.productIds, productId}));
     }
 
     try {
@@ -124,12 +126,16 @@ class WishlistCubit extends Cubit<WishlistState> {
     final current = state;
     if (current is! WishlistLoaded) return;
 
-    final updated = current.items.where((i) => i.productId != productId).toList();
-    emit(current.copyWith(
-      items: updated,
-      total: current.total - 1,
-      productIds: {...current.productIds}..remove(productId),
-    ));
+    final updated = current.items
+        .where((i) => i.productId != productId)
+        .toList();
+    emit(
+      current.copyWith(
+        items: updated,
+        total: current.total - 1,
+        productIds: {...current.productIds}..remove(productId),
+      ),
+    );
 
     try {
       await _repository.remove(productId);

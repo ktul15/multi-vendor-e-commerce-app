@@ -19,11 +19,13 @@ class HomeCubit extends Cubit<HomeState> {
         _repository.getNewArrivals(),
       ).wait;
 
-      emit(HomeLoaded(
-        categories: results.$1,
-        trendingProducts: results.$2,
-        newArrivals: results.$3,
-      ));
+      emit(
+        HomeLoaded(
+          categories: results.$1,
+          trendingProducts: results.$2,
+          newArrivals: results.$3,
+        ),
+      );
     } on ApiException catch (e) {
       emit(HomeError(e.message));
     } on NetworkException catch (e) {

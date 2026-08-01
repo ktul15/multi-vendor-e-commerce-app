@@ -80,8 +80,7 @@ class _WishlistPageState extends State<WishlistPage> {
               onRefresh: () => sl<WishlistCubit>().loadWishlist(),
               child: ListView.separated(
                 controller: _scrollController,
-                itemCount:
-                    loaded.items.length + (loaded.isLoadingMore ? 1 : 0),
+                itemCount: loaded.items.length + (loaded.isLoadingMore ? 1 : 0),
                 separatorBuilder: (_, _) =>
                     const Divider(height: 1, indent: AppSpacing.base),
                 itemBuilder: (context, index) {
@@ -107,9 +106,9 @@ class _WishlistPageState extends State<WishlistPage> {
                     ),
                     confirmDismiss: (_) async {
                       try {
-                        await context
-                            .read<WishlistCubit>()
-                            .removeProduct(item.productId);
+                        await context.read<WishlistCubit>().removeProduct(
+                          item.productId,
+                        );
                         return true;
                       } catch (_) {
                         return false;
@@ -126,13 +125,12 @@ class _WishlistPageState extends State<WishlistPage> {
                           .removeProduct(item.productId),
                       onMoveToCart: () {
                         context.read<CartCubit>().addItem(item.productId, 1);
-                        context
-                            .read<WishlistCubit>()
-                            .removeProduct(item.productId);
+                        context.read<WishlistCubit>().removeProduct(
+                          item.productId,
+                        );
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(
-                                '${item.product.name} moved to cart'),
+                            content: Text('${item.product.name} moved to cart'),
                             duration: const Duration(seconds: 2),
                           ),
                         );

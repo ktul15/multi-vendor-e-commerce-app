@@ -13,9 +13,10 @@ enum ProductSort {
   final String label;
   const ProductSort(this.value, this.label);
 
-  static ProductSort fromValue(String value) =>
-      ProductSort.values.firstWhere((s) => s.value == value,
-          orElse: () => ProductSort.newest);
+  static ProductSort fromValue(String value) => ProductSort.values.firstWhere(
+    (s) => s.value == value,
+    orElse: () => ProductSort.newest,
+  );
 }
 
 /// Immutable filter/sort state for the product listing.
@@ -48,12 +49,8 @@ class ProductFilters extends Equatable {
       inStock != null;
 
   /// Same exclusion rationale as [hasActiveFilters].
-  int get activeFilterCount => [
-        minPrice,
-        maxPrice,
-        minRating,
-        inStock,
-      ].where((f) => f != null).length;
+  int get activeFilterCount =>
+      [minPrice, maxPrice, minRating, inStock].where((f) => f != null).length;
 
   ProductFilters copyWith({
     ProductSort? sort,
@@ -80,11 +77,8 @@ class ProductFilters extends Equatable {
   }
 
   /// Returns a fresh filters object with only the categoryId/vendorId preserved.
-  ProductFilters resetFilters() => ProductFilters(
-        sort: sort,
-        categoryId: categoryId,
-        vendorId: vendorId,
-      );
+  ProductFilters resetFilters() =>
+      ProductFilters(sort: sort, categoryId: categoryId, vendorId: vendorId);
 
   Map<String, dynamic> toQueryParams(int page, int limit) {
     return {
@@ -101,8 +95,15 @@ class ProductFilters extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [sort, minPrice, maxPrice, minRating, inStock, categoryId, vendorId];
+  List<Object?> get props => [
+    sort,
+    minPrice,
+    maxPrice,
+    minRating,
+    inStock,
+    categoryId,
+    vendorId,
+  ];
 }
 
 /// Pagination metadata from the API.

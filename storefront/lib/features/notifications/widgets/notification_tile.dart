@@ -78,7 +78,11 @@ class NotificationTile extends StatelessWidget {
                 color: color.withAlpha(25),
                 borderRadius: BorderRadius.circular(AppSpacing.sm),
               ),
-              child: Icon(_iconForType(notification.type), color: color, size: 20),
+              child: Icon(
+                _iconForType(notification.type),
+                color: color,
+                size: 20,
+              ),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(

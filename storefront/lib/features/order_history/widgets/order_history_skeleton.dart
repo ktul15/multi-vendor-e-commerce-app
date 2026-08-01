@@ -17,7 +17,8 @@ class OrderHistorySkeleton extends StatelessWidget {
       ),
       physics: const NeverScrollableScrollPhysics(),
       itemCount: 5,
-      separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.sm),
+      separatorBuilder: (context, index) =>
+          const SizedBox(height: AppSpacing.sm),
       itemBuilder: (context, index) => const _OrderCardSkeleton(),
     );
   }

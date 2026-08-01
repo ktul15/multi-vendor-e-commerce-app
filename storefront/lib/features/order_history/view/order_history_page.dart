@@ -95,13 +95,13 @@ class _OrderHistoryViewState extends State<_OrderHistoryView> {
           Expanded(
             child: BlocBuilder<OrderListCubit, OrderListState>(
               builder: (context, state) => switch (state) {
-                OrderListInitial() ||
-                OrderListLoading() =>
-                  SkeletonContainer(child: const OrderHistorySkeleton()),
+                OrderListInitial() || OrderListLoading() => SkeletonContainer(
+                  child: const OrderHistorySkeleton(),
+                ),
                 OrderListError(:final message) => ErrorState(
-                    message: message,
-                    onRetry: () => context.read<OrderListCubit>().refresh(),
-                  ),
+                  message: message,
+                  onRetry: () => context.read<OrderListCubit>().refresh(),
+                ),
                 OrderListLoaded(:final orders, :final isLoadingMore) =>
                   orders.isEmpty
                       ? const EmptyState(
@@ -126,7 +126,8 @@ class _OrderHistoryViewState extends State<_OrderHistoryView> {
                                   padding: EdgeInsets.all(AppSpacing.base),
                                   child: Center(
                                     child: CircularProgressIndicator(
-                                        strokeWidth: 2),
+                                      strokeWidth: 2,
+                                    ),
                                   ),
                                 );
                               }
@@ -188,7 +189,9 @@ class _FilterTabBar extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   showCheckmark: false,
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                  ),
                 ),
               );
             },
@@ -198,4 +201,3 @@ class _FilterTabBar extends StatelessWidget {
     );
   }
 }
-

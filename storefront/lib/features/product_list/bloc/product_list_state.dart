@@ -62,14 +62,14 @@ class ProductListLoaded extends ProductListState {
 
   @override
   List<Object?> get props => [
-        products,
-        total,
-        currentPage,
-        totalPages,
-        filters,
-        viewMode,
-        isLoadingMore,
-      ];
+    products,
+    total,
+    currentPage,
+    totalPages,
+    filters,
+    viewMode,
+    isLoadingMore,
+  ];
 }
 
 class ProductListError extends ProductListState {

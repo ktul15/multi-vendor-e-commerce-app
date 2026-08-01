@@ -10,8 +10,8 @@ class ProductListCubit extends Cubit<ProductListState> {
   static const int _pageSize = 20;
 
   ProductListCubit({required ProductListRepository repository})
-      : _repository = repository,
-        super(const ProductListInitial());
+    : _repository = repository,
+      super(const ProductListInitial());
 
   /// Initial load with given filters (resets any existing products).
   Future<void> loadProducts({ProductFilters? filters}) async {
@@ -23,13 +23,15 @@ class ProductListCubit extends Cubit<ProductListState> {
         page: 1,
         limit: _pageSize,
       );
-      emit(ProductListLoaded(
-        products: page.items,
-        total: page.total,
-        currentPage: page.page,
-        totalPages: page.totalPages,
-        filters: activeFilters,
-      ));
+      emit(
+        ProductListLoaded(
+          products: page.items,
+          total: page.total,
+          currentPage: page.page,
+          totalPages: page.totalPages,
+          filters: activeFilters,
+        ),
+      );
     } on ApiException catch (e) {
       emit(ProductListError(message: e.message, filters: activeFilters));
     } on NetworkException catch (e) {
@@ -52,13 +54,15 @@ class ProductListCubit extends Cubit<ProductListState> {
         page: current.currentPage + 1,
         limit: _pageSize,
       );
-      emit(current.copyWith(
-        products: [...current.products, ...page.items],
-        currentPage: page.page,
-        totalPages: page.totalPages,
-        total: page.total,
-        isLoadingMore: false,
-      ));
+      emit(
+        current.copyWith(
+          products: [...current.products, ...page.items],
+          currentPage: page.page,
+          totalPages: page.totalPages,
+          total: page.total,
+          isLoadingMore: false,
+        ),
+      );
     } catch (_) {
       // On load-more failure, restore previous state without the loading flag
       emit(current.copyWith(isLoadingMore: false));
@@ -75,8 +79,8 @@ class ProductListCubit extends Cubit<ProductListState> {
     final currentFilters = current is ProductListLoaded
         ? current.filters
         : current is ProductListError
-            ? current.filters
-            : const ProductFilters();
+        ? current.filters
+        : const ProductFilters();
     return loadProducts(filters: currentFilters.copyWith(sort: sort));
   }
 
@@ -96,8 +100,8 @@ class ProductListCubit extends Cubit<ProductListState> {
     final filters = current is ProductListLoaded
         ? current.filters
         : current is ProductListError
-            ? current.filters
-            : const ProductFilters();
+        ? current.filters
+        : const ProductFilters();
     return loadProducts(filters: filters);
   }
 }

@@ -11,8 +11,8 @@ class WriteReviewCubit extends Cubit<WriteReviewState> {
     required ReviewRepository repository,
     required this.productId,
     ReviewModel? existingReview,
-  })  : _repository = repository,
-        super(WriteReviewInitial(existingReview: existingReview));
+  }) : _repository = repository,
+       super(WriteReviewInitial(existingReview: existingReview));
 
   /// Submit a new review or update an existing one.
   Future<void> submit({

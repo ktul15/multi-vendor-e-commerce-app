@@ -9,8 +9,8 @@ class OrderListCubit extends Cubit<OrderListState> {
   static const int _pageSize = 10;
 
   OrderListCubit({required OrderRepository repository})
-      : _repository = repository,
-        super(const OrderListInitial());
+    : _repository = repository,
+      super(const OrderListInitial());
 
   /// Load orders from page 1 with an optional status filter.
   Future<void> loadOrders({String? statusFilter}) async {
@@ -21,13 +21,15 @@ class OrderListCubit extends Cubit<OrderListState> {
         limit: _pageSize,
         status: statusFilter,
       );
-      emit(OrderListLoaded(
-        orders: page.items,
-        total: page.total,
-        currentPage: page.page,
-        totalPages: page.totalPages,
-        activeFilter: statusFilter,
-      ));
+      emit(
+        OrderListLoaded(
+          orders: page.items,
+          total: page.total,
+          currentPage: page.page,
+          totalPages: page.totalPages,
+          activeFilter: statusFilter,
+        ),
+      );
     } on ApiException catch (e) {
       emit(OrderListError(message: e.message, activeFilter: statusFilter));
     } on NetworkException catch (e) {
@@ -50,13 +52,15 @@ class OrderListCubit extends Cubit<OrderListState> {
         limit: _pageSize,
         status: current.activeFilter,
       );
-      emit(current.copyWith(
-        orders: [...current.orders, ...page.items],
-        currentPage: page.page,
-        totalPages: page.totalPages,
-        total: page.total,
-        isLoadingMore: false,
-      ));
+      emit(
+        current.copyWith(
+          orders: [...current.orders, ...page.items],
+          currentPage: page.page,
+          totalPages: page.totalPages,
+          total: page.total,
+          isLoadingMore: false,
+        ),
+      );
     } catch (_) {
       emit(current.copyWith(isLoadingMore: false));
     }
@@ -74,8 +78,8 @@ class OrderListCubit extends Cubit<OrderListState> {
     final filter = current is OrderListLoaded
         ? current.activeFilter
         : current is OrderListError
-            ? current.activeFilter
-            : null;
+        ? current.activeFilter
+        : null;
     return loadOrders(statusFilter: filter);
   }
 }

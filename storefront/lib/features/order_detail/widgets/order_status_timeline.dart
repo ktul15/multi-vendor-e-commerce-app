@@ -21,18 +21,19 @@ class OrderStatusTimeline extends StatelessWidget {
 
   /// Maps an order status to the active step index (0-3), or -1 for cancelled/refunded.
   static int _activeIndex(String status) => switch (status.toUpperCase()) {
-        'PENDING' => 0,
-        'CONFIRMED' || 'PROCESSING' => 1,
-        'SHIPPED' => 2,
-        'DELIVERED' => 3,
-        _ => -1, // CANCELLED, REFUNDED
-      };
+    'PENDING' => 0,
+    'CONFIRMED' || 'PROCESSING' => 1,
+    'SHIPPED' => 2,
+    'DELIVERED' => 3,
+    _ => -1, // CANCELLED, REFUNDED
+  };
 
   @override
   Widget build(BuildContext context) {
     final activeIdx = _activeIndex(status);
     final isCancelled =
-        status.toUpperCase() == 'CANCELLED' || status.toUpperCase() == 'REFUNDED';
+        status.toUpperCase() == 'CANCELLED' ||
+        status.toUpperCase() == 'REFUNDED';
 
     return Card(
       elevation: 0,
@@ -152,10 +153,7 @@ class _TimelineStep extends StatelessWidget {
         Container(
           width: 36,
           height: 36,
-          decoration: BoxDecoration(
-            color: circleColor,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: circleColor, shape: BoxShape.circle),
           child: Icon(icon, size: 18, color: iconColor),
         ),
         const SizedBox(width: AppSpacing.md),
@@ -163,7 +161,9 @@ class _TimelineStep extends StatelessWidget {
           label,
           style: AppTextStyles.body.copyWith(
             color: textColor,
-            fontWeight: (isCompleted || isActive) ? FontWeight.w600 : FontWeight.w400,
+            fontWeight: (isCompleted || isActive)
+                ? FontWeight.w600
+                : FontWeight.w400,
           ),
         ),
         if (isCompleted) ...[
@@ -192,18 +192,12 @@ class _TimelineConnector extends StatelessWidget {
     final color = isCancelled
         ? AppColors.border
         : isCompleted
-            ? AppColors.success
-            : AppColors.border;
+        ? AppColors.success
+        : AppColors.border;
 
     return Padding(
-      padding: const EdgeInsets.only(
-        left: (_circleSize - _lineWidth) / 2,
-      ),
-      child: Container(
-        width: _lineWidth,
-        height: 24,
-        color: color,
-      ),
+      padding: const EdgeInsets.only(left: (_circleSize - _lineWidth) / 2),
+      child: Container(width: _lineWidth, height: 24, color: color),
     );
   }
 }
