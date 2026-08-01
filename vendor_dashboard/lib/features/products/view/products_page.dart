@@ -59,6 +59,7 @@ class _ProductsView extends StatelessWidget {
         description: result.description,
         basePrice: result.basePrice,
         categoryId: result.categoryId!,
+        variants: result.variants,
         isActive: result.isActive,
       );
     }
@@ -106,6 +107,7 @@ class _ProductsView extends StatelessWidget {
         description: result.description,
         basePrice: result.basePrice,
         isActive: result.isActive,
+        variants: result.variants,
       );
     }
   }

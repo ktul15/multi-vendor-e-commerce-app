@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/network/error_messages.dart';
 import '../../../repositories/product_repository.dart';
+import '../../../shared/models/product.dart';
 import 'products_state.dart';
 
 class ProductsCubit extends Cubit<ProductsState> {
@@ -66,6 +67,7 @@ class ProductsCubit extends Cubit<ProductsState> {
     required String description,
     required double basePrice,
     required String categoryId,
+    required List<ProductVariantDraft> variants,
     bool isActive = true,
   }) async {
     try {
@@ -74,6 +76,7 @@ class ProductsCubit extends Cubit<ProductsState> {
         description: description,
         basePrice: basePrice,
         categoryId: categoryId,
+        variants: variants,
         isActive: isActive,
       );
       await load();
@@ -88,6 +91,7 @@ class ProductsCubit extends Cubit<ProductsState> {
     String? description,
     double? basePrice,
     bool? isActive,
+    List<ProductVariantDraft>? variants,
   }) async {
     try {
       await _productRepository.updateProduct(
@@ -97,6 +101,13 @@ class ProductsCubit extends Cubit<ProductsState> {
         basePrice: basePrice,
         isActive: isActive,
       );
+      for (final variant in variants ?? const <ProductVariantDraft>[]) {
+        if (variant.id == null) {
+          await _productRepository.addVariant(productId, variant);
+        } else {
+          await _productRepository.updateVariant(productId, variant);
+        }
+      }
       await load();
     } catch (e) {
       emit(ProductsError(userFacingErrorMessage(e)));

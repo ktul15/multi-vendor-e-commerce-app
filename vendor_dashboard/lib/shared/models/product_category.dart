@@ -26,9 +26,20 @@ class ProductCategory {
 
 class CategoryOption {
   final String id;
-  final String label;
+  final String name;
+  final List<String> path;
+  final int depth;
+  final bool hasChildren;
 
-  const CategoryOption({required this.id, required this.label});
+  const CategoryOption({
+    required this.id,
+    required this.name,
+    required this.path,
+    required this.depth,
+    required this.hasChildren,
+  });
+
+  String get label => path.join(' / ');
 }
 
 List<CategoryOption> flattenCategoryOptions(List<ProductCategory> categories) {
@@ -36,7 +47,15 @@ List<CategoryOption> flattenCategoryOptions(List<ProductCategory> categories) {
 
   void addCategory(ProductCategory category, List<String> parents) {
     final path = [...parents, category.name];
-    options.add(CategoryOption(id: category.id, label: path.join(' / ')));
+    options.add(
+      CategoryOption(
+        id: category.id,
+        name: category.name,
+        path: path,
+        depth: parents.length,
+        hasChildren: category.children.isNotEmpty,
+      ),
+    );
 
     for (final child in category.children) {
       addCategory(child, path);

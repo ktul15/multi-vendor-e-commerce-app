@@ -46,6 +46,7 @@ class ProductRepository {
     required String description,
     required double basePrice,
     required String categoryId,
+    required List<ProductVariantDraft> variants,
     bool isActive = true,
   }) async {
     final response = await _dio.post(
@@ -55,10 +56,25 @@ class ProductRepository {
         'description': description,
         'basePrice': basePrice,
         'categoryId': categoryId,
+        'variants': variants.map((variant) => variant.toJson()).toList(),
         'isActive': isActive,
       },
     );
     return Product.fromJson(response.data['data'] as Map<String, dynamic>);
+  }
+
+  Future<void> addVariant(String productId, ProductVariantDraft variant) async {
+    await _dio.post('/products/$productId/variants', data: variant.toJson());
+  }
+
+  Future<void> updateVariant(
+    String productId,
+    ProductVariantDraft variant,
+  ) async {
+    await _dio.put(
+      '/products/$productId/variants/${variant.id}',
+      data: variant.toJson(),
+    );
   }
 
   Future<Product> updateProduct(

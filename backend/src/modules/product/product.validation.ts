@@ -17,7 +17,7 @@ export const createProductSchema = z.object({
     images: z.array(z.string().url('Invalid image URL')).max(5, 'Maximum 5 images allowed').optional().default([]),
     isActive: z.boolean().optional().default(true),
     tags: z.array(z.string()).optional().default([]),
-    variants: z.array(variantSchema).optional().default([]),
+    variants: z.array(variantSchema).min(1, 'At least one variant is required'),
 });
 
 export const updateProductSchema = z.object({

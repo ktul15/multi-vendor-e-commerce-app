@@ -106,12 +106,20 @@ describe('Product API (Issue #20)', () => {
                     name: 'The Great Gatsby',
                     description: 'A classic novel by F. Scott Fitzgerald.',
                     basePrice: 15.99,
+                    variants: [
+                        {
+                            sku: 'BOOK-GATSBY-DEFAULT',
+                            price: 15.99,
+                            stock: 25,
+                        },
+                    ],
                 });
 
             expect(res.status).toBe(201);
             expect(res.body.success).toBe(true);
             expect(res.body.data.name).toBe('The Great Gatsby');
             expect(res.body.data.vendorId).toBe(vendorId);
+            expect(res.body.data.variants).toHaveLength(1);
             productId = res.body.data.id;
         });
 

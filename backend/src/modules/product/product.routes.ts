@@ -154,7 +154,7 @@ router.use(authenticate, authorize(Role.VENDOR));
  *         application/json:
  *           schema:
  *             type: object
- *             required: [categoryId, name, description, basePrice]
+ *             required: [categoryId, name, description, basePrice, variants]
  *             properties:
  *               categoryId:
  *                 type: string
@@ -184,6 +184,7 @@ router.use(authenticate, authorize(Role.VENDOR));
  *                 example: [electronics, audio]
  *               variants:
  *                 type: array
+ *                 minItems: 1
  *                 items:
  *                   type: object
  *                   required: [sku, price]
