@@ -18,12 +18,20 @@ export const createAddressSchema = z.object({
 export const updateAddressSchema = z
     .object({
         fullName: z.string().min(1).optional(),
-        phone: z.string().min(7).max(20).optional(),
+        phone: z
+            .string()
+            .min(7, 'Phone must be at least 7 characters')
+            .max(20, 'Phone must be at most 20 characters')
+            .optional(),
         street: z.string().min(1).optional(),
         city: z.string().min(1).optional(),
         state: z.string().min(1).optional(),
         country: z.string().length(2).toUpperCase().optional(),
-        zipCode: z.string().min(3).max(10).optional(),
+        zipCode: z
+            .string()
+            .min(3, 'Zip code must be at least 3 characters')
+            .max(10, 'Zip code must be at most 10 characters')
+            .optional(),
         isDefault: z.boolean().optional(),
     })
     .refine((data) => Object.values(data).some((v) => v !== undefined), {

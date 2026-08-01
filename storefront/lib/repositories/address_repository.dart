@@ -27,16 +27,19 @@ class AddressRepository {
     required String zipCode,
     bool isDefault = false,
   }) async {
-    final body = await _client.post('/addresses', data: {
-      'fullName': fullName,
-      'phone': phone,
-      'street': street,
-      'city': city,
-      'state': state,
-      'country': country,
-      'zipCode': zipCode,
-      'isDefault': isDefault,
-    });
+    final body = await _client.post(
+      '/addresses',
+      data: {
+        'fullName': fullName,
+        'phone': phone,
+        'street': street,
+        'city': city,
+        'state': state,
+        'country': country,
+        'zipCode': zipCode,
+        'isDefault': isDefault,
+      },
+    );
     if (body == null || body['data'] is! Map) {
       throw const ApiException('Failed to create address');
     }
@@ -53,15 +56,18 @@ class AddressRepository {
     required String country,
     required String zipCode,
   }) async {
-    final body = await _client.put('/addresses/$id', data: {
-      'fullName': fullName,
-      'phone': phone,
-      'street': street,
-      'city': city,
-      'state': state,
-      'country': country,
-      'zipCode': zipCode,
-    });
+    final body = await _client.put(
+      '/addresses/$id',
+      data: {
+        'fullName': fullName,
+        'phone': phone,
+        'street': street,
+        'city': city,
+        'state': state,
+        'country': country,
+        'zipCode': zipCode,
+      },
+    );
     if (body == null || body['data'] is! Map) {
       throw const ApiException('Failed to update address');
     }

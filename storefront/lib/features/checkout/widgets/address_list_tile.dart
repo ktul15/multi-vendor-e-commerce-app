@@ -90,8 +90,7 @@ class AddressListTile extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: AppColors.primary.withAlpha(25),
-                            borderRadius:
-                                BorderRadius.circular(AppRadius.full),
+                            borderRadius: BorderRadius.circular(AppRadius.full),
                           ),
                           child: Text(
                             'Default',
@@ -106,14 +105,16 @@ class AddressListTile extends StatelessWidget {
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     address.phone,
-                    style: AppTextStyles.caption
-                        .copyWith(color: AppColors.textSecondary),
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     address.singleLine,
-                    style: AppTextStyles.caption
-                        .copyWith(color: AppColors.textSecondary),
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),

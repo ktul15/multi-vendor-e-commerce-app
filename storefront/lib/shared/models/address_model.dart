@@ -70,15 +70,15 @@ class AddressModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        userId,
-        fullName,
-        phone,
-        street,
-        city,
-        state,
-        country,
-        zipCode,
-        isDefault,
-      ];
+    id,
+    userId,
+    fullName,
+    phone,
+    street,
+    city,
+    state,
+    country,
+    zipCode,
+    isDefault,
+  ];
 }
