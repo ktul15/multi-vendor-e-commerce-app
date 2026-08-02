@@ -1,0 +1,18 @@
+:root {
+  color-scheme: light;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f7f7fb;
+  color: #171729;
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+main {
+  margin: 0 auto;
+  max-width: 72rem;
+  padding: 4rem 2rem;
+}
