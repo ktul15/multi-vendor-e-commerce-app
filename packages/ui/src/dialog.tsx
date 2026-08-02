@@ -10,9 +10,18 @@ export type DialogProps = Readonly<{
   onClose: () => void;
   open: boolean;
   title: string;
+  variant?: "modal" | "drawer";
 }>;
 
-export function Dialog({ children, description, footer, onClose, open, title }: DialogProps) {
+export function Dialog({
+  children,
+  description,
+  footer,
+  onClose,
+  open,
+  title,
+  variant = "modal",
+}: DialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closingFromPropsRef = useRef(false);
   const titleId = useId();
@@ -33,7 +42,7 @@ export function Dialog({ children, description, footer, onClose, open, title }: 
     <dialog
       aria-describedby={description ? descriptionId : undefined}
       aria-labelledby={titleId}
-      className="ui-dialog"
+      className={`ui-dialog ui-dialog--${variant}`}
       onCancel={(event) => {
         event.preventDefault();
         onClose();
@@ -48,7 +57,7 @@ export function Dialog({ children, description, footer, onClose, open, title }: 
       }}
       ref={dialogRef}
     >
-      <div className="ui-dialog__surface">
+      <div className={`ui-dialog__surface ui-dialog__surface--${variant}`}>
         <header className="ui-dialog__header">
           <div>
             <h2 className="ui-dialog__title" id={titleId}>

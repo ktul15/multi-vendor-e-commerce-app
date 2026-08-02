@@ -7,6 +7,14 @@ export { Card, CardContent, CardFooter, CardHeader, CardTitle } from "./card";
 export { ComponentShowcase } from "./component-showcase";
 export { Dialog } from "./dialog";
 export type { DialogProps } from "./dialog";
+export { DashboardError, DashboardLoading } from "./dashboard-feedback";
+export { DashboardShell } from "./dashboard-shell";
+export type {
+  DashboardAccount,
+  DashboardAccountAction,
+  DashboardNavItem,
+  DashboardShellProps,
+} from "./dashboard-shell";
 export { Input, Select } from "./field";
 export type { InputProps, SelectProps } from "./field";
 export { Skeleton, SkeletonRegion } from "./skeleton";
