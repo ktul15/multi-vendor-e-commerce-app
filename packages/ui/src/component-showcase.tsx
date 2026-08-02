@@ -13,7 +13,7 @@ export function ComponentShowcase({ productName }: Readonly<{ productName: strin
   const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
-    <main className="ui-showcase">
+    <div className="ui-showcase">
       <header className="ui-showcase__header">
         <Badge tone="info">Shared UI</Badge>
         <h1>{productName} design system</h1>
@@ -131,6 +131,6 @@ export function ComponentShowcase({ productName }: Readonly<{ productName: strin
       >
         <p>Review the details before continuing.</p>
       </Dialog>
-    </main>
+    </div>
   );
 }

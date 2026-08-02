@@ -40,3 +40,9 @@ Run `pnpm dev` from the repository root, then open:
 - Admin: `http://localhost:3002/design-system`
 
 These routes render buttons, badges, form validation, cards, loading placeholders, empty/error states, and an interactive modal at tablet and desktop widths.
+
+## Dashboard shell
+
+`DashboardShell` provides the desktop sidebar, tablet drawer, sticky header, breadcrumbs, skip link, account actions, active-route styling, and disclosure-based nested navigation. Each app supplies its own immutable `DashboardNavItem[]`, account model, current pathname, and link component, keeping vendor and admin information architecture independent. Set `navigationOnly` on a parent that groups child links without owning a route.
+
+The shell constrains every grid child with `min-width: 0`, wraps long content, and switches to the persistent sidebar at 75rem. `DashboardLoading` and `DashboardError` provide shared route-boundary states; each application wires them through its App Router `loading.tsx` and `error.tsx` files.
