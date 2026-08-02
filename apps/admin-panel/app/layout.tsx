@@ -7,9 +7,7 @@ export const metadata: Metadata = {
   description: "Operate and moderate the multi-vendor marketplace.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: ReactNode }>) {
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en">
       <body>{children}</body>

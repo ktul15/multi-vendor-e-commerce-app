@@ -4,11 +4,7 @@ type AppPlaceholderProps = Readonly<{
   description: string;
 }>;
 
-export function AppPlaceholder({
-  eyebrow,
-  title,
-  description,
-}: AppPlaceholderProps) {
+export function AppPlaceholder({ eyebrow, title, description }: AppPlaceholderProps) {
   return (
     <section aria-labelledby="app-title">
       <p>{eyebrow}</p>
