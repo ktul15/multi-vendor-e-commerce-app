@@ -228,7 +228,7 @@ Platform administration interface.
 
 ## Web Workspace (Next.js)
 
-The vendor dashboard and admin panel web applications share a pnpm and Turborepo workspace. Use Node.js 24 and pnpm 11.18.0 from the repository root.
+The vendor dashboard and admin panel web applications share a pnpm and Turborepo workspace. Use Node.js 24.15.0 (the pinned LTS runtime) and pnpm 11.18.0 from the repository root.
 
 ```bash
 # Install the exact lockfile dependency graph
