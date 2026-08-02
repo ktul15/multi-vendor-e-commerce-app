@@ -1,0 +1,28 @@
+{
+  "name": "multi-vendor-e-commerce-web",
+  "private": true,
+  "packageManager": "pnpm@11.18.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write apps packages tooling *.json *.mjs *.yaml",
+    "format:check": "prettier --check apps packages tooling *.json *.mjs *.yaml",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.2.12",
+    "pnpm": "11.18.0",
+    "prettier": "3.8.1",
+    "turbo": "2.10.8",
+    "typescript": "6.0.3",
+    "vitest": "4.1.10"
+  }
+}
