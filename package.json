@@ -11,8 +11,8 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "format": "prettier --write apps packages tooling *.json *.mjs *.yaml",
-    "format:check": "prettier --check apps packages tooling *.json *.mjs *.yaml",
+    "format": "prettier --write .github apps packages tooling README.md *.json *.mjs *.yaml",
+    "format:check": "prettier --check .github apps packages tooling README.md *.json *.mjs *.yaml",
     "clean": "turbo run clean"
   },
   "devDependencies": {

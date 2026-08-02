@@ -1,6 +1,6 @@
 # Multi-Vendor E-Commerce App
 
-A full-stack multi-vendor e-commerce platform built as a portfolio project. It consists of four applications sharing a single Node.js REST API: a Flutter customer storefront, a Flutter vendor dashboard, a Flutter admin panel, and the backend itself.
+A full-stack multi-vendor e-commerce platform built as a portfolio project. The existing Flutter customer storefront shares a Node.js REST API with vendor and admin dashboards that are being migrated from Flutter to Next.js.
 
 ---
 
@@ -20,12 +20,15 @@ A full-stack multi-vendor e-commerce platform built as a portfolio project. It c
     └───────────┘  └───────────┘  └───────────────┘
 ```
 
-| Directory | Description |
-|-----------|-------------|
-| `backend/` | Node.js + Express 5 REST API |
-| `storefront/` | Flutter customer-facing shopping app |
-| `vendor_dashboard/` | Flutter app for vendors to manage products, orders, and earnings |
-| `admin_panel/` | Flutter app for platform admins |
+| Directory                | Description                                                                   |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| `backend/`               | Node.js + Express 5 REST API                                                  |
+| `storefront/`            | Flutter customer-facing shopping app                                          |
+| `vendor_dashboard/`      | Flutter app for vendors to manage products, orders, and earnings              |
+| `admin_panel/`           | Flutter app for platform admins                                               |
+| `apps/vendor-dashboard/` | Next.js vendor dashboard migration target                                     |
+| `apps/admin-panel/`      | Next.js admin panel migration target                                          |
+| `packages/`              | Shared web UI, API, schema, configuration, authentication, and test utilities |
 
 ---
 
@@ -49,24 +52,24 @@ A full-stack multi-vendor e-commerce platform built as a portfolio project. It c
 
 ### API Modules
 
-| Prefix | Module |
-|--------|--------|
-| `/api/v1/auth` | Registration, login, logout, token refresh, password reset |
-| `/api/v1/products` | Product CRUD, variants, search, filtering, pagination |
-| `/api/v1/categories` | Category tree management |
-| `/api/v1/cart` | Cart management (add, update, remove, apply promo) |
-| `/api/v1/orders` | Order placement, status tracking, order history |
-| `/api/v1/payments` | Stripe checkout session + webhook handler |
-| `/api/v1/addresses` | Saved shipping address management |
-| `/api/v1/reviews` | Product reviews and ratings |
-| `/api/v1/wishlist` | Wishlist add/remove/list |
-| `/api/v1/promo-codes` | Promo code creation and validation |
-| `/api/v1/notifications` | In-app notification centre |
-| `/api/v1/banners` | Homepage banner management |
-| `/api/v1/vendor-profile` | Vendor store profile (name, logo, bio) |
-| `/api/v1/vendor-payouts` | Vendor earnings tracking and payout requests |
-| `/api/v1/analytics` | Vendor and platform-level sales analytics |
-| `/api/v1/admin` | Admin: user management, product moderation, platform settings |
+| Prefix                   | Module                                                        |
+| ------------------------ | ------------------------------------------------------------- |
+| `/api/v1/auth`           | Registration, login, logout, token refresh, password reset    |
+| `/api/v1/products`       | Product CRUD, variants, search, filtering, pagination         |
+| `/api/v1/categories`     | Category tree management                                      |
+| `/api/v1/cart`           | Cart management (add, update, remove, apply promo)            |
+| `/api/v1/orders`         | Order placement, status tracking, order history               |
+| `/api/v1/payments`       | Stripe checkout session + webhook handler                     |
+| `/api/v1/addresses`      | Saved shipping address management                             |
+| `/api/v1/reviews`        | Product reviews and ratings                                   |
+| `/api/v1/wishlist`       | Wishlist add/remove/list                                      |
+| `/api/v1/promo-codes`    | Promo code creation and validation                            |
+| `/api/v1/notifications`  | In-app notification centre                                    |
+| `/api/v1/banners`        | Homepage banner management                                    |
+| `/api/v1/vendor-profile` | Vendor store profile (name, logo, bio)                        |
+| `/api/v1/vendor-payouts` | Vendor earnings tracking and payout requests                  |
+| `/api/v1/analytics`      | Vendor and platform-level sales analytics                     |
+| `/api/v1/admin`          | Admin: user management, product moderation, platform settings |
 
 ### Module Structure
 
@@ -223,14 +226,40 @@ Platform administration interface.
 
 ---
 
+## Web Workspace (Next.js)
+
+The vendor dashboard and admin panel web applications share a pnpm and Turborepo workspace. Use Node.js 24 and pnpm 11.18.0 from the repository root.
+
+```bash
+# Install the exact lockfile dependency graph
+pnpm install --frozen-lockfile
+
+# Run both applications (vendor: 3001, admin: 3002)
+pnpm run dev
+
+# Required web quality checks
+pnpm run format:check
+pnpm run lint
+pnpm run typecheck
+pnpm run test
+pnpm run build
+
+# Apply formatting locally
+pnpm run format
+```
+
+Copy each application's `.env.example` to `.env.local` before development. Turborepo caches generated build outputs and hashes build-time environment variables; dependency downloads are cached separately by pnpm in CI. Generated dependencies and build outputs are never committed.
+
+---
+
 ## CI / CD
 
 GitHub Actions workflows in `.github/workflows/`:
 
-| Workflow | Trigger | Steps |
-|----------|---------|-------|
-| `ci.yml` | Push / PR to `dev` or `main` | Lint, type-check, test (backend) |
-| `deploy.yml` | Push to `main` | Build Docker image, push to registry, deploy |
+| Workflow     | Trigger               | Steps                                                                                                           |
+| ------------ | --------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `ci.yml`     | PR to `dev` or `main` | Independent backend and web quality-gate jobs; web checks formatting, lint, types, tests, and production builds |
+| `deploy.yml` | Push to `main`        | Build and push the backend Docker image to GHCR                                                                 |
 
 ---
 
