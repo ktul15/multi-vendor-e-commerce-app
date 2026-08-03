@@ -1470,11 +1470,14 @@ export interface paths {
         };
         readonly get?: never;
         readonly put?: never;
-        /** Login and obtain access + refresh tokens */
+        /** Login with bearer tokens or secure web cookies */
         readonly post: {
             readonly parameters: {
                 readonly query?: never;
-                readonly header?: never;
+                readonly header?: {
+                    /** @description Set to `cookie` for a browser session. Tokens are then returned only as HttpOnly cookies. */
+                    readonly "X-Auth-Mode"?: "cookie";
+                };
                 readonly path?: never;
                 readonly cookie?: never;
             };
@@ -1492,7 +1495,7 @@ export interface paths {
                 };
             };
             readonly responses: {
-                /** @description Login successful — returns access token (15 min) and refresh token (7 days) */
+                /** @description Login successful. Bearer clients receive tokens in data; cookie clients receive Set-Cookie headers and user data only. */
                 readonly 200: {
                     headers: {
                         readonly [name: string]: unknown;
@@ -1503,12 +1506,14 @@ export interface paths {
                          *       "success": true,
                          *       "message": "Login successful",
                          *       "data": {
-                         *         "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                         *         "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                          *         "user": {
-                         *           "userId": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+                         *           "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
                          *           "email": "jane@example.com",
                          *           "role": "CUSTOMER"
+                         *         },
+                         *         "tokens": {
+                         *           "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                         *           "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                          *         }
                          *       }
                          *     }
@@ -1552,8 +1557,8 @@ export interface paths {
         readonly get?: never;
         readonly put?: never;
         /**
-         * Logout and blacklist refresh token
-         * @description Pass the refresh token in the request body. It is added to the Redis blacklist for its remaining TTL so it cannot be reused.
+         * Logout, revoke the refresh token, and clear web cookies
+         * @description Cookie clients send the HttpOnly refresh cookie. Bearer clients may pass refreshToken in JSON. Both auth cookies are always cleared.
          */
         readonly post: {
             readonly parameters: {
@@ -1604,7 +1609,7 @@ export interface paths {
         };
         /**
          * Get current user profile
-         * @description Returns the profile of the authenticated user. Requires a valid Bearer access token.
+         * @description Returns the profile of the authenticated user. Accepts a Bearer access token or the HttpOnly access cookie.
          */
         readonly get: {
             readonly parameters: {
@@ -1665,8 +1670,8 @@ export interface paths {
         readonly get?: never;
         readonly put?: never;
         /**
-         * Refresh access token
-         * @description Exchange a valid refresh token for a new access token. The refresh token is checked against the Redis blacklist.
+         * Rotate the access and refresh tokens
+         * @description Cookie clients send the HttpOnly refresh cookie. Bearer clients send refreshToken in JSON. The previous refresh token is atomically revoked.
          */
         readonly post: {
             readonly parameters: {
@@ -1675,16 +1680,16 @@ export interface paths {
                 readonly path?: never;
                 readonly cookie?: never;
             };
-            readonly requestBody: {
+            readonly requestBody?: {
                 readonly content: {
                     readonly "application/json": {
                         /** @example eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... */
-                        readonly refreshToken: string;
+                        readonly refreshToken?: string;
                     };
                 };
             };
             readonly responses: {
-                /** @description New access token issued */
+                /** @description Rotated token pair. Bearer clients receive tokens in data; cookie clients receive updated Set-Cookie headers and null data. */
                 readonly 200: {
                     headers: {
                         readonly [name: string]: unknown;
@@ -1695,7 +1700,8 @@ export interface paths {
                          *       "success": true,
                          *       "message": "Token refreshed",
                          *       "data": {
-                         *         "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                         *         "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                         *         "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                          *       }
                          *     }
                          */
@@ -1744,7 +1750,10 @@ export interface paths {
         readonly post: {
             readonly parameters: {
                 readonly query?: never;
-                readonly header?: never;
+                readonly header?: {
+                    /** @description Set to `cookie` to return tokens only as HttpOnly cookies. */
+                    readonly "X-Auth-Mode"?: "cookie";
+                };
                 readonly path?: never;
                 readonly cookie?: never;
             };
@@ -5458,11 +5467,9 @@ export interface components {
              */
             readonly success: true;
         };
-        readonly AuthUser: {
-            readonly email: string;
-            /** @enum {string} */
-            readonly role: "CUSTOMER" | "VENDOR" | "ADMIN";
-            readonly userId: string;
+        readonly AuthTokens: {
+            readonly accessToken: string;
+            readonly refreshToken: string;
         };
         readonly Banner: {
             readonly id: string;
@@ -5540,9 +5547,15 @@ export interface components {
         };
         readonly LoginSuccess: {
             readonly data: {
-                readonly accessToken: string;
-                readonly refreshToken: string;
-                readonly user: components["schemas"]["AuthUser"];
+                readonly tokens: components["schemas"]["AuthTokens"];
+                readonly user: components["schemas"]["UserProfile"];
+            };
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        } | {
+            readonly data: {
+                readonly user: components["schemas"]["UserProfile"];
             };
             readonly message: string;
             /** @enum {boolean} */
@@ -5619,21 +5632,18 @@ export interface components {
             readonly updatedAt: string;
         };
         readonly ProfileSuccess: {
-            readonly data: {
-                readonly email: string;
-                readonly name: string;
-                /** @enum {string} */
-                readonly role: "CUSTOMER" | "VENDOR" | "ADMIN";
-                readonly userId: string;
-            };
+            readonly data: components["schemas"]["UserProfile"];
             readonly message: string;
             /** @enum {boolean} */
             readonly success: true;
         };
         readonly RefreshSuccess: {
-            readonly data: {
-                readonly accessToken: string;
-            };
+            readonly data: components["schemas"]["AuthTokens"];
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        } | {
+            readonly data: unknown;
             readonly message: string;
             /** @enum {boolean} */
             readonly success: true;
@@ -5642,6 +5652,17 @@ export interface components {
             readonly orderCount: number;
             readonly periodStart: string;
             readonly revenue: string;
+        };
+        readonly UserProfile: {
+            readonly avatar: string | null;
+            /** Format: date-time */
+            readonly createdAt: string;
+            readonly email: string;
+            readonly id: string;
+            readonly isVerified: boolean;
+            readonly name: string;
+            /** @enum {string} */
+            readonly role: "CUSTOMER" | "VENDOR" | "ADMIN";
         };
         readonly VendorAnalyticsSummarySuccess: {
             readonly data: {

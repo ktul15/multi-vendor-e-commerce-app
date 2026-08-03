@@ -18,6 +18,12 @@
         "scheme": "bearer",
         "bearerFormat": "JWT",
         "description": "JWT access token obtained from POST /auth/login. Enter: `Bearer <access_token>`"
+      },
+      "CookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Secure-access_token",
+        "description": "HttpOnly web session cookie issued when X-Auth-Mode is cookie."
       }
     },
     "schemas": {
@@ -44,15 +50,22 @@
           }
         }
       },
-      "AuthUser": {
+      "UserProfile": {
         "type": "object",
         "required": [
-          "userId",
+          "id",
+          "name",
           "email",
-          "role"
+          "role",
+          "avatar",
+          "isVerified",
+          "createdAt"
         ],
         "properties": {
-          "userId": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
             "type": "string"
           },
           "email": {
@@ -65,76 +78,150 @@
               "VENDOR",
               "ADMIN"
             ]
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
+          "isVerified": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AuthTokens": {
+        "type": "object",
+        "required": [
+          "accessToken",
+          "refreshToken"
+        ],
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
           }
         }
       },
       "LoginSuccess": {
-        "type": "object",
-        "required": [
-          "success",
-          "message",
-          "data"
-        ],
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "enum": [
-              true
-            ]
-          },
-          "message": {
-            "type": "string"
-          },
-          "data": {
+        "oneOf": [
+          {
             "type": "object",
             "required": [
-              "accessToken",
-              "refreshToken",
-              "user"
+              "success",
+              "message",
+              "data"
             ],
             "properties": {
-              "accessToken": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
                 "type": "string"
               },
-              "refreshToken": {
+              "data": {
+                "type": "object",
+                "required": [
+                  "user",
+                  "tokens"
+                ],
+                "properties": {
+                  "user": {
+                    "$ref": "#/components/schemas/UserProfile"
+                  },
+                  "tokens": {
+                    "$ref": "#/components/schemas/AuthTokens"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
                 "type": "string"
               },
-              "user": {
-                "$ref": "#/components/schemas/AuthUser"
+              "data": {
+                "type": "object",
+                "required": [
+                  "user"
+                ],
+                "properties": {
+                  "user": {
+                    "$ref": "#/components/schemas/UserProfile"
+                  }
+                }
               }
             }
           }
-        }
+        ]
       },
       "RefreshSuccess": {
-        "type": "object",
-        "required": [
-          "success",
-          "message",
-          "data"
-        ],
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "enum": [
-              true
-            ]
-          },
-          "message": {
-            "type": "string"
-          },
-          "data": {
+        "oneOf": [
+          {
             "type": "object",
             "required": [
-              "accessToken"
+              "success",
+              "message",
+              "data"
             ],
             "properties": {
-              "accessToken": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
                 "type": "string"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AuthTokens"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "data": {
+                "nullable": true
               }
             }
           }
-        }
+        ]
       },
       "LogoutSuccess": {
         "type": "object",
@@ -176,32 +263,7 @@
             "type": "string"
           },
           "data": {
-            "type": "object",
-            "required": [
-              "userId",
-              "name",
-              "email",
-              "role"
-            ],
-            "properties": {
-              "userId": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "email": {
-                "type": "string"
-              },
-              "role": {
-                "type": "string",
-                "enum": [
-                  "CUSTOMER",
-                  "VENDOR",
-                  "ADMIN"
-                ]
-              }
-            }
+            "$ref": "#/components/schemas/UserProfile"
           }
         }
       },
@@ -1193,6 +1255,9 @@
   "security": [
     {
       "BearerAuth": []
+    },
+    {
+      "CookieAuth": []
     }
   ],
   "tags": [
@@ -2545,6 +2610,20 @@
         "summary": "Register a new user",
         "description": "Creates a customer or vendor account. `storeName` is required when `role` is `VENDOR`.",
         "security": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Auth-Mode",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "cookie"
+              ]
+            },
+            "description": "Set to `cookie` to return tokens only as HttpOnly cookies."
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2642,8 +2721,22 @@
         "tags": [
           "Auth"
         ],
-        "summary": "Login and obtain access + refresh tokens",
+        "summary": "Login with bearer tokens or secure web cookies",
         "security": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Auth-Mode",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "cookie"
+              ]
+            },
+            "description": "Set to `cookie` for a browser session. Tokens are then returned only as HttpOnly cookies."
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2671,19 +2764,21 @@
         },
         "responses": {
           "200": {
-            "description": "Login successful — returns access token (15 min) and refresh token (7 days)",
+            "description": "Login successful. Bearer clients receive tokens in data; cookie clients receive Set-Cookie headers and user data only.",
             "content": {
               "application/json": {
                 "example": {
                   "success": true,
                   "message": "Login successful",
                   "data": {
-                    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                     "user": {
-                      "userId": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+                      "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
                       "email": "jane@example.com",
                       "role": "CUSTOMER"
+                    },
+                    "tokens": {
+                      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                      "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                     }
                   }
                 },
@@ -2721,18 +2816,15 @@
         "tags": [
           "Auth"
         ],
-        "summary": "Refresh access token",
-        "description": "Exchange a valid refresh token for a new access token. The refresh token is checked against the Redis blacklist.",
+        "summary": "Rotate the access and refresh tokens",
+        "description": "Cookie clients send the HttpOnly refresh cookie. Bearer clients send refreshToken in JSON. The previous refresh token is atomically revoked.",
         "security": [],
         "requestBody": {
-          "required": true,
+          "required": false,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "refreshToken"
-                ],
                 "properties": {
                   "refreshToken": {
                     "type": "string",
@@ -2745,14 +2837,15 @@
         },
         "responses": {
           "200": {
-            "description": "New access token issued",
+            "description": "Rotated token pair. Bearer clients receive tokens in data; cookie clients receive updated Set-Cookie headers and null data.",
             "content": {
               "application/json": {
                 "example": {
                   "success": true,
                   "message": "Token refreshed",
                   "data": {
-                    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                   }
                 },
                 "schema": {
@@ -2789,8 +2882,8 @@
         "tags": [
           "Auth"
         ],
-        "summary": "Logout and blacklist refresh token",
-        "description": "Pass the refresh token in the request body. It is added to the Redis blacklist for its remaining TTL so it cannot be reused.",
+        "summary": "Logout, revoke the refresh token, and clear web cookies",
+        "description": "Cookie clients send the HttpOnly refresh cookie. Bearer clients may pass refreshToken in JSON. Both auth cookies are always cleared.",
         "security": [],
         "requestBody": {
           "content": {
@@ -2832,7 +2925,7 @@
           "Auth"
         ],
         "summary": "Get current user profile",
-        "description": "Returns the profile of the authenticated user. Requires a valid Bearer access token.",
+        "description": "Returns the profile of the authenticated user. Accepts a Bearer access token or the HttpOnly access cookie.",
         "responses": {
           "200": {
             "description": "User profile",

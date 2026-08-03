@@ -5,17 +5,14 @@
 ```ts
 import { createApiClient } from "@repo/api-client";
 
-const api = createApiClient({
-  baseUrl: process.env.API_BASE_URL!,
-  getAccessToken: () => sessionStore.getAccessToken(),
-});
+const api = createApiClient({ baseUrl: process.env.API_BASE_URL! });
 const { data } = await api.GET("/products", {
   params: { query: { page: 1, search: "phone" } },
   signal: abortController.signal,
 });
 ```
 
-The backend currently authenticates with bearer access tokens. Supply a token getter rather than a fixed token: the client resolves it per request and attaches it only when the request origin exactly matches the configured API origin. `credentials: "include"` also keeps the transport ready for the cookie-auth migration in issue #82. HTTP, validation, network, and cancellation failures reject with `ApiClientError`; field-level validation messages are available through `fieldErrors`. Use `serializeMultipartBody` as a request `bodySerializer` for multipart endpoints so the browser supplies the boundary header.
+Web dashboards opt into HttpOnly cookies by sending `X-Auth-Mode: cookie` on login; the client already uses `credentials: "include"`. Bearer clients can supply a token getter instead of a fixed token: it is resolved per request and attached only when the request origin exactly matches the configured API origin. HTTP, validation, network, and cancellation failures reject with `ApiClientError`; field-level validation messages are available through `fieldErrors`. Use `serializeMultipartBody` as a request `bodySerializer` for multipart endpoints so the browser supplies the boundary header.
 
 The contract flow is:
 

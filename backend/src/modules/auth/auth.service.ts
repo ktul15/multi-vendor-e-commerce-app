@@ -3,7 +3,10 @@ import { hashPassword, comparePassword } from '../../utils/password';
 import { generateTokenPair, verifyRefreshToken } from '../../utils/jwt';
 import { ApiError } from '../../utils/apiError';
 import { JwtPayload } from '../../types';
-import { blacklistToken, isTokenBlacklisted } from '../../utils/tokenBlacklist';
+import {
+  blacklistToken,
+  consumeRefreshToken,
+} from '../../utils/tokenBlacklist';
 
 interface RegisterInput {
   name: string;
@@ -140,14 +143,8 @@ export const login = async (
 export const refreshAccessToken = async (
   refreshToken: string
 ): Promise<AuthTokens> => {
-  // Check if the refresh token has been blacklisted (e.g. after logout)
-  const blacklisted = await isTokenBlacklisted(refreshToken);
-  if (blacklisted) {
-    throw ApiError.unauthorized('Refresh token has been revoked');
-  }
-
   // Verify the refresh token
-  let decoded: { userId: string };
+  let decoded: { userId: string; exp?: number };
   try {
     decoded = verifyRefreshToken(refreshToken);
   } catch (error) {
@@ -175,6 +172,11 @@ export const refreshAccessToken = async (
     throw ApiError.forbidden('Your account has been suspended');
   }
 
+  const ttl = (decoded.exp ?? 0) - Math.floor(Date.now() / 1000);
+  if (ttl <= 0 || !(await consumeRefreshToken(refreshToken, ttl))) {
+    throw ApiError.unauthorized('Refresh token has been revoked');
+  }
+
   // Generate new token pair
   const payload: JwtPayload = {
     userId: user.id,
@@ -182,33 +184,47 @@ export const refreshAccessToken = async (
     role: user.role,
   };
 
-  return generateTokenPair(payload);
+  const tokens = generateTokenPair(payload);
+
+  // Rotate refresh tokens for both web and Flutter clients. The previous token is
+  // invalid immediately, while the newly generated token has a unique JWT ID.
+  return tokens;
 };
 
 /**
  * Logout — blacklist the refresh token so it can't be reused.
  */
 export const logout = async (refreshToken: string): Promise<void> => {
-  // Verify the token to get its expiry, then blacklist for remaining TTL
+  let decoded: { userId: string; exp: number };
+
+  // Invalid or expired tokens are already unusable, so logout remains idempotent
+  // for them. Infrastructure failures during revocation must still propagate.
   try {
-    const decoded = verifyRefreshToken(refreshToken) as {
+    decoded = verifyRefreshToken(refreshToken) as {
       userId: string;
       exp: number;
     };
-    const now = Math.floor(Date.now() / 1000);
-    const ttl = decoded.exp - now;
-    if (ttl > 0) {
-      await blacklistToken(refreshToken, ttl);
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      (error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError')
+    ) {
+      return;
     }
-    // Clear FCM token so the device stops receiving push notifications
-    if (decoded.userId) {
-      await prisma.user.update({
-        where: { id: decoded.userId },
-        data: { fcmToken: null },
-      });
-    }
-  } catch {
-    // If token is already expired or invalid, no need to blacklist
+    throw error;
+  }
+
+  const ttl = decoded.exp - Math.floor(Date.now() / 1000);
+  if (ttl <= 0) return;
+
+  await blacklistToken(refreshToken, ttl);
+
+  // Clear FCM token so the device stops receiving push notifications.
+  if (decoded.userId) {
+    await prisma.user.update({
+      where: { id: decoded.userId },
+      data: { fcmToken: null },
+    });
   }
 };
 

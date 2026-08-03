@@ -31,28 +31,38 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
     limit: integerSchema,
     totalPages: integerSchema,
   }),
-  AuthUser: objectSchema({
-    userId: stringSchema,
+  UserProfile: objectSchema({
+    id: stringSchema,
+    name: stringSchema,
     email: stringSchema,
     role: { type: 'string', enum: ['CUSTOMER', 'VENDOR', 'ADMIN'] },
+    avatar: nullableString,
+    isVerified: booleanSchema,
+    createdAt: { type: 'string', format: 'date-time' },
   }),
-  LoginSuccess: successEnvelope(
-    objectSchema({
-      accessToken: stringSchema,
-      refreshToken: stringSchema,
-      user: ref('AuthUser'),
-    })
-  ),
-  RefreshSuccess: successEnvelope(objectSchema({ accessToken: stringSchema })),
+  AuthTokens: objectSchema({
+    accessToken: stringSchema,
+    refreshToken: stringSchema,
+  }),
+  LoginSuccess: {
+    oneOf: [
+      successEnvelope(
+        objectSchema({
+          user: ref('UserProfile'),
+          tokens: ref('AuthTokens'),
+        })
+      ),
+      successEnvelope(objectSchema({ user: ref('UserProfile') })),
+    ],
+  },
+  RefreshSuccess: {
+    oneOf: [
+      successEnvelope(ref('AuthTokens')),
+      successEnvelope({ nullable: true }),
+    ],
+  },
   LogoutSuccess: successEnvelope({ nullable: true }),
-  ProfileSuccess: successEnvelope(
-    objectSchema({
-      userId: stringSchema,
-      name: stringSchema,
-      email: stringSchema,
-      role: { type: 'string', enum: ['CUSTOMER', 'VENDOR', 'ADMIN'] },
-    })
-  ),
+  ProfileSuccess: successEnvelope(ref('UserProfile')),
   AdminDashboardSuccess: successEnvelope(
     objectSchema({
       totalUsers: integerSchema,
@@ -292,6 +302,13 @@ const options: swaggerJsdoc.Options = {
             'JWT access token obtained from POST /auth/login. ' +
             'Enter: `Bearer <access_token>`',
         },
+        CookieAuth: {
+          type: 'apiKey',
+          in: 'cookie',
+          name: '__Secure-access_token',
+          description:
+            'HttpOnly web session cookie issued when X-Auth-Mode is cookie.',
+        },
       },
       schemas: {
         ...dashboardSchemas,
@@ -336,7 +353,7 @@ const options: swaggerJsdoc.Options = {
       },
     },
     // Global default: every endpoint requires BearerAuth unless overridden with security: []
-    security: [{ BearerAuth: [] }],
+    security: [{ BearerAuth: [] }, { CookieAuth: [] }],
     tags: [
       { name: 'Auth', description: 'Authentication & session management' },
       {
