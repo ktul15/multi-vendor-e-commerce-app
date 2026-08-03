@@ -6,6 +6,8 @@ import { env } from './config/env';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { globalLimiter, authLimiter } from './middleware/rateLimiter';
 import { ApiResponse } from './utils/apiResponse';
+import { corsOptions } from './middleware/cors';
+import { csrfProtection } from './middleware/csrf';
 
 const app: Application = express();
 
@@ -14,36 +16,7 @@ const app: Application = express();
 // ---------------------
 // Strict Helmet for all routes
 app.use(helmet());
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-
-      const allowedOrigins = [
-        env.STOREFRONT_URL,
-        env.VENDOR_DASHBOARD_URL,
-        env.ADMIN_DASHBOARD_URL,
-      ];
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      // In development, allow any localhost/127.0.0.1 port (Flutter web often uses random ports)
-      if (
-        env.isDev &&
-        (origin.startsWith('http://localhost:') ||
-          origin.startsWith('http://127.0.0.1:'))
-      ) {
-        return callback(null, true);
-      }
-
-      callback(new Error('Not allowed by CORS'));
-    },
-    credentials: true,
-  })
-);
+app.use(cors(corsOptions));
 app.use(
   express.json({
     limit: '10mb',
@@ -53,6 +26,7 @@ app.use(
   })
 );
 app.use(express.urlencoded({ extended: true }));
+app.use(csrfProtection);
 
 // ---------------------
 // Stripe Webhooks (must be before globalLimiter so Stripe retries are never throttled)

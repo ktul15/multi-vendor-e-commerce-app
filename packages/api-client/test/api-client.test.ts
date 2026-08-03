@@ -3,6 +3,7 @@ import type { components } from "../src";
 import {
   createAuthenticatedFetch,
   createApiClient,
+  createCsrfFetch,
   normalizeApiError,
   serializeMultipartBody,
   unwrapApiResponse,
@@ -40,6 +41,160 @@ describe("createApiClient", () => {
     const foreignRequest = fetchMock.mock.calls[1]?.[0] as Request;
     expect(trustedRequest.headers.get("Authorization")).toBe("Bearer access-token");
     expect(foreignRequest.headers.has("Authorization")).toBe(false);
+  });
+
+  it("attaches CSRF tokens only to unsafe requests on the configured API origin", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ ok: true }));
+    const csrfFetch = createCsrfFetch({
+      apiOrigin: "https://api.example.test/api/v1",
+      fetch: fetchMock,
+      getCsrfToken: () => "csrf-token",
+    });
+
+    await csrfFetch("https://api.example.test/api/v1/products", { method: "POST" });
+    await csrfFetch("https://api.example.test/api/v1/products");
+    await csrfFetch("https://uploads.example.test/file", { method: "POST" });
+
+    const mutation = fetchMock.mock.calls[0]?.[0] as Request;
+    const query = fetchMock.mock.calls[1]?.[0] as Request;
+    const foreignMutation = fetchMock.mock.calls[2]?.[0] as Request;
+    expect(mutation.headers.get("X-CSRF-Token")).toBe("csrf-token");
+    expect(query.headers.has("X-CSRF-Token")).toBe(false);
+    expect(foreignMutation.headers.has("X-CSRF-Token")).toBe(false);
+  });
+
+  it("retains a CORS-exposed CSRF token for the next unsafe request", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        Response.json({ success: true }, { headers: { "X-CSRF-Token": "rotated-token" } }),
+      )
+      .mockResolvedValueOnce(Response.json({ success: true }));
+    const csrfFetch = createCsrfFetch({
+      apiOrigin: "https://api.example.test/api/v1",
+      fetch: fetchMock,
+      getCsrfToken: () => null,
+    });
+
+    await csrfFetch("https://api.example.test/api/v1/profile");
+    await csrfFetch("https://api.example.test/api/v1/products", { method: "POST" });
+
+    const mutation = fetchMock.mock.calls[1]?.[0] as Request;
+    expect(mutation.headers.get("X-CSRF-Token")).toBe("rotated-token");
+  });
+
+  it("prefers a newly rotated readable cookie over its cached token", async () => {
+    let cookieToken: string | null = null;
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        Response.json({ success: true }, { headers: { "X-CSRF-Token": "old-token" } }),
+      )
+      .mockResolvedValueOnce(Response.json({ success: true }));
+    const csrfFetch = createCsrfFetch({
+      apiOrigin: "https://api.example.test/api/v1",
+      fetch: fetchMock,
+      getCsrfToken: () => cookieToken,
+    });
+
+    await csrfFetch("https://api.example.test/api/v1/profile");
+    cookieToken = "new-token";
+    await csrfFetch("https://api.example.test/api/v1/products", { method: "POST" });
+
+    const mutation = fetchMock.mock.calls[1]?.[0] as Request;
+    expect(mutation.headers.get("X-CSRF-Token")).toBe("new-token");
+  });
+
+  it("retries once when a cross-host cookie rotated in another client", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        Response.json({ success: true }, { headers: { "X-CSRF-Token": "old-token" } }),
+      )
+      .mockResolvedValueOnce(
+        Response.json(
+          { success: false, message: "Invalid CSRF token" },
+          {
+            status: 403,
+            headers: {
+              "X-CSRF-Error": "token-mismatch",
+              "X-CSRF-Token": "new-token",
+            },
+          },
+        ),
+      )
+      .mockResolvedValueOnce(Response.json({ success: true }));
+    const csrfFetch = createCsrfFetch({
+      apiOrigin: "https://api.example.test/api/v1",
+      fetch: fetchMock,
+      getCsrfToken: () => null,
+    });
+
+    await csrfFetch("https://api.example.test/api/v1/profile");
+    const response = await csrfFetch("https://api.example.test/api/v1/products", {
+      method: "POST",
+    });
+
+    expect(response.ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    const retriedMutation = fetchMock.mock.calls[2]?.[0] as Request;
+    expect(retriedMutation.headers.get("X-CSRF-Token")).toBe("new-token");
+  });
+
+  it("does not retry a non-CSRF 403 when the exposed token changed", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        Response.json({ success: true }, { headers: { "X-CSRF-Token": "old-token" } }),
+      )
+      .mockResolvedValueOnce(
+        Response.json(
+          { success: false, message: "Forbidden" },
+          { status: 403, headers: { "X-CSRF-Token": "new-token" } },
+        ),
+      );
+    const csrfFetch = createCsrfFetch({
+      apiOrigin: "https://api.example.test/api/v1",
+      fetch: fetchMock,
+      getCsrfToken: () => null,
+    });
+
+    await csrfFetch("https://api.example.test/api/v1/profile");
+    const response = await csrfFetch("https://api.example.test/api/v1/products", {
+      method: "POST",
+    });
+
+    expect(response.status).toBe(403);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not attach or rotate CSRF tokens for bearer requests", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json(
+        { success: false, message: "Forbidden" },
+        {
+          status: 403,
+          headers: {
+            "X-CSRF-Error": "token-mismatch",
+            "X-CSRF-Token": "new-token",
+          },
+        },
+      ),
+    );
+    const csrfFetch = createCsrfFetch({
+      apiOrigin: "https://api.example.test/api/v1",
+      fetch: fetchMock,
+      getCsrfToken: () => "old-token",
+    });
+
+    await csrfFetch("https://api.example.test/api/v1/products", {
+      method: "POST",
+      headers: { Authorization: "Bearer access-token" },
+    });
+
+    const request = fetchMock.mock.calls[0]?.[0] as Request;
+    expect(request.headers.has("X-CSRF-Token")).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("normalizes field errors from unsuccessful API responses", async () => {

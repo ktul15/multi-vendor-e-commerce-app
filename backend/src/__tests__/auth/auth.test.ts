@@ -5,6 +5,8 @@ import { prisma } from '../../config/prisma';
 import { hashPassword } from '../../utils/password';
 import {
   ACCESS_COOKIE_NAME,
+  CSRF_COOKIE_NAME,
+  CSRF_HEADER_NAME,
   REFRESH_COOKIE_NAME,
 } from '../../modules/auth/auth.cookies';
 
@@ -231,12 +233,15 @@ describe('Auth API', () => {
       expect(res.status).toBe(200);
       expect(res.body.data.user.email).toBe('web@example.com');
       expect(res.body.data.tokens).toBeUndefined();
-      expect(setCookie).toHaveLength(2);
+      expect(setCookie).toHaveLength(3);
       const accessCookie = setCookie.find((value) =>
         value.startsWith(`${ACCESS_COOKIE_NAME}=`)
       );
       const refreshCookie = setCookie.find((value) =>
         value.startsWith(`${REFRESH_COOKIE_NAME}=`)
+      );
+      const csrfCookie = setCookie.find((value) =>
+        value.startsWith(`${CSRF_COOKIE_NAME}=`)
       );
       expect(accessCookie).toContain('Path=/api/v1;');
       expect(refreshCookie).toContain('Path=/api/v1/auth;');
@@ -246,6 +251,13 @@ describe('Auth API', () => {
         expect(cookie).toContain('Secure');
         expect(cookie).toContain('SameSite=Lax');
       }
+      expect(csrfCookie).toContain('Path=/api/v1;');
+      expect(csrfCookie).toContain('Secure');
+      expect(csrfCookie).toContain('SameSite=Lax');
+      expect(csrfCookie).not.toContain('HttpOnly');
+      expect(res.headers[CSRF_HEADER_NAME.toLowerCase()]).toBe(
+        cookieValue(cookiePair(setCookie, CSRF_COOKIE_NAME))
+      );
     });
 
     it('authenticates protected requests with the access cookie', async () => {
@@ -266,10 +278,12 @@ describe('Auth API', () => {
         'set-cookie'
       ] as unknown as string[];
       const oldRefreshPair = cookiePair(originalCookies, REFRESH_COOKIE_NAME);
+      const csrfPair = cookiePair(originalCookies, CSRF_COOKIE_NAME);
 
       const refreshRes = await request(app)
         .post('/api/v1/auth/refresh')
-        .set('Cookie', oldRefreshPair)
+        .set('Cookie', `${oldRefreshPair}; ${csrfPair}`)
+        .set(CSRF_HEADER_NAME, cookieValue(csrfPair))
         .send({});
       const rotatedCookies = refreshRes.headers[
         'set-cookie'
@@ -294,15 +308,20 @@ describe('Auth API', () => {
         'set-cookie'
       ] as unknown as string[];
       const refreshPair = cookiePair(originalCookies, REFRESH_COOKIE_NAME);
+      const csrfPair = cookiePair(originalCookies, CSRF_COOKIE_NAME);
+      const cookies = `${refreshPair}; ${csrfPair}`;
+      const csrfToken = cookieValue(csrfPair);
 
       const responses = await Promise.all([
         request(app)
           .post('/api/v1/auth/refresh')
-          .set('Cookie', refreshPair)
+          .set('Cookie', cookies)
+          .set(CSRF_HEADER_NAME, csrfToken)
           .send({}),
         request(app)
           .post('/api/v1/auth/refresh')
-          .set('Cookie', refreshPair)
+          .set('Cookie', cookies)
+          .set(CSRF_HEADER_NAME, csrfToken)
           .send({}),
       ]);
 
@@ -319,14 +338,16 @@ describe('Auth API', () => {
       ).toEqual(expect.any(Array));
     });
 
-    it('revokes the refresh token and clears both cookies on logout', async () => {
+    it('revokes the refresh token and clears all session cookies on logout', async () => {
       const loginRes = await loginWithCookies();
       const cookies = loginRes.headers['set-cookie'] as unknown as string[];
       const refreshPair = cookiePair(cookies, REFRESH_COOKIE_NAME);
+      const csrfPair = cookiePair(cookies, CSRF_COOKIE_NAME);
 
       const logoutRes = await request(app)
         .post('/api/v1/auth/logout')
-        .set('Cookie', refreshPair)
+        .set('Cookie', `${refreshPair}; ${csrfPair}`)
+        .set(CSRF_HEADER_NAME, cookieValue(csrfPair))
         .send({});
       const clearedCookies = logoutRes.headers[
         'set-cookie'
@@ -337,6 +358,7 @@ describe('Auth API', () => {
         expect.arrayContaining([
           expect.stringMatching(new RegExp(`^${ACCESS_COOKIE_NAME}=;`)),
           expect.stringMatching(new RegExp(`^${REFRESH_COOKIE_NAME}=;`)),
+          expect.stringMatching(new RegExp(`^${CSRF_COOKIE_NAME}=;`)),
         ])
       );
 
