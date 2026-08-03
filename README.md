@@ -246,9 +246,13 @@ pnpm run build
 
 # Apply formatting locally
 pnpm run format
+
+# Regenerate or verify the shared OpenAPI client contract
+pnpm run api:generate
+pnpm run api:check
 ```
 
-Copy each application's `.env.example` to `.env.local` before development. Turborepo caches generated build outputs and hashes build-time environment variables; dependency downloads are cached separately by pnpm in CI. Generated dependencies and build outputs are never committed.
+Copy each application's `.env.example` to `.env.local` before development. Turborepo caches generated build outputs and hashes build-time environment variables; dependency downloads are cached separately by pnpm in CI. The generated API types in `packages/api-client` and their source `backend/openapi.json` are committed so CI can detect contract drift; other generated dependencies and build outputs are not committed.
 
 ---
 

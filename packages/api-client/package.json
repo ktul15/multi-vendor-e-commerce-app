@@ -8,9 +8,12 @@
   },
   "scripts": {
     "build": "tsc",
-    "lint": "eslint src",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests",
+    "lint": "eslint src test vitest.config.ts",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run",
     "clean": "rm -rf .turbo *.tsbuildinfo"
+  },
+  "dependencies": {
+    "openapi-fetch": "0.17.0"
   }
 }

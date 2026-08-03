@@ -18,7 +18,9 @@
     "db:push": "npx prisma db push",
     "db:seed": "npx tsx prisma/seed_admin_qa.ts",
     "db:studio": "npx prisma studio",
-    "prisma:generate": "npx prisma generate"
+    "prisma:generate": "npx prisma generate",
+    "openapi:generate": "tsx src/scripts/openapi.ts",
+    "openapi:check": "tsx src/scripts/openapi.ts --check"
   },
   "keywords": [
     "ecommerce",
