@@ -150,8 +150,15 @@ router.post('/login', validate(loginSchema), authController.login);
  *   post:
  *     tags: [Auth]
  *     summary: Rotate the access and refresh tokens
- *     description: Cookie clients send the HttpOnly refresh cookie. Bearer clients send refreshToken in JSON. The previous refresh token is atomically revoked.
+ *     description: Cookie clients send the HttpOnly refresh cookie. Bearer clients send refreshToken in JSON. Consumption and encrypted grace-result publication are one atomic operation. Overlapping requests receive the same replacement pair only when they present the same browser CSRF secret or opaque X-Refresh-Rotation-Key idempotency proof.
  *     security: []
+ *     parameters:
+ *       - in: header
+ *         name: X-Refresh-Rotation-Key
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Opaque client-session proof that binds bounded idempotent replay. Browser cookie clients use their CSRF secret automatically.
  *     requestBody:
  *       required: false
  *       content:

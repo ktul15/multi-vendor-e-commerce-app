@@ -53,3 +53,15 @@ export const verifyAccessToken = (token: string): JwtPayload => {
 export const verifyRefreshToken = (token: string): { userId: string } => {
   return jwt.verify(token, env.JWT_REFRESH_SECRET) as { userId: string };
 };
+
+/**
+ * Verify a refresh token's signature while retaining an expired payload for
+ * logout cleanup. This must never be used to authorize or rotate a session.
+ */
+export const verifyRefreshTokenForRevocation = (
+  token: string
+): { userId: string; exp: number } => {
+  return jwt.verify(token, env.JWT_REFRESH_SECRET, {
+    ignoreExpiration: true,
+  }) as { userId: string; exp: number };
+};
