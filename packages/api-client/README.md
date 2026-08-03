@@ -12,7 +12,7 @@ const { data } = await api.GET("/products", {
 });
 ```
 
-Web dashboards opt into HttpOnly cookies by sending `X-Auth-Mode: cookie` on login; the client already uses `credentials: "include"`. Bearer clients can supply a token getter instead of a fixed token: it is resolved per request and attached only when the request origin exactly matches the configured API origin. HTTP, validation, network, and cancellation failures reject with `ApiClientError`; field-level validation messages are available through `fieldErrors`. Use `serializeMultipartBody` as a request `bodySerializer` for multipart endpoints so the browser supplies the boundary header.
+Web dashboards opt into HttpOnly cookies by sending `X-Auth-Mode: cookie` on login; the client uses `credentials: "include"` and echoes the non-secret CSRF token as `X-CSRF-Token` on unsafe requests to the configured API origin. It reads a same-host `__Secure-csrf_token` cookie when available and retains the CORS-exposed response header for cross-host API deployments and token rotation. Server/BFF callers can provide `getCsrfToken` explicitly. Bearer clients can supply a token getter instead of a fixed token: it is resolved per request and attached only when the request origin exactly matches the configured API origin. HTTP, validation, network, and cancellation failures reject with `ApiClientError`; field-level validation messages are available through `fieldErrors`. Use `serializeMultipartBody` as a request `bodySerializer` for multipart endpoints so the browser supplies the boundary header.
 
 The contract flow is:
 

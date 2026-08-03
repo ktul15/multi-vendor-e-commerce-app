@@ -245,6 +245,18 @@ Express API
 1. Backend remains compatible with bearer-token Flutter clients while supporting browser-safe HttpOnly cookies.
 2. Backend/BFF contracts support rotation while the BFF owns dashboard-host cookie issuance and clearing.
 3. Dashboard browser mutations are same-origin to their BFF and require its CSRF/origin checks. Backend credentialed CORS allowlists apply only to explicitly supported direct browser clients, such as the storefront compatibility path; vendor/admin dashboard origins are configured for redirect/CSRF validation, not as authorization for BFF-to-Express traffic. #83 documents and tests each origin by purpose, including rejected direct-browser origins and rejected dashboard CSRF requests.
+
+   The #83 backend baseline uses the exact `STOREFRONT_URL`,
+   `VENDOR_DASHBOARD_URL`, and `ADMIN_DASHBOARD_URL` origins; arbitrary localhost
+   ports and wildcard origins are rejected. Direct browser cookie sessions use a
+   double-submit `__Secure-csrf_token`/`X-CSRF-Token` contract plus Fetch Metadata
+   rejection for cross-site mutations. The API exposes the rotated non-secret
+   token header only through credentialed responses to an allowed origin, and the
+   shared client retains it for cross-host API deployments. Native Flutter bearer
+   traffic and server-to-server calls without authentication cookies remain
+   outside CSRF enforcement; CORS never replaces backend authentication,
+   authorization, approval, or ownership checks.
+
 4. Protected layouts verify the session and required role server-side before rendering protected content.
 5. Vendor layouts also load the vendor profile and apply PENDING/REJECTED/SUSPENDED/APPROVED capability gates.
 6. A wrong-role identity goes to an access-denied route; a missing/expired unrecoverable session goes to login with a validated relative return path.

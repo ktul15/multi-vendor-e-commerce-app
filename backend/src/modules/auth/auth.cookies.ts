@@ -1,8 +1,13 @@
 import { Request, Response, CookieOptions } from 'express';
 import jwt from 'jsonwebtoken';
+import { randomBytes } from 'node:crypto';
 
 export const ACCESS_COOKIE_NAME = '__Secure-access_token';
 export const REFRESH_COOKIE_NAME = '__Secure-refresh_token';
+export const CSRF_COOKIE_NAME = '__Secure-csrf_token';
+export const CSRF_HEADER_NAME = 'X-CSRF-Token';
+export const CSRF_ERROR_HEADER_NAME = 'X-CSRF-Error';
+export const CSRF_TOKEN_MISMATCH = 'token-mismatch';
 export const COOKIE_AUTH_MODE = 'cookie';
 
 const baseCookieOptions: CookieOptions = {
@@ -57,6 +62,14 @@ export function setAuthCookies(
     path: '/api/v1/auth',
     maxAge: tokenMaxAge(tokens.refreshToken),
   });
+  const csrfToken = randomBytes(32).toString('base64url');
+  res.cookie(CSRF_COOKIE_NAME, csrfToken, {
+    ...baseCookieOptions,
+    httpOnly: false,
+    path: '/api/v1',
+    maxAge: tokenMaxAge(tokens.refreshToken),
+  });
+  res.setHeader(CSRF_HEADER_NAME, csrfToken);
 }
 
 export function clearAuthCookies(res: Response): void {
@@ -67,5 +80,10 @@ export function clearAuthCookies(res: Response): void {
   res.clearCookie(REFRESH_COOKIE_NAME, {
     ...baseCookieOptions,
     path: '/api/v1/auth',
+  });
+  res.clearCookie(CSRF_COOKIE_NAME, {
+    ...baseCookieOptions,
+    httpOnly: false,
+    path: '/api/v1',
   });
 }
