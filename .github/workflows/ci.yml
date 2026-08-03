@@ -67,6 +67,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Check OpenAPI snapshot
+        run: npm run openapi:check
+
       - name: Apply migrations and run tests
         env:
           DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb
@@ -116,6 +119,9 @@ jobs:
 
       - name: Check formatting
         run: pnpm run format:check
+
+      - name: Check generated API types
+        run: pnpm run api:types:check
 
       - name: Lint
         run: pnpm run lint

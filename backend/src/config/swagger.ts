@@ -1,5 +1,270 @@
 import swaggerJsdoc from 'swagger-jsdoc';
-import { env } from './env';
+
+type OpenApiSchema = Record<string, unknown>;
+const stringSchema = { type: 'string' };
+const numberSchema = { type: 'number' };
+const integerSchema = { type: 'integer' };
+const booleanSchema = { type: 'boolean' };
+const nullableString = { type: 'string', nullable: true };
+const objectSchema = (
+  properties: Record<string, OpenApiSchema>,
+  required = Object.keys(properties)
+): OpenApiSchema => ({ type: 'object', required, properties });
+const arraySchema = (items: OpenApiSchema): OpenApiSchema => ({
+  type: 'array',
+  items,
+});
+const ref = (name: string): OpenApiSchema => ({
+  $ref: `#/components/schemas/${name}`,
+});
+const successEnvelope = (data: OpenApiSchema): OpenApiSchema =>
+  objectSchema({
+    success: { type: 'boolean', enum: [true] },
+    message: stringSchema,
+    data,
+  });
+
+const dashboardSchemas: Record<string, OpenApiSchema> = {
+  Pagination: objectSchema({
+    total: integerSchema,
+    page: integerSchema,
+    limit: integerSchema,
+    totalPages: integerSchema,
+  }),
+  AuthUser: objectSchema({
+    userId: stringSchema,
+    email: stringSchema,
+    role: { type: 'string', enum: ['CUSTOMER', 'VENDOR', 'ADMIN'] },
+  }),
+  LoginSuccess: successEnvelope(
+    objectSchema({
+      accessToken: stringSchema,
+      refreshToken: stringSchema,
+      user: ref('AuthUser'),
+    })
+  ),
+  RefreshSuccess: successEnvelope(objectSchema({ accessToken: stringSchema })),
+  LogoutSuccess: successEnvelope({ nullable: true }),
+  ProfileSuccess: successEnvelope(
+    objectSchema({
+      userId: stringSchema,
+      name: stringSchema,
+      email: stringSchema,
+      role: { type: 'string', enum: ['CUSTOMER', 'VENDOR', 'ADMIN'] },
+    })
+  ),
+  AdminDashboardSuccess: successEnvelope(
+    objectSchema({
+      totalUsers: integerSchema,
+      bannedUsers: integerSchema,
+      totalVendors: integerSchema,
+      pendingVendors: integerSchema,
+      totalProducts: integerSchema,
+      totalOrders: integerSchema,
+      platformRevenue: stringSchema,
+    })
+  ),
+  RevenueBucket: objectSchema({
+    periodStart: stringSchema,
+    orderCount: integerSchema,
+    revenue: stringSchema,
+  }),
+  AdminRevenueSuccess: successEnvelope(
+    objectSchema({
+      period: { type: 'string', enum: ['day', 'week', 'month'] },
+      series: arraySchema(ref('RevenueBucket')),
+      dateRange: objectSchema({
+        startDate: stringSchema,
+        endDate: stringSchema,
+      }),
+    })
+  ),
+  CommissionSuccess: successEnvelope(
+    objectSchema(
+      {
+        rate: numberSchema,
+        source: { type: 'string', enum: ['database', 'env_fallback'] },
+      },
+      ['rate']
+    )
+  ),
+  VendorAnalyticsSummarySuccess: successEnvelope(
+    objectSchema({
+      orders: objectSchema({
+        totalOrders: integerSchema,
+        billableOrders: integerSchema,
+        byStatus: { type: 'object', additionalProperties: integerSchema },
+      }),
+      revenue: objectSchema({
+        gross: stringSchema,
+        net: stringSchema,
+        commission: stringSchema,
+      }),
+      dateRange: objectSchema({
+        startDate: nullableString,
+        endDate: nullableString,
+      }),
+    })
+  ),
+  VendorSalesSuccess: successEnvelope(
+    objectSchema({
+      period: { type: 'string', enum: ['day', 'week', 'month'] },
+      series: arraySchema(ref('RevenueBucket')),
+      dateRange: objectSchema({
+        startDate: stringSchema,
+        endDate: stringSchema,
+      }),
+    })
+  ),
+  VendorTopProductsSuccess: successEnvelope(
+    objectSchema({
+      products: arraySchema(
+        objectSchema({
+          rank: integerSchema,
+          productId: stringSchema,
+          productName: stringSchema,
+          orderCount: integerSchema,
+          totalRevenue: stringSchema,
+        })
+      ),
+      dateRange: objectSchema({
+        startDate: nullableString,
+        endDate: nullableString,
+      }),
+    })
+  ),
+  Banner: objectSchema(
+    {
+      id: stringSchema,
+      title: stringSchema,
+      imageUrl: stringSchema,
+      linkUrl: nullableString,
+      position: integerSchema,
+      isActive: booleanSchema,
+    },
+    ['id', 'title', 'imageUrl', 'position', 'isActive']
+  ),
+  BannersSuccess: successEnvelope(arraySchema(ref('Banner'))),
+  Category: objectSchema(
+    {
+      id: stringSchema,
+      name: stringSchema,
+      image: nullableString,
+      parentId: nullableString,
+      children: arraySchema(ref('Category')),
+    },
+    ['id', 'name', 'parentId']
+  ),
+  CategoriesSuccess: successEnvelope(arraySchema(ref('Category'))),
+  ProductVariant: objectSchema(
+    {
+      id: stringSchema,
+      productId: stringSchema,
+      size: nullableString,
+      color: nullableString,
+      price: stringSchema,
+      stock: integerSchema,
+      sku: stringSchema,
+      createdAt: { type: 'string', format: 'date-time' },
+      updatedAt: { type: 'string', format: 'date-time' },
+    },
+    ['id', 'productId', 'price', 'stock', 'sku', 'createdAt', 'updatedAt']
+  ),
+  ProductSummary: objectSchema({
+    id: stringSchema,
+    vendorId: stringSchema,
+    categoryId: stringSchema,
+    name: stringSchema,
+    description: stringSchema,
+    basePrice: stringSchema,
+    images: arraySchema(stringSchema),
+    isActive: booleanSchema,
+    tags: arraySchema(stringSchema),
+    avgRating: stringSchema,
+    reviewCount: integerSchema,
+    variants: arraySchema(ref('ProductVariant')),
+    vendor: objectSchema({ id: stringSchema, name: stringSchema }),
+    category: objectSchema({ id: stringSchema, name: stringSchema }),
+    createdAt: { type: 'string', format: 'date-time' },
+    updatedAt: { type: 'string', format: 'date-time' },
+  }),
+  ProductsSuccess: successEnvelope(
+    objectSchema({
+      items: arraySchema(ref('ProductSummary')),
+      meta: ref('Pagination'),
+    })
+  ),
+  ConnectOnboardingSuccess: successEnvelope(
+    objectSchema({ url: stringSchema })
+  ),
+  ConnectStatusSuccess: successEnvelope(
+    objectSchema({
+      onboardingStatus: {
+        type: 'string',
+        enum: ['NOT_STARTED', 'PENDING', 'COMPLETE', 'RESTRICTED'],
+      },
+      chargesEnabled: booleanSchema,
+      payoutsEnabled: booleanSchema,
+      detailsSubmitted: booleanSchema,
+    })
+  ),
+  EarningsAmounts: objectSchema({
+    count: integerSchema,
+    grossAmount: numberSchema,
+    commissionAmount: numberSchema,
+    netAmount: numberSchema,
+  }),
+  EarningsSummarySuccess: successEnvelope(
+    objectSchema({
+      pending: ref('EarningsAmounts'),
+      transferred: ref('EarningsAmounts'),
+      failed: ref('EarningsAmounts'),
+      reversed: ref('EarningsAmounts'),
+    })
+  ),
+  VendorProfileSuccess: successEnvelope(
+    objectSchema(
+      {
+        id: stringSchema,
+        userId: stringSchema,
+        storeName: stringSchema,
+        description: nullableString,
+        status: {
+          type: 'string',
+          enum: ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'],
+        },
+        storeLogo: nullableString,
+        storeBanner: nullableString,
+        user: objectSchema({
+          name: stringSchema,
+          email: stringSchema,
+          avatar: nullableString,
+        }),
+      },
+      ['id', 'userId', 'storeName', 'status', 'user']
+    )
+  ),
+};
+
+const dashboardResponseSchemas: Record<string, string> = {
+  'get /admin/dashboard': 'AdminDashboardSuccess',
+  'get /admin/revenue': 'AdminRevenueSuccess',
+  'get /admin/commission': 'CommissionSuccess',
+  'get /analytics/vendor/summary': 'VendorAnalyticsSummarySuccess',
+  'get /analytics/vendor/sales': 'VendorSalesSuccess',
+  'get /analytics/vendor/top-products': 'VendorTopProductsSuccess',
+  'post /auth/login': 'LoginSuccess',
+  'post /auth/refresh': 'RefreshSuccess',
+  'post /auth/logout': 'LogoutSuccess',
+  'get /auth/profile': 'ProfileSuccess',
+  'get /banners': 'BannersSuccess',
+  'get /categories': 'CategoriesSuccess',
+  'get /products': 'ProductsSuccess',
+  'post /vendor-payouts/connect/onboard': 'ConnectOnboardingSuccess',
+  'get /vendor-payouts/connect/status': 'ConnectStatusSuccess',
+  'get /vendor-payouts/earnings/summary': 'EarningsSummarySuccess',
+  'get /vendor-profile/me': 'VendorProfileSuccess',
+};
 
 const options: swaggerJsdoc.Options = {
   definition: {
@@ -13,8 +278,8 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: `http://localhost:${env.PORT}/api/v1`,
-        description: 'Development server',
+        url: '/api/v1',
+        description: 'Current API host',
       },
     ],
     components: {
@@ -29,12 +294,17 @@ const options: swaggerJsdoc.Options = {
         },
       },
       schemas: {
+        ...dashboardSchemas,
         ApiSuccess: {
           type: 'object',
+          required: ['success', 'message', 'data'],
           properties: {
-            success: { type: 'boolean', example: true },
+            success: { type: 'boolean', enum: [true], example: true },
             message: { type: 'string', example: 'Operation successful' },
-            data: { type: 'object' },
+            // Deliberately unknown for endpoints awaiting a concrete schema. This is
+            // truthful and still allows common envelope normalization without claiming
+            // that arrays or primitives are empty objects.
+            data: {},
           },
         },
         ApiError: {
@@ -71,11 +341,15 @@ const options: swaggerJsdoc.Options = {
       { name: 'Auth', description: 'Authentication & session management' },
       {
         name: 'Products',
-        description: 'Product catalogue (public) and vendor inventory management',
+        description:
+          'Product catalogue (public) and vendor inventory management',
       },
       { name: 'Categories', description: 'Product category tree management' },
       { name: 'Cart', description: 'Shopping cart (authenticated customers)' },
-      { name: 'Orders', description: 'Order placement, tracking, and management' },
+      {
+        name: 'Orders',
+        description: 'Order placement, tracking, and management',
+      },
       { name: 'Addresses', description: 'Customer shipping address book' },
       { name: 'Reviews', description: 'Product reviews and ratings' },
       { name: 'Wishlist', description: 'Customer product wishlist' },
@@ -99,8 +373,14 @@ const options: swaggerJsdoc.Options = {
         name: 'Vendor Payouts',
         description: 'Stripe Connect earnings and payout history',
       },
-      { name: 'Analytics', description: 'Vendor sales analytics and reporting' },
-      { name: 'Banners', description: 'Homepage banner management (Admin only)' },
+      {
+        name: 'Analytics',
+        description: 'Vendor sales analytics and reporting',
+      },
+      {
+        name: 'Banners',
+        description: 'Homepage banner management (Admin only)',
+      },
       { name: 'Admin', description: 'Platform administration (Admin only)' },
     ],
   },
@@ -115,5 +395,34 @@ const options: swaggerJsdoc.Options = {
  * inline within the route JSDoc blocks.
  */
 export function buildSwaggerSpec(): object {
-  return swaggerJsdoc(options);
+  const spec = swaggerJsdoc(options) as {
+    paths?: Record<
+      string,
+      Record<
+        string,
+        {
+          responses?: Record<
+            string,
+            { content?: Record<string, OpenApiSchema> }
+          >;
+        }
+      >
+    >;
+  };
+
+  for (const [operation, schemaName] of Object.entries(
+    dashboardResponseSchemas
+  )) {
+    const [method, route] = operation.split(' ');
+    const responses =
+      route && method ? spec.paths?.[route]?.[method]?.responses : undefined;
+    if (!responses) continue;
+    const success = Object.entries(responses).find(([status]) =>
+      status.startsWith('2')
+    )?.[1];
+    const json = success?.content?.['application/json'];
+    if (json) json.schema = ref(schemaName);
+  }
+
+  return spec;
 }
