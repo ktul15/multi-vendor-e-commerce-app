@@ -28,6 +28,7 @@ export const corsOptions: CorsOptions = {
     'Sec-Fetch-Site',
     'X-Auth-Mode',
     'X-CSRF-Token',
+    'X-Refresh-Rotation-Key',
   ],
   exposedHeaders: ['X-CSRF-Token', 'X-CSRF-Error'],
   maxAge: 600,

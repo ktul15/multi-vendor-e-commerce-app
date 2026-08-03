@@ -26,13 +26,10 @@ const navigation: readonly DashboardNavItem[] = [
   { href: "/settings", icon: "⚙", label: "Settings" },
 ];
 
-const account: DashboardAccount = {
-  name: "Demo Admin",
-  email: "admin@example.test",
-  actions: [{ href: "/settings", label: "Account settings" }],
-};
-
-export function AdminDashboardShell({ children }: Readonly<{ children: ReactNode }>) {
+export function AdminDashboardShell({
+  account,
+  children,
+}: Readonly<{ account: DashboardAccount; children: ReactNode }>) {
   const currentPath = usePathname();
 
   return (

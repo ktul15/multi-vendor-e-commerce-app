@@ -1,11 +1,17 @@
 import { prisma } from '../../config/prisma';
 import { hashPassword, comparePassword } from '../../utils/password';
-import { generateTokenPair, verifyRefreshToken } from '../../utils/jwt';
+import {
+  generateTokenPair,
+  verifyRefreshToken,
+  verifyRefreshTokenForRevocation,
+} from '../../utils/jwt';
 import { ApiError } from '../../utils/apiError';
 import { JwtPayload } from '../../types';
 import {
   blacklistToken,
-  consumeRefreshToken,
+  getRefreshRotation,
+  rotateRefreshToken,
+  waitForRefreshRotation,
 } from '../../utils/tokenBlacklist';
 
 interface RegisterInput {
@@ -141,8 +147,15 @@ export const login = async (
  * Refresh the access token using a valid refresh token.
  */
 export const refreshAccessToken = async (
-  refreshToken: string
+  refreshToken: string,
+  rotationKey?: string
 ): Promise<AuthTokens> => {
+  // A concurrent request may arrive at another API instance just after the
+  // winning request consumed this token. Return the same short-lived rotation
+  // result instead of falsely logging that browser session out.
+  const existingRotation = await getRefreshRotation(refreshToken, rotationKey);
+  if (existingRotation) return existingRotation;
+
   // Verify the refresh token
   let decoded: { userId: string; exp?: number };
   try {
@@ -173,11 +186,13 @@ export const refreshAccessToken = async (
   }
 
   const ttl = (decoded.exp ?? 0) - Math.floor(Date.now() / 1000);
-  if (ttl <= 0 || !(await consumeRefreshToken(refreshToken, ttl))) {
+  if (ttl <= 0) {
     throw ApiError.unauthorized('Refresh token has been revoked');
   }
 
-  // Generate new token pair
+  // Generate the replacement before entering the atomic Redis operation. Redis
+  // either consumes the old token and publishes this exact result, or does
+  // neither, so transient failures cannot split those state changes.
   const payload: JwtPayload = {
     userId: user.id,
     email: user.email,
@@ -185,6 +200,26 @@ export const refreshAccessToken = async (
   };
 
   const tokens = generateTokenPair(payload);
+  const replacement = verifyRefreshToken(tokens.refreshToken) as {
+    userId: string;
+    exp: number;
+  };
+  if (
+    !(await rotateRefreshToken(
+      refreshToken,
+      tokens,
+      decoded.exp as number,
+      replacement.exp,
+      rotationKey
+    ))
+  ) {
+    const concurrentRotation = await waitForRefreshRotation(
+      refreshToken,
+      rotationKey
+    );
+    if (concurrentRotation) return concurrentRotation;
+    throw ApiError.unauthorized('Refresh token has been revoked');
+  }
 
   // Rotate refresh tokens for both web and Flutter clients. The previous token is
   // invalid immediately, while the newly generated token has a unique JWT ID.
@@ -197,30 +232,25 @@ export const refreshAccessToken = async (
 export const logout = async (refreshToken: string): Promise<void> => {
   let decoded: { userId: string; exp: number };
 
-  // Invalid or expired tokens are already unusable, so logout remains idempotent
-  // for them. Infrastructure failures during revocation must still propagate.
+  // Expired credentials may still point to a fresh replacement during the
+  // bounded rotation window. Verify their signature while ignoring expiration
+  // so logout can atomically follow and revoke that link. Invalid signatures
+  // remain an idempotent no-op.
   try {
-    decoded = verifyRefreshToken(refreshToken) as {
-      userId: string;
-      exp: number;
-    };
+    decoded = verifyRefreshTokenForRevocation(refreshToken);
   } catch (error) {
-    if (
-      error instanceof Error &&
-      (error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError')
-    ) {
+    if (error instanceof Error && error.name === 'JsonWebTokenError') {
       return;
     }
     throw error;
   }
 
-  const ttl = decoded.exp - Math.floor(Date.now() / 1000);
-  if (ttl <= 0) return;
+  await blacklistToken(refreshToken, decoded.exp);
 
-  await blacklistToken(refreshToken, ttl);
-
-  // Clear FCM token so the device stops receiving push notifications.
-  if (decoded.userId) {
+  // An expired credential is accepted only to follow a still-live rotation
+  // link. It must not authorize account/device side effects for a newer session.
+  const isCurrentlyValid = decoded.exp > Math.floor(Date.now() / 1000);
+  if (decoded.userId && isCurrentlyValid) {
     await prisma.user.update({
       where: { id: decoded.userId },
       data: { fcmToken: null },

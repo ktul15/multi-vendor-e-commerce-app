@@ -19,16 +19,10 @@ const navigation: readonly DashboardNavItem[] = [
   { href: "/store", icon: "◇", label: "Store" },
 ];
 
-const account: DashboardAccount = {
-  name: "Demo Vendor",
-  email: "vendor@example.test",
-  actions: [
-    { href: "/store", label: "Store profile" },
-    { href: "/settings", label: "Account settings" },
-  ],
-};
-
-export function VendorDashboardShell({ children }: Readonly<{ children: ReactNode }>) {
+export function VendorDashboardShell({
+  account,
+  children,
+}: Readonly<{ account: DashboardAccount; children: ReactNode }>) {
   const currentPath = usePathname();
 
   return (

@@ -1,5 +1,8 @@
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
+import { randomUUID } from 'node:crypto';
 import app from '../../app';
+import { env } from '../../config/env';
 import { setupTestDB, teardownTestDB, cleanDatabase } from '../setup';
 import { prisma } from '../../config/prisma';
 import { hashPassword } from '../../utils/password';
@@ -272,7 +275,7 @@ describe('Auth API', () => {
       expect(profileRes.body.data.email).toBe('web@example.com');
     });
 
-    it('rotates cookie tokens and revokes the previous refresh token', async () => {
+    it('rotates cookie tokens and briefly replays the same result for overlapping requests', async () => {
       const loginRes = await loginWithCookies();
       const originalCookies = loginRes.headers[
         'set-cookie'
@@ -297,12 +300,37 @@ describe('Auth API', () => {
 
       const replayRes = await request(app)
         .post('/api/v1/auth/refresh')
+        .set('X-Refresh-Rotation-Key', cookieValue(csrfPair))
         .send({ refreshToken: cookieValue(oldRefreshPair) });
-      expect(replayRes.status).toBe(401);
-      expect(replayRes.body.message).toBe('Refresh token has been revoked');
+      expect(replayRes.status).toBe(200);
+      expect(replayRes.body.data.refreshToken).toBe(
+        cookieValue(cookiePair(rotatedCookies, REFRESH_COOKIE_NAME))
+      );
     });
 
-    it('allows exactly one concurrent rotation of the same refresh token', async () => {
+    it('does not replay a rotation without the matching client-session proof', async () => {
+      const loginRes = await loginWithCookies();
+      const originalCookies = loginRes.headers[
+        'set-cookie'
+      ] as unknown as string[];
+      const oldRefreshPair = cookiePair(originalCookies, REFRESH_COOKIE_NAME);
+      const csrfPair = cookiePair(originalCookies, CSRF_COOKIE_NAME);
+
+      await request(app)
+        .post('/api/v1/auth/refresh')
+        .set('Cookie', `${oldRefreshPair}; ${csrfPair}`)
+        .set(CSRF_HEADER_NAME, cookieValue(csrfPair))
+        .send({})
+        .expect(200);
+
+      await request(app)
+        .post('/api/v1/auth/refresh')
+        .set('X-Refresh-Rotation-Key', 'different-session-proof')
+        .send({ refreshToken: cookieValue(oldRefreshPair) })
+        .expect(401);
+    });
+
+    it('returns one rotation outcome to concurrent refresh requests', async () => {
       const loginRes = await loginWithCookies();
       const originalCookies = loginRes.headers[
         'set-cookie'
@@ -325,17 +353,142 @@ describe('Auth API', () => {
           .send({}),
       ]);
 
-      expect(responses.map((response) => response.status).sort()).toEqual([
-        200, 401,
+      expect(responses.map((response) => response.status)).toEqual([200, 200]);
+      const rotatedRefreshTokens = responses.map((response) =>
+        cookieValue(
+          cookiePair(
+            response.headers['set-cookie'] as unknown as string[],
+            REFRESH_COOKIE_NAME
+          )
+        )
+      );
+      expect(new Set(rotatedRefreshTokens).size).toBe(1);
+    });
+
+    it('does not replay a grace result after the rotated session logs out', async () => {
+      const loginRes = await loginWithCookies();
+      const originalCookies = loginRes.headers[
+        'set-cookie'
+      ] as unknown as string[];
+      const oldRefreshToken = cookieValue(
+        cookiePair(originalCookies, REFRESH_COOKIE_NAME)
+      );
+      const refreshRes = await request(app)
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: oldRefreshToken });
+      const rotatedRefreshToken = refreshRes.body.data.refreshToken as string;
+
+      await request(app)
+        .post('/api/v1/auth/logout')
+        .send({ refreshToken: rotatedRefreshToken })
+        .expect(200);
+
+      const replayRes = await request(app)
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: oldRefreshToken });
+      expect(replayRes.status).toBe(401);
+      expect(replayRes.body.message).toBe('Refresh token has been revoked');
+    });
+
+    it('atomically resolves a refresh racing logout without leaving either token usable', async () => {
+      const loginRes = await loginWithCookies();
+      const originalCookies = loginRes.headers[
+        'set-cookie'
+      ] as unknown as string[];
+      const oldRefreshToken = cookieValue(
+        cookiePair(originalCookies, REFRESH_COOKIE_NAME)
+      );
+      const rotationKey = cookieValue(
+        cookiePair(originalCookies, CSRF_COOKIE_NAME)
+      );
+
+      const [refreshRes, logoutRes] = await Promise.all([
+        request(app)
+          .post('/api/v1/auth/refresh')
+          .set('X-Refresh-Rotation-Key', rotationKey)
+          .send({ refreshToken: oldRefreshToken }),
+        request(app)
+          .post('/api/v1/auth/logout')
+          .send({ refreshToken: oldRefreshToken }),
       ]);
-      expect(
-        responses.find((response) => response.status === 401)?.body.message
-      ).toBe('Refresh token has been revoked');
-      expect(
-        responses.find((response) => response.status === 200)?.headers[
-          'set-cookie'
-        ]
-      ).toEqual(expect.any(Array));
+
+      expect(logoutRes.status).toBe(200);
+      expect([200, 401]).toContain(refreshRes.status);
+      await request(app)
+        .post('/api/v1/auth/refresh')
+        .set('X-Refresh-Rotation-Key', rotationKey)
+        .send({ refreshToken: oldRefreshToken })
+        .expect(401);
+
+      if (refreshRes.status === 200) {
+        await request(app)
+          .post('/api/v1/auth/refresh')
+          .send({ refreshToken: refreshRes.body.data.refreshToken })
+          .expect(401);
+      }
+    });
+
+    it('keeps the fresh replacement revoked after the rotated old token expires', async () => {
+      const user = await prisma.user.findUniqueOrThrow({
+        where: { email: 'web@example.com' },
+      });
+      const nearExpiryToken = jwt.sign(
+        { userId: user.id },
+        env.JWT_REFRESH_SECRET,
+        { expiresIn: 3, jwtid: randomUUID() }
+      );
+      const rotationKey = 'near-expiry-rotation-proof';
+      const refreshRes = await request(app)
+        .post('/api/v1/auth/refresh')
+        .set('X-Refresh-Rotation-Key', rotationKey)
+        .send({ refreshToken: nearExpiryToken })
+        .expect(200);
+      const replacementToken = refreshRes.body.data.refreshToken as string;
+
+      await request(app)
+        .post('/api/v1/auth/logout')
+        .send({ refreshToken: nearExpiryToken })
+        .expect(200);
+
+      await new Promise((resolve) => setTimeout(resolve, 3200));
+      await request(app)
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: replacementToken })
+        .expect(401);
+    });
+
+    it('follows the rotation link when logout receives an already-expired old token', async () => {
+      const user = await prisma.user.findUniqueOrThrow({
+        where: { email: 'web@example.com' },
+      });
+      const nearExpiryToken = jwt.sign(
+        { userId: user.id },
+        env.JWT_REFRESH_SECRET,
+        { expiresIn: 2, jwtid: randomUUID() }
+      );
+      const decoded = jwt.decode(nearExpiryToken) as { exp: number };
+      const rotationKey = 'expired-old-token-proof';
+      const refreshRes = await request(app)
+        .post('/api/v1/auth/refresh')
+        .set('X-Refresh-Rotation-Key', rotationKey)
+        .send({ refreshToken: nearExpiryToken })
+        .expect(200);
+      const replacementToken = refreshRes.body.data.refreshToken as string;
+
+      const waitUntilExpiredMs = Math.max(
+        0,
+        decoded.exp * 1000 - Date.now() + 100
+      );
+      await new Promise((resolve) => setTimeout(resolve, waitUntilExpiredMs));
+      await request(app)
+        .post('/api/v1/auth/logout')
+        .send({ refreshToken: nearExpiryToken })
+        .expect(200);
+
+      await request(app)
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: replacementToken })
+        .expect(401);
     });
 
     it('revokes the refresh token and clears all session cookies on logout', async () => {
@@ -369,6 +522,24 @@ describe('Auth API', () => {
     });
   });
 
+  describe('CORS preflight', () => {
+    it('allows the proof-bound refresh header from a configured dashboard', async () => {
+      const res = await request(app)
+        .options('/api/v1/auth/refresh')
+        .set('Origin', env.VENDOR_DASHBOARD_URL)
+        .set('Access-Control-Request-Method', 'POST')
+        .set(
+          'Access-Control-Request-Headers',
+          'content-type,x-refresh-rotation-key'
+        );
+
+      expect(res.status).toBe(204);
+      expect(res.headers['access-control-allow-headers']).toContain(
+        'X-Refresh-Rotation-Key'
+      );
+    });
+  });
+
   // ============================
   // POST /api/v1/auth/refresh
   // ============================
@@ -386,8 +557,10 @@ describe('Auth API', () => {
     });
 
     it('should return new token pair with valid refresh token', async () => {
+      const rotationKey = 'bearer-client-request-1';
       const res = await request(app)
         .post('/api/v1/auth/refresh')
+        .set('X-Refresh-Rotation-Key', rotationKey)
         .send({ refreshToken });
 
       expect(res.status).toBe(200);
@@ -398,8 +571,10 @@ describe('Auth API', () => {
 
       const replayRes = await request(app)
         .post('/api/v1/auth/refresh')
+        .set('X-Refresh-Rotation-Key', rotationKey)
         .send({ refreshToken });
-      expect(replayRes.status).toBe(401);
+      expect(replayRes.status).toBe(200);
+      expect(replayRes.body.data).toEqual(res.body.data);
     });
 
     it('should return 400 if refresh token is missing', async () => {
@@ -448,6 +623,31 @@ describe('Auth API', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
+    });
+
+    it('does not let a long-expired token clear current device notifications', async () => {
+      const user = await prisma.user.create({
+        data: {
+          email: 'notifications@example.com',
+          fcmToken: 'current-device-token',
+          name: 'Notification User',
+          password: await hashPassword('password123'),
+        },
+      });
+      const expiredToken = jwt.sign(
+        { userId: user.id },
+        env.JWT_REFRESH_SECRET,
+        { expiresIn: -60, jwtid: randomUUID() }
+      );
+
+      await request(app)
+        .post('/api/v1/auth/logout')
+        .send({ refreshToken: expiredToken })
+        .expect(200);
+
+      await expect(
+        prisma.user.findUniqueOrThrow({ where: { id: user.id } })
+      ).resolves.toMatchObject({ fcmToken: 'current-device-token' });
     });
   });
 

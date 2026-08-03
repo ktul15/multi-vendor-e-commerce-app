@@ -4,6 +4,7 @@ import { ApiResponse } from '../../utils/apiResponse';
 import { ApiError } from '../../utils/apiError';
 import * as authService from './auth.service';
 import {
+  CSRF_COOKIE_NAME,
   REFRESH_COOKIE_NAME,
   clearAuthCookies,
   isCookieAuthRequest,
@@ -73,7 +74,12 @@ export const refresh = async (
     const refreshToken = cookieToken ?? req.body?.refreshToken;
     if (!refreshToken) throw ApiError.badRequest('Refresh token is required');
 
-    const tokens = await authService.refreshAccessToken(refreshToken);
+    const rotationKey =
+      req.get('X-Refresh-Rotation-Key') ?? readCookie(req, CSRF_COOKIE_NAME);
+    const tokens = await authService.refreshAccessToken(
+      refreshToken,
+      rotationKey
+    );
     if (cookieToken || isCookieAuthRequest(req)) {
       setAuthCookies(res, tokens);
       ApiResponse.success(res, null, 'Token refreshed successfully');

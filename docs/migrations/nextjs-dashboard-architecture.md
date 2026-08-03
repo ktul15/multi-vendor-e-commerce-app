@@ -263,6 +263,23 @@ Express API
 7. Refresh is single-flight across deployed instances for the same opaque session identifier. A request retries at most once after successful refresh; concurrency tests send overlapping expired-session requests through different instances and verify one rotation outcome without false logout.
 8. Logout follows the BFF flow above, clears protected query data, and redirects to the public home/login policy defined by the app.
 
+Issue #84 implements the shared guard contract in `@repo/auth`. Both dashboard
+proxies resolve the backend profile before protected rendering, enforce their
+own role, overwrite caller-supplied session-context headers, and forward a
+minimal verified session summary to the protected layout so the backend profile
+is not fetched twice. Return paths remain relative and every redirect resolves
+against the configured dashboard origin rather than the incoming Host value.
+A local promise flight coalesces refresh work within one Next.js instance. The
+Express refresh service uses one Redis script to consume the old token and
+publish an AES-GCM-encrypted three-second result under SHA-256-derived keys,
+bound to the dashboard's opaque session identifier (or a cookie client's CSRF
+secret). Logout uses a second atomic script that revokes both sides of an active
+rotation and removes the grace result. Bearer clients that omit the opaque
+`X-Refresh-Rotation-Key` remain compatible but cannot replay a replacement pair
+using the old credential alone. Logout clears all dashboard-host cookies even
+when backend revocation fails. Transient backend failures continue to an error
+boundary instead of being misclassified as an expired session.
+
 Never place refresh tokens in `localStorage`, session storage, browser-readable cookies, URLs, logs, analytics, or hydrated props. Never use middleware-only checks as the sole authorization boundary; backend role, approval, and ownership checks are mandatory.
 
 ## UI and accessibility
