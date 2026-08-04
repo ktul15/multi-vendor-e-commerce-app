@@ -13,6 +13,7 @@ import {
   rotateRefreshToken,
   waitForRefreshRotation,
 } from '../../utils/tokenBlacklist';
+import { Prisma } from '../../generated/prisma/client';
 
 interface RegisterInput {
   name: string;
@@ -58,21 +59,40 @@ export const register = async (
 
   // Hash password and create user (+ vendor profile if registering as VENDOR)
   const hashedPassword = await hashPassword(password);
-  const user = await prisma.user.create({
-    data: {
-      name,
-      email,
-      password: hashedPassword,
-      role,
-      ...(role === 'VENDOR' && storeName
-        ? {
-            vendorProfile: {
-              create: { storeName },
-            },
-          }
-        : {}),
-    },
-  });
+  let user;
+  try {
+    user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role,
+        ...(role === 'VENDOR' && storeName
+          ? {
+              vendorProfile: {
+                create: { storeName },
+              },
+            }
+          : {}),
+      },
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      const target = String(error.meta?.target ?? '');
+      if (target.includes('email')) {
+        throw ApiError.conflict('Email is already registered');
+      }
+      if (role === 'VENDOR') {
+        throw ApiError.conflict('A store with this name already exists', [
+          { field: 'storeName', message: 'Store name must be unique' },
+        ]);
+      }
+    }
+    throw error;
+  }
 
   // Generate tokens
   const payload: JwtPayload = {

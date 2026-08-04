@@ -1815,7 +1815,7 @@ export interface paths {
                         readonly "application/json": components["schemas"]["ApiError"];
                     };
                 };
-                /** @description Email already in use */
+                /** @description Email or normalized vendor store name already in use */
                 readonly 409: {
                     headers: {
                         readonly [name: string]: unknown;
@@ -3336,7 +3336,7 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        readonly "application/json": components["schemas"]["ApiSuccess"];
+                        readonly "application/json": components["schemas"]["VendorOrdersSuccess"];
                     };
                 };
                 /** @description Unauthorized */
@@ -3352,6 +3352,84 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content?: never;
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/orders/vendor/{id}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /**
+         * Get an owned vendor order by ID
+         * @description Returns customer, shipping, payment, tracking, totals, and item details for direct dashboard routes.
+         */
+        readonly get: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    /** @description Vendor order ID */
+                    readonly id: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description Vendor order detail */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["VendorOrderDetailSuccess"];
+                    };
+                };
+                /** @description Invalid vendor order ID */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Unauthorized */
+                readonly 401: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Vendor account is not approved or does not own the order */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Vendor order not found */
+                readonly 404: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -3684,7 +3762,7 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        readonly "application/json": components["schemas"]["ApiSuccess"];
+                        readonly "application/json": components["schemas"]["ProductMutationSuccess"];
                     };
                 };
                 /** @description Validation error */
@@ -3692,21 +3770,45 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden — VENDOR role required */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Category not found */
+                readonly 404: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description A variant SKU already exists */
+                readonly 409: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -3786,28 +3888,45 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ProductMutationSuccess"];
+                    };
+                };
+                /** @description Invalid product ID or update payload */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Product not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -3828,32 +3947,58 @@ export interface paths {
             readonly requestBody?: never;
             readonly responses: {
                 /** @description Product deleted */
-                readonly 204: {
+                readonly 200: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["NullSuccess"];
+                    };
+                };
+                /** @description Invalid product ID */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Product not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Product has related order history and cannot be deleted */
+                readonly 409: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -3908,7 +4053,7 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        readonly "application/json": components["schemas"]["ApiSuccess"];
+                        readonly "application/json": components["schemas"]["ProductVariantSuccess"];
                     };
                 };
                 /** @description Validation error */
@@ -3916,28 +4061,45 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden — VENDOR role required */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Product not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description SKU already exists */
+                readonly 409: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -3985,33 +4147,130 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ProductVariantSuccess"];
+                    };
+                };
+                /** @description Invalid route parameter or update payload */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Product or variant not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description SKU already exists */
+                readonly 409: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
         readonly post?: never;
-        readonly delete?: never;
+        /**
+         * Delete an unreferenced product variant (Vendor only)
+         * @description Variants referenced by order history are retained and return 409 Conflict.
+         */
+        readonly delete: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly id: string;
+                    readonly vid: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description Variant deleted */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["NullSuccess"];
+                    };
+                };
+                /** @description Invalid route parameter */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Unauthorized */
+                readonly 401: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Vendor does not own the product */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Product or variant not found */
+                readonly 404: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Variant is referenced by order history */
+                readonly 409: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
         readonly options?: never;
         readonly head?: never;
         readonly patch?: never;
@@ -4058,6 +4317,82 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content?: never;
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/products/vendor": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /**
+         * List the authenticated vendor's inventory
+         * @description Includes active and inactive products. Vendor identity is derived from the authenticated session.
+         */
+        readonly get: {
+            readonly parameters: {
+                readonly query?: {
+                    readonly categoryId?: string;
+                    readonly inStock?: boolean;
+                    readonly isActive?: boolean;
+                    readonly limit?: number;
+                    readonly page?: number;
+                    /** @description Case-insensitive product name, description, or variant SKU search. */
+                    readonly search?: string;
+                    readonly sortBy?: "createdAt" | "updatedAt" | "name" | "basePrice";
+                    readonly sortOrder?: "asc" | "desc";
+                };
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description Paginated vendor inventory */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ProductsSuccess"];
+                    };
+                };
+                /** @description Invalid query parameters */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Unauthorized */
+                readonly 401: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Vendor account is not approved */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -5456,9 +5791,9 @@ export interface components {
                 readonly message?: string;
             }[];
             /** @example Validation failed */
-            readonly message?: string;
+            readonly message: string;
             /** @example false */
-            readonly success?: boolean;
+            readonly success: boolean;
         };
         readonly ApiSuccess: {
             readonly data: unknown;
@@ -5570,6 +5905,13 @@ export interface components {
             /** @enum {boolean} */
             readonly success: true;
         };
+        readonly NullSuccess: {
+            /** @enum {unknown|null} */
+            readonly data: null;
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
         readonly Pagination: {
             readonly limit: number;
             readonly page: number;
@@ -5585,6 +5927,30 @@ export interface components {
             readonly total?: number;
             /** @example 10 */
             readonly totalPages?: number;
+        };
+        readonly ProductMutation: {
+            readonly avgRating: string;
+            readonly basePrice: string;
+            readonly categoryId: string;
+            /** Format: date-time */
+            readonly createdAt: string;
+            readonly description: string;
+            readonly id: string;
+            readonly images: readonly string[];
+            readonly isActive: boolean;
+            readonly name: string;
+            readonly reviewCount: number;
+            readonly tags: readonly string[];
+            /** Format: date-time */
+            readonly updatedAt: string;
+            readonly variants?: readonly components["schemas"]["ProductVariant"][];
+            readonly vendorId: string;
+        };
+        readonly ProductMutationSuccess: {
+            readonly data: components["schemas"]["ProductMutation"];
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
         };
         readonly ProductsSuccess: {
             readonly data: {
@@ -5633,6 +5999,12 @@ export interface components {
             readonly stock: number;
             /** Format: date-time */
             readonly updatedAt: string;
+        };
+        readonly ProductVariantSuccess: {
+            readonly data: components["schemas"]["ProductVariant"];
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
         };
         readonly ProfileSuccess: {
             readonly data: components["schemas"]["UserProfile"];
@@ -5685,6 +6057,86 @@ export interface components {
                     readonly gross: string;
                     readonly net: string;
                 };
+            };
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
+        readonly VendorOrderDetail: {
+            /** Format: date-time */
+            readonly createdAt: string;
+            readonly id: string;
+            readonly items: readonly components["schemas"]["VendorOrderItem"][];
+            readonly order: {
+                /** Format: date-time */
+                readonly createdAt: string;
+                readonly id: string;
+                readonly notes: string | null;
+                readonly orderNumber: string;
+                readonly payment: components["schemas"]["VendorOrderPayment"] | null;
+                readonly shippingAddress: {
+                    readonly [key: string]: unknown;
+                };
+                /** Format: date-time */
+                readonly updatedAt: string;
+                readonly user: {
+                    readonly email: string;
+                    readonly id: string;
+                    readonly name: string;
+                };
+            };
+            readonly orderId: string;
+            /** @enum {string} */
+            readonly status: "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "REFUNDED";
+            readonly subtotal: string;
+            readonly trackingCarrier: string | null;
+            readonly trackingNumber: string | null;
+            /** Format: date-time */
+            readonly updatedAt: string;
+            readonly vendorId: string;
+        };
+        readonly VendorOrderDetailSuccess: {
+            readonly data: components["schemas"]["VendorOrderDetail"];
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
+        readonly VendorOrderItem: {
+            /** Format: date-time */
+            readonly createdAt: string;
+            readonly id: string;
+            readonly quantity: number;
+            readonly totalPrice: string;
+            readonly unitPrice: string;
+            /** Format: date-time */
+            readonly updatedAt: string;
+            readonly variant: {
+                readonly color: string | null;
+                readonly id: string;
+                readonly price: string;
+                readonly product: {
+                    readonly id: string;
+                    readonly images: readonly string[];
+                    readonly name: string;
+                };
+                readonly size: string | null;
+                readonly sku: string;
+            };
+            readonly variantId: string;
+            readonly vendorOrderId: string;
+        };
+        readonly VendorOrderPayment: {
+            /** @enum {string} */
+            readonly method: "CARD" | "CASH_ON_DELIVERY" | "WALLET";
+            /** Format: date-time */
+            readonly paidAt: string | null;
+            /** @enum {string} */
+            readonly status: "PENDING" | "PROCESSING" | "SUCCEEDED" | "FAILED" | "REFUNDED" | "CANCELLED";
+        };
+        readonly VendorOrdersSuccess: {
+            readonly data: {
+                readonly items: readonly components["schemas"]["VendorOrderDetail"][];
+                readonly meta: components["schemas"]["Pagination"];
             };
             readonly message: string;
             /** @enum {boolean} */

@@ -204,6 +204,153 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
       meta: ref('Pagination'),
     })
   ),
+  ProductMutation: objectSchema(
+    {
+      id: stringSchema,
+      vendorId: stringSchema,
+      categoryId: stringSchema,
+      name: stringSchema,
+      description: stringSchema,
+      basePrice: stringSchema,
+      images: arraySchema(stringSchema),
+      isActive: booleanSchema,
+      tags: arraySchema(stringSchema),
+      avgRating: stringSchema,
+      reviewCount: integerSchema,
+      variants: arraySchema(ref('ProductVariant')),
+      createdAt: { type: 'string', format: 'date-time' },
+      updatedAt: { type: 'string', format: 'date-time' },
+    },
+    [
+      'id',
+      'vendorId',
+      'categoryId',
+      'name',
+      'description',
+      'basePrice',
+      'images',
+      'isActive',
+      'tags',
+      'avgRating',
+      'reviewCount',
+      'createdAt',
+      'updatedAt',
+    ]
+  ),
+  ProductMutationSuccess: successEnvelope(ref('ProductMutation')),
+  ProductVariantSuccess: successEnvelope(ref('ProductVariant')),
+  NullSuccess: successEnvelope({ nullable: true, enum: [null] }),
+  VendorOrderItem: objectSchema({
+    id: stringSchema,
+    vendorOrderId: stringSchema,
+    variantId: stringSchema,
+    quantity: integerSchema,
+    unitPrice: stringSchema,
+    totalPrice: stringSchema,
+    variant: objectSchema({
+      id: stringSchema,
+      sku: stringSchema,
+      size: nullableString,
+      color: nullableString,
+      price: stringSchema,
+      product: objectSchema({
+        id: stringSchema,
+        name: stringSchema,
+        images: arraySchema(stringSchema),
+      }),
+    }),
+    createdAt: { type: 'string', format: 'date-time' },
+    updatedAt: { type: 'string', format: 'date-time' },
+  }),
+  VendorOrderPayment: objectSchema({
+    status: {
+      type: 'string',
+      enum: [
+        'PENDING',
+        'PROCESSING',
+        'SUCCEEDED',
+        'FAILED',
+        'REFUNDED',
+        'CANCELLED',
+      ],
+    },
+    method: {
+      type: 'string',
+      enum: ['CARD', 'CASH_ON_DELIVERY', 'WALLET'],
+    },
+    paidAt: { type: 'string', format: 'date-time', nullable: true },
+  }),
+  VendorOrderDetail: objectSchema(
+    {
+      id: stringSchema,
+      orderId: stringSchema,
+      vendorId: stringSchema,
+      status: {
+        type: 'string',
+        enum: [
+          'PENDING',
+          'CONFIRMED',
+          'PROCESSING',
+          'SHIPPED',
+          'DELIVERED',
+          'CANCELLED',
+          'REFUNDED',
+        ],
+      },
+      subtotal: stringSchema,
+      trackingNumber: nullableString,
+      trackingCarrier: nullableString,
+      items: arraySchema(ref('VendorOrderItem')),
+      order: objectSchema(
+        {
+          id: stringSchema,
+          orderNumber: stringSchema,
+          shippingAddress: { type: 'object', additionalProperties: true },
+          notes: nullableString,
+          user: objectSchema({
+            id: stringSchema,
+            name: stringSchema,
+            email: stringSchema,
+          }),
+          payment: { allOf: [ref('VendorOrderPayment')], nullable: true },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+        },
+        [
+          'id',
+          'orderNumber',
+          'shippingAddress',
+          'notes',
+          'user',
+          'payment',
+          'createdAt',
+          'updatedAt',
+        ]
+      ),
+      createdAt: { type: 'string', format: 'date-time' },
+      updatedAt: { type: 'string', format: 'date-time' },
+    },
+    [
+      'id',
+      'orderId',
+      'vendorId',
+      'status',
+      'subtotal',
+      'trackingNumber',
+      'trackingCarrier',
+      'items',
+      'order',
+      'createdAt',
+      'updatedAt',
+    ]
+  ),
+  VendorOrderDetailSuccess: successEnvelope(ref('VendorOrderDetail')),
+  VendorOrdersSuccess: successEnvelope(
+    objectSchema({
+      items: arraySchema(ref('VendorOrderDetail')),
+      meta: ref('Pagination'),
+    })
+  ),
   ConnectOnboardingSuccess: successEnvelope(
     objectSchema({ url: stringSchema })
   ),
@@ -270,11 +417,31 @@ const dashboardResponseSchemas: Record<string, string> = {
   'get /banners': 'BannersSuccess',
   'get /categories': 'CategoriesSuccess',
   'get /products': 'ProductsSuccess',
+  'get /products/vendor': 'ProductsSuccess',
+  'post /products': 'ProductMutationSuccess',
+  'put /products/{id}': 'ProductMutationSuccess',
+  'delete /products/{id}': 'NullSuccess',
+  'post /products/{id}/variants': 'ProductVariantSuccess',
+  'put /products/{id}/variants/{vid}': 'ProductVariantSuccess',
+  'delete /products/{id}/variants/{vid}': 'NullSuccess',
+  'get /orders/vendor': 'VendorOrdersSuccess',
+  'get /orders/vendor/{id}': 'VendorOrderDetailSuccess',
   'post /vendor-payouts/connect/onboard': 'ConnectOnboardingSuccess',
   'get /vendor-payouts/connect/status': 'ConnectStatusSuccess',
   'get /vendor-payouts/earnings/summary': 'EarningsSummarySuccess',
   'get /vendor-profile/me': 'VendorProfileSuccess',
 };
+
+const vendorContractErrorOperations = [
+  'get /products/vendor',
+  'get /orders/vendor/{id}',
+  'post /products',
+  'put /products/{id}',
+  'delete /products/{id}',
+  'post /products/{id}/variants',
+  'put /products/{id}/variants/{vid}',
+  'delete /products/{id}/variants/{vid}',
+];
 
 const options: swaggerJsdoc.Options = {
   definition: {
@@ -326,6 +493,7 @@ const options: swaggerJsdoc.Options = {
         },
         ApiError: {
           type: 'object',
+          required: ['success', 'message'],
           properties: {
             success: { type: 'boolean', example: false },
             message: { type: 'string', example: 'Validation failed' },
@@ -437,8 +605,25 @@ export function buildSwaggerSpec(): object {
     const success = Object.entries(responses).find(([status]) =>
       status.startsWith('2')
     )?.[1];
-    const json = success?.content?.['application/json'];
-    if (json) json.schema = ref(schemaName);
+    if (success) {
+      success.content ??= {};
+      success.content['application/json'] ??= {};
+      success.content['application/json'].schema = ref(schemaName);
+    }
+  }
+
+  // Issue #129 routes share one concrete error envelope. Applying it centrally
+  // prevents their route comments and generated client types from drifting.
+  for (const operationKey of vendorContractErrorOperations) {
+    const [method, route] = operationKey.split(' ');
+    const responses =
+      route && method ? spec.paths?.[route]?.[method]?.responses : undefined;
+    for (const [status, response] of Object.entries(responses ?? {})) {
+      if (!status.startsWith('4') && !status.startsWith('5')) continue;
+      response.content ??= {};
+      response.content['application/json'] ??= {};
+      response.content['application/json'].schema = ref('ApiError');
+    }
   }
 
   return spec;

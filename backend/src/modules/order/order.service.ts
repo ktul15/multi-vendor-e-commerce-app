@@ -675,21 +675,28 @@ export class OrderService {
             include: {
               variant: {
                 select: {
+                  id: true,
                   sku: true,
                   size: true,
                   color: true,
                   price: true,
-                  product: { select: { name: true, images: true } },
+                  product: { select: { id: true, name: true, images: true } },
                 },
               },
             },
           },
           order: {
             select: {
+              id: true,
               orderNumber: true,
               shippingAddress: true,
+              notes: true,
               createdAt: true,
-              user: { select: { name: true, email: true } },
+              updatedAt: true,
+              user: { select: { id: true, name: true, email: true } },
+              payment: {
+                select: { status: true, method: true, paidAt: true },
+              },
             },
           },
         },
@@ -705,6 +712,51 @@ export class OrderService {
         totalPages: Math.max(1, Math.ceil(total / limit)),
       },
     };
+  }
+
+  async getVendorOrderById(vendorId: string, vendorOrderId: string) {
+    const vendorOrder = await prisma.vendorOrder.findUnique({
+      where: { id: vendorOrderId },
+      include: {
+        items: {
+          include: {
+            variant: {
+              select: {
+                id: true,
+                sku: true,
+                size: true,
+                color: true,
+                price: true,
+                product: {
+                  select: { id: true, name: true, images: true },
+                },
+              },
+            },
+          },
+        },
+        order: {
+          select: {
+            id: true,
+            orderNumber: true,
+            shippingAddress: true,
+            notes: true,
+            createdAt: true,
+            updatedAt: true,
+            user: { select: { id: true, name: true, email: true } },
+            payment: {
+              select: { status: true, method: true, paidAt: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!vendorOrder) throw ApiError.notFound('Vendor order not found');
+    if (vendorOrder.vendorId !== vendorId) {
+      throw ApiError.forbidden('You can only view your own vendor orders');
+    }
+
+    return vendorOrder;
   }
 
   async updateVendorOrderStatusWithTracking(
