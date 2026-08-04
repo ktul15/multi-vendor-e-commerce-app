@@ -141,6 +141,8 @@ model User {
 model VendorProfile {
   id              String              @id @default(uuid())
   userId          String              @unique
+  // Uniqueness is enforced case-insensitively on LOWER(BTRIM(storeName)) by
+  // migration 20260804170000_add_normalized_store_name_unique_index.
   storeName       String
   storeLogo           String?
   storeLogoPublicId   String?
@@ -366,8 +368,8 @@ model OrderItem {
   totalPrice    Decimal @db.Decimal(10, 2)
 
   vendorOrder VendorOrder @relation(fields: [vendorOrderId], references: [id], onDelete: Cascade)
-  // onDelete: Restrict — a variant that has been ordered cannot be deleted;
-  // use isActive=false on the Variant for soft-deletion instead.
+  // onDelete: Restrict — a variant that has been ordered cannot be deleted.
+  // The vendor deletion endpoint maps this constraint to a stable 409 response.
   variant     Variant     @relation(fields: [variantId], references: [id], onDelete: Restrict)
 
   createdAt DateTime @default(now())

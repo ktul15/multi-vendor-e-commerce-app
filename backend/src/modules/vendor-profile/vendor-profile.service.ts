@@ -6,7 +6,7 @@ import {
   UploadResult,
 } from '../../utils/cloudinaryUpload';
 import { UpdateVendorProfileInput } from './vendor-profile.validation';
-import { VendorProfile } from '../../generated/prisma/client';
+import { Prisma, VendorProfile } from '../../generated/prisma/client';
 
 interface UploadedFile {
   buffer: Buffer;
@@ -52,16 +52,6 @@ export const updateProfile = async (
   const updateData: Record<string, unknown> = {};
 
   if (data.storeName !== undefined) {
-    // Check storeName uniqueness (only if changing)
-    if (data.storeName !== existing.storeName) {
-      const duplicate = await prisma.vendorProfile.findFirst({
-        where: { storeName: data.storeName, userId: { not: userId } },
-        select: { id: true },
-      });
-      if (duplicate) {
-        throw ApiError.conflict('A store with this name already exists');
-      }
-    }
     updateData.storeName = data.storeName;
   }
   if (data.description !== undefined)
@@ -73,10 +63,7 @@ export const updateProfile = async (
   try {
     // Upload logo if provided
     if (files?.logo?.[0]) {
-      const result = await uploadImage(
-        files.logo[0].buffer,
-        CLOUDINARY_FOLDER
-      );
+      const result = await uploadImage(files.logo[0].buffer, CLOUDINARY_FOLDER);
       newUploads.push(result);
       updateData.storeLogo = result.url;
       updateData.storeLogoPublicId = result.publicId;
@@ -119,6 +106,14 @@ export const updateProfile = async (
       } catch {
         // Best-effort cleanup
       }
+    }
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      throw ApiError.conflict('A store with this name already exists', [
+        { field: 'storeName', message: 'Store name must be unique' },
+      ]);
     }
     throw error;
   }

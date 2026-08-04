@@ -75,7 +75,7 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/ApiError'
  *       409:
- *         description: Email already in use
+ *         description: Email or normalized vendor store name already in use
  *         content:
  *           application/json:
  *             schema:

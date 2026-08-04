@@ -201,7 +201,7 @@ describe('Product API (Issue #20)', () => {
                     stock: 10
                 });
 
-            expect(res.status).toBe(400);
+            expect(res.status).toBe(409);
             expect(res.body.message).toContain('SKU is already in use');
         });
 
@@ -258,7 +258,7 @@ describe('Vendor approval guard (Issue #71)', () => {
 
     const expects403Approved = (res: { status: number; body: { message: string } }) => {
         expect(res.status).toBe(403);
-        expect(res.body.message).toContain('approved');
+        expect(res.body.message).toContain('under review');
     };
 
     it('should block PENDING vendor from createProduct', async () => {

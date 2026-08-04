@@ -1,8 +1,23 @@
 import { Router } from 'express';
 import { ProductController } from './product.controller';
 import { authenticate, authorize } from '../../middleware/auth';
-import { validate, validateQuery } from '../../middleware/validate';
-import { createProductSchema, updateProductSchema, addVariantSchema, updateVariantSchema, getProductQuerySchema, searchProductQuerySchema } from './product.validation';
+import { requireApprovedVendor } from '../../middleware/requireApprovedVendor';
+import {
+  validate,
+  validateParams,
+  validateQuery,
+} from '../../middleware/validate';
+import {
+  createProductSchema,
+  updateProductSchema,
+  addVariantSchema,
+  updateVariantSchema,
+  getProductQuerySchema,
+  searchProductQuerySchema,
+  vendorInventoryQuerySchema,
+  productParamSchema,
+  productVariantParamSchema,
+} from './product.validation';
 import { Role } from '../../generated/prisma/client';
 
 const router = Router();
@@ -75,7 +90,11 @@ const productController = new ProductController();
  *                   limit: 10
  *                   totalPages: 5
  */
-router.get('/', validateQuery(getProductQuerySchema), productController.getProducts);
+router.get(
+  '/',
+  validateQuery(getProductQuerySchema),
+  productController.getProducts
+);
 
 /**
  * @openapi
@@ -113,7 +132,70 @@ router.get('/', validateQuery(getProductQuerySchema), productController.getProdu
  *       400:
  *         description: Missing required query param `q`
  */
-router.get('/search', validateQuery(searchProductQuerySchema), productController.searchProducts);
+router.get(
+  '/search',
+  validateQuery(searchProductQuerySchema),
+  productController.searchProducts
+);
+
+/**
+ * @openapi
+ * /products/vendor:
+ *   get:
+ *     tags: [Products]
+ *     summary: List the authenticated vendor's inventory
+ *     description: Includes active and inactive products. Vendor identity is derived from the authenticated session.
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1, minimum: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10, minimum: 1, maximum: 100 }
+ *       - in: query
+ *         name: search
+ *         schema: { type: string, maxLength: 100 }
+ *         description: Case-insensitive product name, description, or variant SKU search.
+ *       - in: query
+ *         name: categoryId
+ *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: isActive
+ *         schema: { type: boolean }
+ *       - in: query
+ *         name: inStock
+ *         schema: { type: boolean }
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [createdAt, updatedAt, name, basePrice]
+ *           default: createdAt
+ *       - in: query
+ *         name: sortOrder
+ *         schema: { type: string, enum: [asc, desc], default: desc }
+ *     responses:
+ *       200:
+ *         description: Paginated vendor inventory
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProductsSuccess'
+ *       400:
+ *         description: Invalid query parameters
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Vendor account is not approved
+ */
+router.get(
+  '/vendor',
+  authenticate,
+  authorize(Role.VENDOR),
+  requireApprovedVendor,
+  validateQuery(vendorInventoryQuerySchema),
+  productController.getVendorInventory
+);
 
 /**
  * @openapi
@@ -140,7 +222,7 @@ router.get('/search', validateQuery(searchProductQuerySchema), productController
 router.get('/:id', productController.getProductById);
 
 // Vendor-only routes (Dashboard inventory management)
-router.use(authenticate, authorize(Role.VENDOR));
+router.use(authenticate, authorize(Role.VENDOR), requireApprovedVendor);
 
 /**
  * @openapi
@@ -207,11 +289,15 @@ router.use(authenticate, authorize(Role.VENDOR));
  *         description: Unauthorized
  *       403:
  *         description: Forbidden — VENDOR role required
+ *       404:
+ *         description: Category not found
+ *       409:
+ *         description: A variant SKU already exists
  */
 router.post(
-    '/',
-    validate(createProductSchema),
-    productController.createProduct
+  '/',
+  validate(createProductSchema),
+  productController.createProduct
 );
 
 /**
@@ -232,6 +318,7 @@ router.post(
  *         application/json:
  *           schema:
  *             type: object
+ *             minProperties: 1
  *             properties:
  *               categoryId: { type: string, format: uuid }
  *               name: { type: string, minLength: 2 }
@@ -248,6 +335,8 @@ router.post(
  *     responses:
  *       200:
  *         description: Product updated
+ *       400:
+ *         description: Invalid product ID or update payload
  *       401:
  *         description: Unauthorized
  *       403:
@@ -256,9 +345,10 @@ router.post(
  *         description: Product not found
  */
 router.put(
-    '/:id',
-    validate(updateProductSchema),
-    productController.updateProduct
+  '/:id',
+  validateParams(productParamSchema),
+  validate(updateProductSchema),
+  productController.updateProduct
 );
 
 /**
@@ -274,18 +364,23 @@ router.put(
  *         required: true
  *         schema: { type: string, format: uuid }
  *     responses:
- *       204:
+ *       200:
  *         description: Product deleted
+ *       400:
+ *         description: Invalid product ID
  *       401:
  *         description: Unauthorized
  *       403:
  *         description: Forbidden
  *       404:
  *         description: Product not found
+ *       409:
+ *         description: Product has related order history and cannot be deleted
  */
 router.delete(
-    '/:id',
-    productController.deleteProduct
+  '/:id',
+  validateParams(productParamSchema),
+  productController.deleteProduct
 );
 
 /**
@@ -328,11 +423,14 @@ router.delete(
  *         description: Forbidden — VENDOR role required
  *       404:
  *         description: Product not found
+ *       409:
+ *         description: SKU already exists
  */
 router.post(
-    '/:id/variants',
-    validate(addVariantSchema),
-    productController.addVariant
+  '/:id/variants',
+  validateParams(productParamSchema),
+  validate(addVariantSchema),
+  productController.addVariant
 );
 
 /**
@@ -358,6 +456,7 @@ router.post(
  *         application/json:
  *           schema:
  *             type: object
+ *             minProperties: 1
  *             properties:
  *               sku: { type: string }
  *               size: { type: string, nullable: true }
@@ -367,17 +466,58 @@ router.post(
  *     responses:
  *       200:
  *         description: Variant updated
+ *       400:
+ *         description: Invalid route parameter or update payload
  *       401:
  *         description: Unauthorized
  *       403:
  *         description: Forbidden
  *       404:
  *         description: Product or variant not found
+ *       409:
+ *         description: SKU already exists
  */
 router.put(
-    '/:id/variants/:vid',
-    validate(updateVariantSchema),
-    productController.updateVariant
+  '/:id/variants/:vid',
+  validateParams(productVariantParamSchema),
+  validate(updateVariantSchema),
+  productController.updateVariant
+);
+
+/**
+ * @openapi
+ * /products/{id}/variants/{vid}:
+ *   delete:
+ *     tags: [Products]
+ *     summary: Delete an unreferenced product variant (Vendor only)
+ *     description: Variants referenced by order history are retained and return 409 Conflict.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *       - in: path
+ *         name: vid
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Variant deleted
+ *       400:
+ *         description: Invalid route parameter
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Vendor does not own the product
+ *       404:
+ *         description: Product or variant not found
+ *       409:
+ *         description: Variant is referenced by order history
+ */
+router.delete(
+  '/:id/variants/:vid',
+  validateParams(productVariantParamSchema),
+  productController.deleteVariant
 );
 
 export default router;

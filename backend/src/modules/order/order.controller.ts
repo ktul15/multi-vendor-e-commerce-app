@@ -73,6 +73,18 @@ export class OrderController {
     ApiResponse.success(res, orders, 'Vendor orders retrieved successfully');
   });
 
+  getVendorOrderById = catchAsync(async (req: AuthRequest, res: Response) => {
+    const vendorOrder = await orderService.getVendorOrderById(
+      req.user!.userId,
+      req.params.id as string
+    );
+    ApiResponse.success(
+      res,
+      vendorOrder,
+      'Vendor order retrieved successfully'
+    );
+  });
+
   updateVendorOrderStatusWithTracking = catchAsync(
     async (req: AuthRequest, res: Response) => {
       const vendorOrderId = req.params.id as string;

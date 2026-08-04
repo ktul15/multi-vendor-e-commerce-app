@@ -112,6 +112,44 @@ router.get(
 
 /**
  * @openapi
+ * /orders/vendor/{id}:
+ *   get:
+ *     tags: [Orders]
+ *     summary: Get an owned vendor order by ID
+ *     description: Returns customer, shipping, payment, tracking, totals, and item details for direct dashboard routes.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *         description: Vendor order ID
+ *     responses:
+ *       200:
+ *         description: Vendor order detail
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/VendorOrderDetailSuccess'
+ *       400:
+ *         description: Invalid vendor order ID
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Vendor account is not approved or does not own the order
+ *       404:
+ *         description: Vendor order not found
+ */
+router.get(
+  '/vendor/:id',
+  authenticate,
+  authorize('VENDOR'),
+  requireApprovedVendor,
+  validateParams(vendorOrderIdParamSchema),
+  orderController.getVendorOrderById
+);
+
+/**
+ * @openapi
  * /orders/vendor/{id}/status:
  *   put:
  *     tags: [Orders]
