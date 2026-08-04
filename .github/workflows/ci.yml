@@ -134,3 +134,9 @@ jobs:
 
       - name: Build production applications
         run: pnpm run build
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run dashboard smoke tests
+        run: pnpm run test:e2e

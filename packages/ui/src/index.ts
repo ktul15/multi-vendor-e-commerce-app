@@ -15,6 +15,8 @@ export type {
   DashboardNavItem,
   DashboardShellProps,
 } from "./dashboard-shell";
+export { DataTable } from "./data-table";
+export type { DataTableProps } from "./data-table";
 export { Input, Select } from "./field";
 export type { InputProps, SelectProps } from "./field";
 export { Skeleton, SkeletonRegion } from "./skeleton";
