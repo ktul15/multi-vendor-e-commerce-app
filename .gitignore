@@ -116,6 +116,9 @@ unlinked_spec.ds
 
 # Coverage
 coverage/
+playwright-report/
+test-results/
+blob-report/
 
 # Symbols
 app.*.symbols

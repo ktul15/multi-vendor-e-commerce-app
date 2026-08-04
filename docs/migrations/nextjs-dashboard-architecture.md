@@ -52,17 +52,18 @@ Issue #77 creates this structure. Existing `backend/`, `storefront/`, `vendor_da
 
 ### Package ownership
 
-| Package/application | Owns | Must not own |
-|---|---|---|
-| `apps/vendor-dashboard` | Vendor routes, feature composition, vendor navigation, copy, feature-specific query options and views | Reusable primitives, handwritten backend DTOs, admin features |
-| `apps/admin-panel` | Admin routes, feature composition, admin navigation, copy, feature-specific query options and views | Reusable primitives, handwritten backend DTOs, vendor features |
-| `packages/api-client` | Generated endpoint types/client, envelope normalization, cancellation, multipart transport, typed API errors | React components, feature policy, token persistence |
-| `packages/auth` | Server session helpers, role requirements, safe return paths, logout/session APIs, shared auth types | Backend authorization decisions, feature UI |
-| `packages/schemas` | Shared form/search-parameter schemas and API-field-error mapping helpers | Backend DTO copies already generated in `api-client` |
-| `packages/ui` | Accessible tokens and presentation primitives without business rules | API calls, role checks, feature-specific wording |
-| `packages/config` | Environment-schema helpers and shared browser-safe constants | App-specific environment schemas, secrets, or build-tool configuration |
-| `packages/test-utils` | Test renderers, MSW factories, fixtures/builders, accessibility helpers | Production runtime behavior |
-| `tooling/*` | Shared lint, TypeScript, formatting, and test configuration | Application source |
+| Package/application     | Owns                                                                                                         | Must not own                                                           |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| `apps/vendor-dashboard` | Vendor routes, feature composition, vendor navigation, copy, feature-specific query options and views        | Reusable primitives, handwritten backend DTOs, admin features          |
+| `apps/admin-panel`      | Admin routes, feature composition, admin navigation, copy, feature-specific query options and views          | Reusable primitives, handwritten backend DTOs, vendor features         |
+| `packages/api-client`   | Generated endpoint types/client, envelope normalization, cancellation, multipart transport, typed API errors | React components, feature policy, token persistence                    |
+| `packages/auth`         | Server session helpers, role requirements, safe return paths, logout/session APIs, shared auth types         | Backend authorization decisions, feature UI                            |
+| `packages/query`        | QueryClient lifecycle, cache/retry defaults, browser provider, isolated server clients                       | Feature query keys, endpoint calls, business invalidation policy       |
+| `packages/schemas`      | Shared form/search-parameter schemas and API-field-error mapping helpers                                     | Backend DTO copies already generated in `api-client`                   |
+| `packages/ui`           | Accessible tokens and presentation primitives without business rules                                         | API calls, role checks, feature-specific wording                       |
+| `packages/config`       | Environment-schema helpers and shared browser-safe constants                                                 | App-specific environment schemas, secrets, or build-tool configuration |
+| `packages/test-utils`   | Test renderers, MSW factories, fixtures/builders, accessibility helpers                                      | Production runtime behavior                                            |
+| `tooling/*`             | Shared lint, TypeScript, formatting, and test configuration                                                  | Application source                                                     |
 
 Shared packages expose explicit public entry points. Applications never import another application's source, package internals, generated build output, or files through relative paths that cross workspace boundaries.
 
@@ -131,15 +132,15 @@ Server-only modules import `server-only`. Client modules must never import cooki
 
 ## Rendering and data ownership
 
-| Data/use case | Rendering owner | Client ownership |
-|---|---|---|
-| Session and role | Protected server layout | Auth provider may expose a minimal serializable session summary for UI only |
-| Initial list/detail data | Server Component prefetch when it improves first render | TanStack Query hydrates and owns subsequent refresh/mutations |
-| Frequently changing operational panels | Streamed/prefetched server query or direct client query | TanStack Query owns refetch and partial failure |
-| Form draft and dialog state | None | Local state/React Hook Form |
-| Table pagination/filter/sort | Server validates URL | Client controls UI and writes canonical URL |
-| Design/reference data | Server prefetch where helpful | Query cache with an explicit longer stale time |
-| Secrets and refresh credentials | Server/backend only | Never serialized or persisted in browser storage |
+| Data/use case                          | Rendering owner                                         | Client ownership                                                            |
+| -------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Session and role                       | Protected server layout                                 | Auth provider may expose a minimal serializable session summary for UI only |
+| Initial list/detail data               | Server Component prefetch when it improves first render | TanStack Query hydrates and owns subsequent refresh/mutations               |
+| Frequently changing operational panels | Streamed/prefetched server query or direct client query | TanStack Query owns refetch and partial failure                             |
+| Form draft and dialog state            | None                                                    | Local state/React Hook Form                                                 |
+| Table pagination/filter/sort           | Server validates URL                                    | Client controls UI and writes canonical URL                                 |
+| Design/reference data                  | Server prefetch where helpful                           | Query cache with an explicit longer stale time                              |
+| Secrets and refresh credentials        | Server/backend only                                     | Never serialized or persisted in browser storage                            |
 
 Do not fetch the same resource independently in both a Server Component and a client hook without hydration or an explicit reason. TanStack Query hydration is preferred over passing `initialData` because it retains query timestamps and ownership semantics.
 
@@ -205,6 +206,15 @@ Query keys are defined by feature factories, for example `vendorProductKeys.list
 - A feature-specific visualization dependency requires an architecture note showing that Recharts cannot meet the requirement, bundle-impact review, and reuse plan. Apps may not independently add general-purpose chart libraries.
 - Charts receive normalized domain data and accessible text/table summaries. Avoid encoding meaning by color alone.
 - Heavy chart code may be dynamically imported inside a client boundary, with a layout-stable loading state.
+
+Issue #85 implements these shared conventions. `@repo/query` creates one stable
+browser client per mounted dashboard; the server-safe `@repo/query/server` entry
+creates isolated clients for prefetch work. `@repo/schemas` owns form-error
+mapping and the bounded, one-based URL to zero-based table-state adapter.
+`@repo/ui` renders semantic headless tables, while feature code owns columns,
+query keys, endpoint calls, and canonical URL writes. `@repo/test-utils` provides
+deterministic Query and MSW harnesses; root Playwright projects exercise both
+dashboards' public browser boundaries.
 
 ## Uploads
 
@@ -297,13 +307,13 @@ Never place refresh tokens in `localStorage`, session storage, browser-readable 
 
 ## Testing conventions
 
-| Layer | Tools | Required coverage |
-|---|---|---|
-| Schema/unit | Vitest | URL parsers, Zod transformations, query keys, formatters, permission helpers |
-| Component | Vitest + Testing Library | User-observable behavior, keyboard/focus, loading/error/empty/success, form field errors |
-| API interaction | MSW | Typed success/error envelopes, pagination variants, 204, 401/403/404/409, upload failures |
-| End-to-end | Playwright | Login/session/role gates, critical vendor/admin workflows, direct URLs, responsive layouts |
-| Backend contract | Jest/Supertest | Cookie auth, permissions, validation, response/OpenAPI corrections, uploads, redirects |
+| Layer            | Tools                    | Required coverage                                                                          |
+| ---------------- | ------------------------ | ------------------------------------------------------------------------------------------ |
+| Schema/unit      | Vitest                   | URL parsers, Zod transformations, query keys, formatters, permission helpers               |
+| Component        | Vitest + Testing Library | User-observable behavior, keyboard/focus, loading/error/empty/success, form field errors   |
+| API interaction  | MSW                      | Typed success/error envelopes, pagination variants, 204, 401/403/404/409, upload failures  |
+| End-to-end       | Playwright               | Login/session/role gates, critical vendor/admin workflows, direct URLs, responsive layouts |
+| Backend contract | Jest/Supertest           | Cookie auth, permissions, validation, response/OpenAPI corrections, uploads, redirects     |
 
 - Tests use role-based accessible queries and avoid implementation-detail selectors.
 - Shared deterministic builders live in `@repo/test-utils`; do not share mutable fixture objects between tests.
@@ -324,18 +334,18 @@ Never place refresh tokens in `localStorage`, session storage, browser-readable 
 
 ## Enforcement and downstream ownership
 
-| Decision area | Implementation issue |
-|---|---|
-| Workspace and package skeleton | #77 |
-| Strict TypeScript, lint, formatting, CI | #78 |
-| Tokens and UI primitives | #79 |
-| Responsive shell | #80 |
-| Generated API client | #81 and #130 |
-| Cookie authentication | #82 |
-| CORS, CSRF, headers | #83 |
-| Session/role guards | #84 |
-| Query/forms/tables/test harness | #85 |
-| Migration rollout and rollback | #76 |
+| Decision area                           | Implementation issue |
+| --------------------------------------- | -------------------- |
+| Workspace and package skeleton          | #77                  |
+| Strict TypeScript, lint, formatting, CI | #78                  |
+| Tokens and UI primitives                | #79                  |
+| Responsive shell                        | #80                  |
+| Generated API client                    | #81 and #130         |
+| Cookie authentication                   | #82                  |
+| CORS, CSRF, headers                     | #83                  |
+| Session/role guards                     | #84                  |
+| Query/forms/tables/test harness         | #85                  |
+| Migration rollout and rollback          | #76                  |
 
 ## Architecture sign-off checklist
 
