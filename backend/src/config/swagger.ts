@@ -159,13 +159,38 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
     {
       id: stringSchema,
       name: stringSchema,
+      slug: stringSchema,
       image: nullableString,
       parentId: nullableString,
-      children: arraySchema(ref('Category')),
+      createdAt: { type: 'string', format: 'date-time' },
+      updatedAt: { type: 'string', format: 'date-time' },
     },
-    ['id', 'name', 'parentId']
+    ['id', 'name', 'slug', 'image', 'parentId', 'createdAt', 'updatedAt']
   ),
-  CategoriesSuccess: successEnvelope(arraySchema(ref('Category'))),
+  CategoryTreeNode: objectSchema(
+    {
+      id: stringSchema,
+      name: stringSchema,
+      slug: stringSchema,
+      image: nullableString,
+      parentId: nullableString,
+      children: arraySchema(ref('CategoryTreeNode')),
+      createdAt: { type: 'string', format: 'date-time' },
+      updatedAt: { type: 'string', format: 'date-time' },
+    },
+    [
+      'id',
+      'name',
+      'slug',
+      'image',
+      'parentId',
+      'children',
+      'createdAt',
+      'updatedAt',
+    ]
+  ),
+  CategoriesSuccess: successEnvelope(arraySchema(ref('CategoryTreeNode'))),
+  CategorySuccess: successEnvelope(ref('Category')),
   ProductVariant: objectSchema(
     {
       id: stringSchema,
@@ -416,6 +441,9 @@ const dashboardResponseSchemas: Record<string, string> = {
   'get /auth/profile': 'ProfileSuccess',
   'get /banners': 'BannersSuccess',
   'get /categories': 'CategoriesSuccess',
+  'post /categories': 'CategorySuccess',
+  'put /categories/{id}': 'CategorySuccess',
+  'delete /categories/{id}': 'NullSuccess',
   'get /products': 'ProductsSuccess',
   'get /products/vendor': 'ProductsSuccess',
   'post /products': 'ProductMutationSuccess',
@@ -441,6 +469,9 @@ const vendorContractErrorOperations = [
   'post /products/{id}/variants',
   'put /products/{id}/variants/{vid}',
   'delete /products/{id}/variants/{vid}',
+  'post /categories',
+  'put /categories/{id}',
+  'delete /categories/{id}',
 ];
 
 const options: swaggerJsdoc.Options = {

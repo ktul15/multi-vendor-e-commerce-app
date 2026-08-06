@@ -1,16 +1,32 @@
-import { Router } from 'express';
+import { NextFunction, Request, Response, Router } from 'express';
 import { CategoryController } from './category.controller';
 import { authenticate, authorize } from '../../middleware/auth';
-import { validate } from '../../middleware/validate';
+import { validate, validateParams } from '../../middleware/validate';
 import upload, { withUpload } from '../../middleware/upload';
 import {
   createCategorySchema,
   updateCategorySchema,
+  categoryParamSchema,
 } from './category.validation';
 import { Role } from '../../generated/prisma/client';
+import { ApiError } from '../../utils/apiError';
 
 const router = Router();
 const categoryController = new CategoryController();
+
+const requireCategoryUpdate = (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+) => {
+  if (!req.file && Object.keys(req.body).length === 0) {
+    next(
+      ApiError.badRequest('At least one category field or image is required')
+    );
+    return;
+  }
+  next();
+};
 
 /**
  * @openapi
@@ -18,7 +34,7 @@ const categoryController = new CategoryController();
  *   get:
  *     tags: [Categories]
  *     summary: List all categories
- *     description: Returns the full category tree. No authentication required.
+ *     description: Returns every category as a recursively nested tree with no depth truncation. No authentication required.
  *     security: []
  *     responses:
  *       200:
@@ -70,6 +86,17 @@ router.use(authenticate, authorize(Role.ADMIN));
  *                 format: uuid
  *                 description: ID of the parent category (for subcategories)
  *                 example: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name: { type: string, minLength: 2 }
+ *               parentId: { type: string, format: uuid }
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Optional JPEG, PNG, or WebP image up to 5 MB. A file takes precedence over an image URL.
  *     responses:
  *       201:
  *         description: Category created
@@ -87,6 +114,14 @@ router.use(authenticate, authorize(Role.ADMIN));
  *         description: Unauthorized
  *       403:
  *         description: Forbidden — ADMIN role required
+ *       404:
+ *         description: Parent category not found
+ *       413:
+ *         description: Uploaded image exceeds the 5 MB limit
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiError'
  */
 router.post(
   '/',
@@ -115,6 +150,7 @@ router.post(
  *         application/json:
  *           schema:
  *             type: object
+ *             minProperties: 1
  *             properties:
  *               name:
  *                 type: string
@@ -128,6 +164,20 @@ router.post(
  *                 format: uuid
  *                 nullable: true
  *                 description: Set to null to make it a root category
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             minProperties: 1
+ *             properties:
+ *               name: { type: string, minLength: 2 }
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Optional replacement JPEG, PNG, or WebP image up to 5 MB.
+ *               parentId:
+ *                 type: string
+ *                 format: uuid
+ *                 nullable: true
  *     responses:
  *       200:
  *         description: Category updated
@@ -136,18 +186,26 @@ router.post(
  *             schema:
  *               $ref: '#/components/schemas/ApiSuccess'
  *       400:
- *         description: Validation error
+ *         description: Invalid ID/payload, empty update, self-parent, or descendant cycle
  *       401:
  *         description: Unauthorized
  *       403:
  *         description: Forbidden — ADMIN role required
  *       404:
  *         description: Category not found
+ *       413:
+ *         description: Uploaded image exceeds the 5 MB limit
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiError'
  */
 router.put(
   '/:id',
+  validateParams(categoryParamSchema),
   withUpload(upload.single('image')),
   validate(updateCategorySchema),
+  requireCategoryUpdate,
   categoryController.updateCategory
 );
 
@@ -166,8 +224,10 @@ router.put(
  *           format: uuid
  *         description: Category ID
  *     responses:
- *       204:
+ *       200:
  *         description: Category deleted
+ *       400:
+ *         description: Category has subcategories or attached products
  *       401:
  *         description: Unauthorized
  *       403:
@@ -175,6 +235,10 @@ router.put(
  *       404:
  *         description: Category not found
  */
-router.delete('/:id', categoryController.deleteCategory);
+router.delete(
+  '/:id',
+  validateParams(categoryParamSchema),
+  categoryController.deleteCategory
+);
 
 export default router;
