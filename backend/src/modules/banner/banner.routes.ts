@@ -1,7 +1,11 @@
-import { Router } from 'express';
+import { NextFunction, Request, Response, Router } from 'express';
 import { Role } from '../../generated/prisma/client';
 import { authenticate, authorize } from '../../middleware/auth';
-import { validate, validateQuery, validateParams } from '../../middleware/validate';
+import {
+  validate,
+  validateQuery,
+  validateParams,
+} from '../../middleware/validate';
 import upload, { withUpload } from '../../middleware/upload';
 import { BannerController } from './banner.controller';
 import {
@@ -10,9 +14,22 @@ import {
   bannerIdParamSchema,
   listBannersQuerySchema,
 } from './banner.validation';
+import { ApiError } from '../../utils/apiError';
 
 const router = Router();
 const controller = new BannerController();
+
+const requireBannerUpdate = (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+) => {
+  if (!req.file && Object.keys(req.body).length === 0) {
+    next(ApiError.badRequest('At least one banner field or image is required'));
+    return;
+  }
+  next();
+};
 
 /**
  * @openapi
@@ -52,7 +69,8 @@ router.use(authenticate, authorize(Role.ADMIN));
  *     summary: Create a banner (Admin only)
  *     description: >
  *       Send as `multipart/form-data`. The `image` file field is required.
- *       Sending `application/json` will result in a 400 missing-image error.
+ *       Sending `application/json` will result in a 400 missing-image error. A successful upload is
+ *       rolled back with an observable warning if the database create fails.
  *     requestBody:
  *       required: true
  *       content:
@@ -81,7 +99,7 @@ router.use(authenticate, authorize(Role.ADMIN));
  *               image:
  *                 type: string
  *                 format: binary
- *                 description: Banner image (JPEG/PNG, required)
+ *                 description: Exactly one JPEG, PNG, or WebP image up to 5 MB.
  *     responses:
  *       201:
  *         description: Banner created
@@ -95,6 +113,8 @@ router.use(authenticate, authorize(Role.ADMIN));
  *         description: Unauthorized
  *       403:
  *         description: Forbidden — ADMIN role required
+ *       413:
+ *         description: Uploaded image exceeds the 5 MB limit
  */
 // Requires multipart/form-data with an 'image' file field.
 // Sending application/json will result in a missing-image 400 error.
@@ -129,12 +149,18 @@ router.post(
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ApiSuccess'
+ *       400:
+ *         description: Invalid pagination or active-state filter
  *       401:
  *         description: Unauthorized
  *       403:
  *         description: Forbidden
  */
-router.get('/all', validateQuery(listBannersQuerySchema), controller.listBanners);
+router.get(
+  '/all',
+  validateQuery(listBannersQuerySchema),
+  controller.listBanners
+);
 
 /**
  * @openapi
@@ -154,12 +180,20 @@ router.get('/all', validateQuery(listBannersQuerySchema), controller.listBanners
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ApiSuccess'
+ *       400:
+ *         description: Invalid banner ID
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: Forbidden — ADMIN role required
  *       404:
  *         description: Banner not found
  */
-router.get('/:id', validateParams(bannerIdParamSchema), controller.getBannerById);
+router.get(
+  '/:id',
+  validateParams(bannerIdParamSchema),
+  controller.getBannerById
+);
 
 /**
  * @openapi
@@ -168,24 +202,42 @@ router.get('/:id', validateParams(bannerIdParamSchema), controller.getBannerById
  *     tags: [Banners]
  *     summary: Update a banner (Admin only)
  *     description: >
- *       Send as `multipart/form-data`. Optionally include a new `image` file to replace the existing one.
- *       If no image is provided, the existing `imageUrl` is preserved. At least one field must be provided.
+ *       Send text-only updates as JSON or multipart. A multipart request may contain exactly one optional
+ *       `image` file, including an image-only update. At least one field or image is required. New uploads
+ *       roll back if the DB update fails; replaced media cleanup is observable and best effort after commit.
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema: { type: string, format: uuid }
  *     requestBody:
+ *       required: true
  *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             minProperties: 1
+ *             properties:
+ *               title: { type: string, minLength: 1, maxLength: 200 }
+ *               linkUrl: { type: string, format: uri, nullable: true, description: "Set null to clear the link" }
+ *               position: { type: integer, minimum: 0 }
+ *               isActive: { type: boolean }
  *         multipart/form-data:
  *           schema:
  *             type: object
+ *             minProperties: 1
  *             properties:
  *               title: { type: string, maxLength: 200 }
- *               linkUrl: { type: string, format: uri }
+ *               linkUrl:
+ *                 description: Send an absolute URI, or an empty string to clear the link.
+ *                 oneOf:
+ *                   - type: string
+ *                     format: uri
+ *                   - type: string
+ *                     enum: ['']
  *               position: { type: integer, minimum: 0 }
  *               isActive: { type: boolean }
- *               image: { type: string, format: binary, description: "Optional — replaces existing image" }
+ *               image: { type: string, format: binary, description: "Optional single JPEG, PNG, or WebP image up to 5 MB; replaces existing image" }
  *     responses:
  *       200:
  *         description: Banner updated
@@ -193,8 +245,12 @@ router.get('/:id', validateParams(bannerIdParamSchema), controller.getBannerById
  *         description: Validation error
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: Forbidden — ADMIN role required
  *       404:
  *         description: Banner not found
+ *       413:
+ *         description: Uploaded image exceeds the 5 MB limit
  */
 // Optionally accepts a new 'image' file via multipart/form-data to replace the existing image.
 // If no image is provided, the existing imageUrl is preserved.
@@ -203,6 +259,7 @@ router.put(
   validateParams(bannerIdParamSchema),
   withUpload(upload.single('image')),
   validate(updateBannerSchema),
+  requireBannerUpdate,
   controller.updateBanner
 );
 
@@ -218,13 +275,21 @@ router.put(
  *         required: true
  *         schema: { type: string, format: uuid }
  *     responses:
- *       200:
- *         description: Banner deleted
+ *       204:
+ *         description: Banner deleted; response body is empty. Media cleanup is observable and best effort after DB commit.
+ *       400:
+ *         description: Invalid banner ID
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: Forbidden — ADMIN role required
  *       404:
  *         description: Banner not found
  */
-router.delete('/:id', validateParams(bannerIdParamSchema), controller.deleteBanner);
+router.delete(
+  '/:id',
+  validateParams(bannerIdParamSchema),
+  controller.deleteBanner
+);
 
 export default router;

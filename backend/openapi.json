@@ -661,8 +661,11 @@
           "id",
           "title",
           "imageUrl",
+          "linkUrl",
           "position",
-          "isActive"
+          "isActive",
+          "createdAt",
+          "updatedAt"
         ],
         "properties": {
           "id": {
@@ -683,10 +686,46 @@
           },
           "isActive": {
             "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
-      "BannersSuccess": {
+      "PublicBanner": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "imageUrl",
+          "linkUrl",
+          "position"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string"
+          },
+          "linkUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "position": {
+            "type": "integer"
+          }
+        }
+      },
+      "PublicBannersSuccess": {
         "type": "object",
         "required": [
           "success",
@@ -706,7 +745,66 @@
           "data": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Banner"
+              "$ref": "#/components/schemas/PublicBanner"
+            }
+          }
+        }
+      },
+      "BannerSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Banner"
+          }
+        }
+      },
+      "BannerListSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "items",
+              "meta"
+            ],
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Banner"
+                }
+              },
+              "meta": {
+                "$ref": "#/components/schemas/Pagination"
+              }
             }
           }
         }
@@ -1707,6 +1805,69 @@
                     "nullable": true
                   }
                 }
+              }
+            }
+          }
+        }
+      },
+      "VendorProfileMutationSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "id",
+              "userId",
+              "storeName",
+              "description",
+              "status",
+              "storeLogo",
+              "storeBanner"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "userId": {
+                "type": "string"
+              },
+              "storeName": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string",
+                "nullable": true
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "PENDING",
+                  "APPROVED",
+                  "REJECTED",
+                  "SUSPENDED"
+                ]
+              },
+              "storeLogo": {
+                "type": "string",
+                "nullable": true
+              },
+              "storeBanner": {
+                "type": "string",
+                "nullable": true
               }
             }
           }
@@ -3536,7 +3697,7 @@
                   ]
                 },
                 "schema": {
-                  "$ref": "#/components/schemas/BannersSuccess"
+                  "$ref": "#/components/schemas/PublicBannersSuccess"
                 }
               }
             }
@@ -3548,7 +3709,7 @@
           "Banners"
         ],
         "summary": "Create a banner (Admin only)",
-        "description": "Send as `multipart/form-data`. The `image` file field is required. Sending `application/json` will result in a 400 missing-image error.\n",
+        "description": "Send as `multipart/form-data`. The `image` file field is required. Sending `application/json` will result in a 400 missing-image error. A successful upload is rolled back with an observable warning if the database create fails.\n",
         "requestBody": {
           "required": true,
           "content": {
@@ -3584,7 +3745,7 @@
                   "image": {
                     "type": "string",
                     "format": "binary",
-                    "description": "Banner image (JPEG/PNG, required)"
+                    "description": "Exactly one JPEG, PNG, or WebP image up to 5 MB."
                   }
                 }
               }
@@ -3597,19 +3758,50 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": "#/components/schemas/BannerSuccess"
                 }
               }
             }
           },
           "400": {
-            "description": "Validation error or missing image"
+            "description": "Validation error or missing image",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden — ADMIN role required"
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Uploaded image exceeds the 5 MB limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -3653,16 +3845,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": "#/components/schemas/BannerListSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination or active-state filter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -3690,16 +3906,50 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": "#/components/schemas/BannerSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid banner ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Banner not found"
+            "description": "Banner not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       },
@@ -3708,7 +3958,7 @@
           "Banners"
         ],
         "summary": "Update a banner (Admin only)",
-        "description": "Send as `multipart/form-data`. Optionally include a new `image` file to replace the existing one. If no image is provided, the existing `imageUrl` is preserved. At least one field must be provided.\n",
+        "description": "Send text-only updates as JSON or multipart. A multipart request may contain exactly one optional `image` file, including an image-only update. At least one field or image is required. New uploads roll back if the DB update fails; replaced media cleanup is observable and best effort after commit.\n",
         "parameters": [
           {
             "in": "path",
@@ -3721,18 +3971,57 @@
           }
         ],
         "requestBody": {
+          "required": true,
           "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "minProperties": 1,
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "linkUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "nullable": true,
+                    "description": "Set null to clear the link"
+                  },
+                  "position": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
             "multipart/form-data": {
               "schema": {
                 "type": "object",
+                "minProperties": 1,
                 "properties": {
                   "title": {
                     "type": "string",
                     "maxLength": 200
                   },
                   "linkUrl": {
-                    "type": "string",
-                    "format": "uri"
+                    "description": "Send an absolute URI, or an empty string to clear the link.",
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "format": "uri"
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          ""
+                        ]
+                      }
+                    ]
                   },
                   "position": {
                     "type": "integer",
@@ -3744,7 +4033,7 @@
                   "image": {
                     "type": "string",
                     "format": "binary",
-                    "description": "Optional — replaces existing image"
+                    "description": "Optional single JPEG, PNG, or WebP image up to 5 MB; replaces existing image"
                   }
                 }
               }
@@ -3753,16 +4042,64 @@
         },
         "responses": {
           "200": {
-            "description": "Banner updated"
+            "description": "Banner updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BannerSuccess"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Validation error"
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Banner not found"
+            "description": "Banner not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Uploaded image exceeds the 5 MB limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       },
@@ -3783,14 +4120,48 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Banner deleted"
+          "204": {
+            "description": "Banner deleted; response body is empty. Media cleanup is observable and best effort after DB commit."
+          },
+          "400": {
+            "description": "Invalid banner ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Banner not found"
+            "description": "Banner not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -7167,11 +7538,17 @@
                   "message": "Vendor profile fetched",
                   "data": {
                     "id": "uuid",
+                    "userId": "uuid",
                     "storeName": "Jane's Boutique",
                     "description": "Quality handmade goods",
                     "status": "PENDING",
-                    "logoUrl": null,
-                    "bannerUrl": null
+                    "storeLogo": null,
+                    "storeBanner": null,
+                    "user": {
+                      "name": "Jane Vendor",
+                      "email": "jane@example.com",
+                      "avatar": null
+                    }
                   }
                 },
                 "schema": {
@@ -7181,10 +7558,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden — VENDOR role required"
+            "description": "Forbidden — VENDOR role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Vendor profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       },
@@ -7193,12 +7594,31 @@
           "Vendor Profile"
         ],
         "summary": "Update the vendor profile (pending or approved vendors only)",
-        "description": "Send as `multipart/form-data`. Include `logo` and/or `banner` file fields to upload images. Text fields (`storeName`, `description`) are included as form fields. At least one field or file must be provided.\n",
+        "description": "Send text-only updates as JSON or multipart. Multipart accepts at most one `logo` and one `banner`. File-only and mixed updates are valid; a true no-op is rejected. Each file must be JPEG, PNG, or WebP and at most 5 MB. New uploads roll back on DB failure; replaced-media cleanup is observable and best effort.\n",
         "requestBody": {
+          "required": true,
           "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "minProperties": 1,
+                "properties": {
+                  "storeName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 1000
+                  }
+                }
+              }
+            },
             "multipart/form-data": {
               "schema": {
                 "type": "object",
+                "minProperties": 1,
                 "properties": {
                   "storeName": {
                     "type": "string",
@@ -7214,12 +7634,12 @@
                   "logo": {
                     "type": "string",
                     "format": "binary",
-                    "description": "Store logo image (JPEG/PNG)"
+                    "description": "Optional single JPEG, PNG, or WebP image up to 5 MB"
                   },
                   "banner": {
                     "type": "string",
                     "format": "binary",
-                    "description": "Store banner image (JPEG/PNG)"
+                    "description": "Optional single JPEG, PNG, or WebP image up to 5 MB"
                   }
                 }
               }
@@ -7232,19 +7652,70 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": "#/components/schemas/VendorProfileMutationSuccess"
                 }
               }
             }
           },
           "400": {
-            "description": "Validation error"
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden — vendor profile cannot be edited in current status"
+            "description": "Forbidden — vendor profile cannot be edited in current status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Vendor profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Store name is already in use",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "An uploaded image exceeds the 5 MB limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }

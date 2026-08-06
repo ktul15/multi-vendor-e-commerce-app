@@ -1,12 +1,8 @@
 import { Prisma } from '../../generated/prisma/client';
 import { prisma } from '../../config/prisma';
-import { logger } from '../../utils/logger';
 import { ApiError } from '../../utils/apiError';
-import {
-  uploadImage,
-  deleteImage,
-  UploadResult,
-} from '../../utils/cloudinaryUpload';
+import { uploadImage, UploadResult } from '../../utils/cloudinaryUpload';
+import { cleanupMediaBestEffort } from '../../utils/mediaCleanup';
 import {
   CreateBannerInput,
   UpdateBannerInput,
@@ -16,6 +12,16 @@ import {
 const CLOUDINARY_FOLDER = 'banners';
 // Defensive cap so a misconfigured admin cannot flood the storefront response
 const PUBLIC_BANNERS_LIMIT = 50;
+const bannerSelect = {
+  id: true,
+  title: true,
+  imageUrl: true,
+  linkUrl: true,
+  position: true,
+  isActive: true,
+  createdAt: true,
+  updatedAt: true,
+} satisfies Prisma.BannerSelect;
 
 export class BannerService {
   // ---- Public storefront endpoint ----
@@ -52,6 +58,7 @@ export class BannerService {
         skip,
         take: limit,
         orderBy: [{ position: 'asc' }, { createdAt: 'desc' }],
+        select: bannerSelect,
       }),
     ]);
 
@@ -67,7 +74,10 @@ export class BannerService {
   }
 
   async getBannerById(id: string) {
-    const banner = await prisma.banner.findUnique({ where: { id } });
+    const banner = await prisma.banner.findUnique({
+      where: { id },
+      select: bannerSelect,
+    });
     if (!banner) throw ApiError.notFound('Banner not found');
     return banner;
   }
@@ -89,10 +99,11 @@ export class BannerService {
           position: data.position,
           isActive: data.isActive,
         },
+        select: bannerSelect,
       });
     } catch (err) {
       for (const u of newUploads) {
-        await deleteImage(u.publicId).catch(() => {});
+        await cleanupMediaBestEffort(u.publicId, 'banner create rollback');
       }
       throw err;
     }
@@ -103,11 +114,14 @@ export class BannerService {
     data: UpdateBannerInput,
     file?: Express.Multer.File
   ) {
-    const existing = await prisma.banner.findUnique({ where: { id } });
-    if (!existing) throw ApiError.notFound('Banner not found');
-
     const newUploads: UploadResult[] = [];
     try {
+      let uploaded: UploadResult | undefined;
+      if (file) {
+        uploaded = await uploadImage(file.buffer, CLOUDINARY_FOLDER);
+        newUploads.push(uploaded);
+      }
+
       const updateData: Prisma.BannerUpdateInput = {
         ...(data.title !== undefined && { title: data.title }),
         ...(data.linkUrl !== undefined && { linkUrl: data.linkUrl }),
@@ -115,46 +129,61 @@ export class BannerService {
         ...(data.isActive !== undefined && { isActive: data.isActive }),
       };
 
-      if (file) {
-        const uploaded = await uploadImage(file.buffer, CLOUDINARY_FOLDER);
-        newUploads.push(uploaded);
+      if (uploaded) {
         updateData.imageUrl = uploaded.url;
         updateData.imagePublicId = uploaded.publicId;
       }
 
-      const updated = await prisma.banner.update({
-        where: { id },
-        data: updateData,
-      });
+      const { updated, replacedPublicId } = await prisma.$transaction(
+        async (tx) => {
+          const existing = await this.lockBanner(tx, id);
+          if (!existing) throw ApiError.notFound('Banner not found');
+          return {
+            updated: await tx.banner.update({
+              where: { id },
+              data: updateData,
+              select: bannerSelect,
+            }),
+            replacedPublicId: uploaded ? existing.imagePublicId : null,
+          };
+        }
+      );
 
-      // Best-effort cleanup of the old image after a successful DB update
-      if (file && existing.imagePublicId) {
-        await deleteImage(existing.imagePublicId).catch((err) => {
-          logger.warn(`[banner] Failed to delete old image ${existing.imagePublicId}: ${err}`);
-        });
+      if (replacedPublicId) {
+        await cleanupMediaBestEffort(
+          replacedPublicId,
+          'banner image replacement'
+        );
       }
 
       return updated;
     } catch (err) {
       for (const u of newUploads) {
-        await deleteImage(u.publicId).catch(() => {});
+        await cleanupMediaBestEffort(u.publicId, 'banner update rollback');
       }
       throw err;
     }
   }
 
   async deleteBanner(id: string) {
-    const banner = await prisma.banner.findUnique({ where: { id } });
-    if (!banner) throw ApiError.notFound('Banner not found');
+    const publicId = await prisma.$transaction(async (tx) => {
+      const banner = await this.lockBanner(tx, id);
+      if (!banner) throw ApiError.notFound('Banner not found');
+      await tx.banner.delete({ where: { id } });
+      return banner.imagePublicId;
+    });
 
-    await prisma.banner.delete({ where: { id } });
-
-    // Best-effort cleanup after a successful DB delete
-    if (banner.imagePublicId) {
-      await deleteImage(banner.imagePublicId).catch((err) => {
-        logger.warn(`[banner] Failed to delete image ${banner.imagePublicId}: ${err}`);
-      });
+    if (publicId) {
+      await cleanupMediaBestEffort(publicId, 'banner deletion');
     }
+  }
+
+  private async lockBanner(tx: Prisma.TransactionClient, id: string) {
+    const rows = await tx.$queryRaw<
+      Array<{ id: string; imagePublicId: string | null }>
+    >`SELECT "id", "imagePublicId" FROM "banners"
+      WHERE "id" = ${id} FOR UPDATE`;
+    return rows[0];
   }
 }
 

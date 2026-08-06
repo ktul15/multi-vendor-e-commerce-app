@@ -151,10 +151,35 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
       linkUrl: nullableString,
       position: integerSchema,
       isActive: booleanSchema,
+      createdAt: { type: 'string', format: 'date-time' },
+      updatedAt: { type: 'string', format: 'date-time' },
     },
-    ['id', 'title', 'imageUrl', 'position', 'isActive']
+    [
+      'id',
+      'title',
+      'imageUrl',
+      'linkUrl',
+      'position',
+      'isActive',
+      'createdAt',
+      'updatedAt',
+    ]
   ),
-  BannersSuccess: successEnvelope(arraySchema(ref('Banner'))),
+  PublicBanner: objectSchema(
+    {
+      id: stringSchema,
+      title: stringSchema,
+      imageUrl: stringSchema,
+      linkUrl: nullableString,
+      position: integerSchema,
+    },
+    ['id', 'title', 'imageUrl', 'linkUrl', 'position']
+  ),
+  PublicBannersSuccess: successEnvelope(arraySchema(ref('PublicBanner'))),
+  BannerSuccess: successEnvelope(ref('Banner')),
+  BannerListSuccess: successEnvelope(
+    objectSchema({ items: arraySchema(ref('Banner')), meta: ref('Pagination') })
+  ),
   Category: objectSchema(
     {
       id: stringSchema,
@@ -426,6 +451,31 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
       ['id', 'userId', 'storeName', 'status', 'user']
     )
   ),
+  VendorProfileMutationSuccess: successEnvelope(
+    objectSchema(
+      {
+        id: stringSchema,
+        userId: stringSchema,
+        storeName: stringSchema,
+        description: nullableString,
+        status: {
+          type: 'string',
+          enum: ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'],
+        },
+        storeLogo: nullableString,
+        storeBanner: nullableString,
+      },
+      [
+        'id',
+        'userId',
+        'storeName',
+        'description',
+        'status',
+        'storeLogo',
+        'storeBanner',
+      ]
+    )
+  ),
 };
 
 const dashboardResponseSchemas: Record<string, string> = {
@@ -439,7 +489,11 @@ const dashboardResponseSchemas: Record<string, string> = {
   'post /auth/refresh': 'RefreshSuccess',
   'post /auth/logout': 'LogoutSuccess',
   'get /auth/profile': 'ProfileSuccess',
-  'get /banners': 'BannersSuccess',
+  'get /banners': 'PublicBannersSuccess',
+  'get /banners/all': 'BannerListSuccess',
+  'get /banners/{id}': 'BannerSuccess',
+  'post /banners': 'BannerSuccess',
+  'put /banners/{id}': 'BannerSuccess',
   'get /categories': 'CategoriesSuccess',
   'post /categories': 'CategorySuccess',
   'put /categories/{id}': 'CategorySuccess',
@@ -458,9 +512,10 @@ const dashboardResponseSchemas: Record<string, string> = {
   'get /vendor-payouts/connect/status': 'ConnectStatusSuccess',
   'get /vendor-payouts/earnings/summary': 'EarningsSummarySuccess',
   'get /vendor-profile/me': 'VendorProfileSuccess',
+  'put /vendor-profile/me': 'VendorProfileMutationSuccess',
 };
 
-const vendorContractErrorOperations = [
+const dashboardContractErrorOperations = [
   'get /products/vendor',
   'get /orders/vendor/{id}',
   'post /products',
@@ -472,6 +527,13 @@ const vendorContractErrorOperations = [
   'post /categories',
   'put /categories/{id}',
   'delete /categories/{id}',
+  'post /banners',
+  'get /banners/all',
+  'get /banners/{id}',
+  'put /banners/{id}',
+  'delete /banners/{id}',
+  'get /vendor-profile/me',
+  'put /vendor-profile/me',
 ];
 
 const options: swaggerJsdoc.Options = {
@@ -643,9 +705,9 @@ export function buildSwaggerSpec(): object {
     }
   }
 
-  // Issue #129 routes share one concrete error envelope. Applying it centrally
+  // Dashboard contract routes share one concrete error envelope. Applying it centrally
   // prevents their route comments and generated client types from drifting.
-  for (const operationKey of vendorContractErrorOperations) {
+  for (const operationKey of dashboardContractErrorOperations) {
     const [method, route] = operationKey.split(' ');
     const responses =
       route && method ? spec.paths?.[route]?.[method]?.responses : undefined;
