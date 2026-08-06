@@ -172,11 +172,12 @@ model VendorProfile {
 // ========================
 
 model Category {
-  id       String     @id @default(uuid())
-  name     String
-  slug     String     @unique
-  image    String?
-  parentId String?
+  id            String     @id @default(uuid())
+  name          String
+  slug          String     @unique
+  image         String?
+  imagePublicId String?
+  parentId      String?
   parent   Category?  @relation("Subcategories", fields: [parentId], references: [id])
   children Category[] @relation("Subcategories")
 

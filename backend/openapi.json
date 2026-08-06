@@ -716,13 +716,60 @@
         "required": [
           "id",
           "name",
-          "parentId"
+          "slug",
+          "image",
+          "parentId",
+          "createdAt",
+          "updatedAt"
         ],
         "properties": {
           "id": {
             "type": "string"
           },
           "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string",
+            "nullable": true
+          },
+          "parentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CategoryTreeNode": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "image",
+          "parentId",
+          "children",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
             "type": "string"
           },
           "image": {
@@ -736,8 +783,16 @@
           "children": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Category"
+              "$ref": "#/components/schemas/CategoryTreeNode"
             }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -761,8 +816,30 @@
           "data": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Category"
+              "$ref": "#/components/schemas/CategoryTreeNode"
             }
+          }
+        }
+      },
+      "CategorySuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Category"
           }
         }
       },
@@ -3967,7 +4044,7 @@
           "Categories"
         ],
         "summary": "List all categories",
-        "description": "Returns the full category tree. No authentication required.",
+        "description": "Returns every category as a recursively nested tree with no depth truncation. No authentication required.",
         "security": [],
         "responses": {
           "200": {
@@ -4034,6 +4111,29 @@
                   }
                 }
               }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2
+                  },
+                  "parentId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "image": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Optional JPEG, PNG, or WebP image up to 5 MB. A file takes precedence over an image URL."
+                  }
+                }
+              }
             }
           }
         },
@@ -4043,7 +4143,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": "#/components/schemas/CategorySuccess"
                 }
               }
             }
@@ -4059,10 +4159,44 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden — ADMIN role required"
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Parent category not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Uploaded image exceeds the 5 MB limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -4091,6 +4225,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
+                "minProperties": 1,
                 "properties": {
                   "name": {
                     "type": "string",
@@ -4109,6 +4244,28 @@
                   }
                 }
               }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "minProperties": 1,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2
+                  },
+                  "image": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Optional replacement JPEG, PNG, or WebP image up to 5 MB."
+                  },
+                  "parentId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true
+                  }
+                }
+              }
             }
           }
         },
@@ -4118,22 +4275,60 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": "#/components/schemas/CategorySuccess"
                 }
               }
             }
           },
           "400": {
-            "description": "Validation error"
+            "description": "Invalid ID/payload, empty update, self-parent, or descendant cycle",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden — ADMIN role required"
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Category not found"
+            "description": "Category not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Uploaded image exceeds the 5 MB limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       },
@@ -4155,17 +4350,55 @@
           }
         ],
         "responses": {
-          "204": {
-            "description": "Category deleted"
+          "200": {
+            "description": "Category deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NullSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Category has subcategories or attached products",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden — ADMIN role required"
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Category not found"
+            "description": "Category not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }

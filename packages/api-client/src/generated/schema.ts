@@ -2492,7 +2492,7 @@ export interface paths {
         };
         /**
          * List all categories
-         * @description Returns the full category tree. No authentication required.
+         * @description Returns every category as a recursively nested tree with no depth truncation. No authentication required.
          */
         readonly get: {
             readonly parameters: {
@@ -2561,6 +2561,16 @@ export interface paths {
                          */
                         readonly parentId?: string;
                     };
+                    readonly "multipart/form-data": {
+                        /**
+                         * Format: binary
+                         * @description Optional JPEG, PNG, or WebP image up to 5 MB. A file takes precedence over an image URL.
+                         */
+                        readonly image?: Blob;
+                        readonly name: string;
+                        /** Format: uuid */
+                        readonly parentId?: string;
+                    };
                 };
             };
             readonly responses: {
@@ -2570,7 +2580,7 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        readonly "application/json": components["schemas"]["ApiSuccess"];
+                        readonly "application/json": components["schemas"]["CategorySuccess"];
                     };
                 };
                 /** @description Validation error */
@@ -2587,14 +2597,36 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden — ADMIN role required */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Parent category not found */
+                readonly 404: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Uploaded image exceeds the 5 MB limit */
+                readonly 413: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -2636,6 +2668,16 @@ export interface paths {
                          */
                         readonly parentId?: string | null;
                     };
+                    readonly "multipart/form-data": {
+                        /**
+                         * Format: binary
+                         * @description Optional replacement JPEG, PNG, or WebP image up to 5 MB.
+                         */
+                        readonly image?: Blob;
+                        readonly name?: string;
+                        /** Format: uuid */
+                        readonly parentId?: string | null;
+                    };
                 };
             };
             readonly responses: {
@@ -2645,36 +2687,53 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        readonly "application/json": components["schemas"]["ApiSuccess"];
+                        readonly "application/json": components["schemas"]["CategorySuccess"];
                     };
                 };
-                /** @description Validation error */
+                /** @description Invalid ID/payload, empty update, self-parent, or descendant cycle */
                 readonly 400: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden — ADMIN role required */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Category not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Uploaded image exceeds the 5 MB limit */
+                readonly 413: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -2693,32 +2752,49 @@ export interface paths {
             readonly requestBody?: never;
             readonly responses: {
                 /** @description Category deleted */
-                readonly 204: {
+                readonly 200: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["NullSuccess"];
+                    };
+                };
+                /** @description Category has subcategories or attached products */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden — ADMIN role required */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Category not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -5824,17 +5900,39 @@ export interface components {
             readonly success: true;
         };
         readonly CategoriesSuccess: {
-            readonly data: readonly components["schemas"]["Category"][];
+            readonly data: readonly components["schemas"]["CategoryTreeNode"][];
             readonly message: string;
             /** @enum {boolean} */
             readonly success: true;
         };
         readonly Category: {
-            readonly children?: readonly components["schemas"]["Category"][];
+            /** Format: date-time */
+            readonly createdAt: string;
             readonly id: string;
-            readonly image?: string | null;
+            readonly image: string | null;
             readonly name: string;
             readonly parentId: string | null;
+            readonly slug: string;
+            /** Format: date-time */
+            readonly updatedAt: string;
+        };
+        readonly CategorySuccess: {
+            readonly data: components["schemas"]["Category"];
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
+        readonly CategoryTreeNode: {
+            readonly children: readonly components["schemas"]["CategoryTreeNode"][];
+            /** Format: date-time */
+            readonly createdAt: string;
+            readonly id: string;
+            readonly image: string | null;
+            readonly name: string;
+            readonly parentId: string | null;
+            readonly slug: string;
+            /** Format: date-time */
+            readonly updatedAt: string;
         };
         readonly CommissionSuccess: {
             readonly data: {

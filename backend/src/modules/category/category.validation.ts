@@ -17,5 +17,9 @@ export const updateCategorySchema = z.object({
   ),
 });
 
+export const categoryParamSchema = z.object({
+  id: z.string().uuid('Invalid category ID'),
+});
+
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
 export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
