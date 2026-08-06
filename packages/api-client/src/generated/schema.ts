@@ -1873,7 +1873,7 @@ export interface paths {
                          *       ]
                          *     }
                          */
-                        readonly "application/json": components["schemas"]["BannersSuccess"];
+                        readonly "application/json": components["schemas"]["PublicBannersSuccess"];
                     };
                 };
             };
@@ -1881,7 +1881,7 @@ export interface paths {
         readonly put?: never;
         /**
          * Create a banner (Admin only)
-         * @description Send as `multipart/form-data`. The `image` file field is required. Sending `application/json` will result in a 400 missing-image error.
+         * @description Send as `multipart/form-data`. The `image` file field is required. Sending `application/json` will result in a 400 missing-image error. A successful upload is rolled back with an observable warning if the database create fails.
          */
         readonly post: {
             readonly parameters: {
@@ -1895,7 +1895,7 @@ export interface paths {
                     readonly "multipart/form-data": {
                         /**
                          * Format: binary
-                         * @description Banner image (JPEG/PNG, required)
+                         * @description Exactly one JPEG, PNG, or WebP image up to 5 MB.
                          */
                         readonly image: Blob;
                         /** @default true */
@@ -1922,7 +1922,7 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        readonly "application/json": components["schemas"]["ApiSuccess"];
+                        readonly "application/json": components["schemas"]["BannerSuccess"];
                     };
                 };
                 /** @description Validation error or missing image */
@@ -1930,21 +1930,36 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden — ADMIN role required */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Uploaded image exceeds the 5 MB limit */
+                readonly 413: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -1979,7 +1994,16 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        readonly "application/json": components["schemas"]["ApiSuccess"];
+                        readonly "application/json": components["schemas"]["BannerSuccess"];
+                    };
+                };
+                /** @description Invalid banner ID */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
                     };
                 };
                 /** @description Unauthorized */
@@ -1987,20 +2011,33 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Banner not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
         /**
          * Update a banner (Admin only)
-         * @description Send as `multipart/form-data`. Optionally include a new `image` file to replace the existing one. If no image is provided, the existing `imageUrl` is preserved. At least one field must be provided.
+         * @description Send text-only updates as JSON or multipart. A multipart request may contain exactly one optional `image` file, including an image-only update. At least one field or image is required. New uploads roll back if the DB update fails; replaced media cleanup is observable and best effort after commit.
          */
         readonly put: {
             readonly parameters: {
@@ -2011,17 +2048,27 @@ export interface paths {
                 };
                 readonly cookie?: never;
             };
-            readonly requestBody?: {
+            readonly requestBody: {
                 readonly content: {
+                    readonly "application/json": {
+                        readonly isActive?: boolean;
+                        /**
+                         * Format: uri
+                         * @description Set null to clear the link
+                         */
+                        readonly linkUrl?: string | null;
+                        readonly position?: number;
+                        readonly title?: string;
+                    };
                     readonly "multipart/form-data": {
                         /**
                          * Format: binary
-                         * @description Optional — replaces existing image
+                         * @description Optional single JPEG, PNG, or WebP image up to 5 MB; replaces existing image
                          */
                         readonly image?: Blob;
                         readonly isActive?: boolean;
-                        /** Format: uri */
-                        readonly linkUrl?: string;
+                        /** @description Send an absolute URI, or an empty string to clear the link. */
+                        readonly linkUrl?: string | "";
                         readonly position?: number;
                         readonly title?: string;
                     };
@@ -2033,28 +2080,54 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["BannerSuccess"];
+                    };
                 };
                 /** @description Validation error */
                 readonly 400: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Banner not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Uploaded image exceeds the 5 MB limit */
+                readonly 413: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -2071,26 +2144,48 @@ export interface paths {
             };
             readonly requestBody?: never;
             readonly responses: {
-                /** @description Banner deleted */
-                readonly 200: {
+                /** @description Banner deleted; response body is empty. Media cleanup is observable and best effort after DB commit. */
+                readonly 204: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Invalid banner ID */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Banner not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -2127,7 +2222,16 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        readonly "application/json": components["schemas"]["ApiSuccess"];
+                        readonly "application/json": components["schemas"]["BannerListSuccess"];
+                    };
+                };
+                /** @description Invalid pagination or active-state filter */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
                     };
                 };
                 /** @description Unauthorized */
@@ -2135,14 +2239,18 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -5570,11 +5678,17 @@ export interface paths {
                          *       "message": "Vendor profile fetched",
                          *       "data": {
                          *         "id": "uuid",
+                         *         "userId": "uuid",
                          *         "storeName": "Jane's Boutique",
                          *         "description": "Quality handmade goods",
                          *         "status": "PENDING",
-                         *         "logoUrl": null,
-                         *         "bannerUrl": null
+                         *         "storeLogo": null,
+                         *         "storeBanner": null,
+                         *         "user": {
+                         *           "name": "Jane Vendor",
+                         *           "email": "jane@example.com",
+                         *           "avatar": null
+                         *         }
                          *       }
                          *     }
                          */
@@ -5586,20 +5700,33 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden — VENDOR role required */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Vendor profile not found */
+                readonly 404: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
         /**
          * Update the vendor profile (pending or approved vendors only)
-         * @description Send as `multipart/form-data`. Include `logo` and/or `banner` file fields to upload images. Text fields (`storeName`, `description`) are included as form fields. At least one field or file must be provided.
+         * @description Send text-only updates as JSON or multipart. Multipart accepts at most one `logo` and one `banner`. File-only and mixed updates are valid; a true no-op is rejected. Each file must be JPEG, PNG, or WebP and at most 5 MB. New uploads roll back on DB failure; replaced-media cleanup is observable and best effort.
          */
         readonly put: {
             readonly parameters: {
@@ -5608,19 +5735,23 @@ export interface paths {
                 readonly path?: never;
                 readonly cookie?: never;
             };
-            readonly requestBody?: {
+            readonly requestBody: {
                 readonly content: {
+                    readonly "application/json": {
+                        readonly description?: string;
+                        readonly storeName?: string;
+                    };
                     readonly "multipart/form-data": {
                         /**
                          * Format: binary
-                         * @description Store banner image (JPEG/PNG)
+                         * @description Optional single JPEG, PNG, or WebP image up to 5 MB
                          */
                         readonly banner?: Blob;
                         /** @example Quality handmade goods from local artisans */
                         readonly description?: string;
                         /**
                          * Format: binary
-                         * @description Store logo image (JPEG/PNG)
+                         * @description Optional single JPEG, PNG, or WebP image up to 5 MB
                          */
                         readonly logo?: Blob;
                         /** @example Jane's Boutique */
@@ -5635,7 +5766,7 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        readonly "application/json": components["schemas"]["ApiSuccess"];
+                        readonly "application/json": components["schemas"]["VendorProfileMutationSuccess"];
                     };
                 };
                 /** @description Validation error */
@@ -5643,21 +5774,54 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden — vendor profile cannot be edited in current status */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Vendor profile not found */
+                readonly 404: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Store name is already in use */
+                readonly 409: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description An uploaded image exceeds the 5 MB limit */
+                readonly 413: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -5886,15 +6050,28 @@ export interface components {
             readonly refreshToken: string;
         };
         readonly Banner: {
+            /** Format: date-time */
+            readonly createdAt: string;
             readonly id: string;
             readonly imageUrl: string;
             readonly isActive: boolean;
-            readonly linkUrl?: string | null;
+            readonly linkUrl: string | null;
             readonly position: number;
             readonly title: string;
+            /** Format: date-time */
+            readonly updatedAt: string;
         };
-        readonly BannersSuccess: {
-            readonly data: readonly components["schemas"]["Banner"][];
+        readonly BannerListSuccess: {
+            readonly data: {
+                readonly items: readonly components["schemas"]["Banner"][];
+                readonly meta: components["schemas"]["Pagination"];
+            };
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
+        readonly BannerSuccess: {
+            readonly data: components["schemas"]["Banner"];
             readonly message: string;
             /** @enum {boolean} */
             readonly success: true;
@@ -6110,6 +6287,19 @@ export interface components {
             /** @enum {boolean} */
             readonly success: true;
         };
+        readonly PublicBanner: {
+            readonly id: string;
+            readonly imageUrl: string;
+            readonly linkUrl: string | null;
+            readonly position: number;
+            readonly title: string;
+        };
+        readonly PublicBannersSuccess: {
+            readonly data: readonly components["schemas"]["PublicBanner"][];
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
         readonly RefreshSuccess: {
             readonly data: components["schemas"]["AuthTokens"];
             readonly message: string;
@@ -6235,6 +6425,21 @@ export interface components {
             readonly data: {
                 readonly items: readonly components["schemas"]["VendorOrderDetail"][];
                 readonly meta: components["schemas"]["Pagination"];
+            };
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
+        readonly VendorProfileMutationSuccess: {
+            readonly data: {
+                readonly description: string | null;
+                readonly id: string;
+                /** @enum {string} */
+                readonly status: "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
+                readonly storeBanner: string | null;
+                readonly storeLogo: string | null;
+                readonly storeName: string;
+                readonly userId: string;
             };
             readonly message: string;
             /** @enum {boolean} */

@@ -1,18 +1,24 @@
 import { prisma } from '../../config/prisma';
 import { ApiError } from '../../utils/apiError';
-import {
-  uploadImage,
-  deleteImage,
-  UploadResult,
-} from '../../utils/cloudinaryUpload';
+import { uploadImage, UploadResult } from '../../utils/cloudinaryUpload';
 import { UpdateVendorProfileInput } from './vendor-profile.validation';
-import { Prisma, VendorProfile } from '../../generated/prisma/client';
+import { Prisma, VendorProfileStatus } from '../../generated/prisma/client';
+import { cleanupMediaBestEffort } from '../../utils/mediaCleanup';
 
 interface UploadedFile {
   buffer: Buffer;
 }
 
 const CLOUDINARY_FOLDER = 'vendor-profiles';
+const vendorProfileSelect = {
+  id: true,
+  userId: true,
+  storeName: true,
+  description: true,
+  status: true,
+  storeLogo: true,
+  storeBanner: true,
+} satisfies Prisma.VendorProfileSelect;
 
 /**
  * Get the vendor profile for the authenticated vendor.
@@ -21,7 +27,8 @@ const CLOUDINARY_FOLDER = 'vendor-profiles';
 export const getProfile = async (userId: string) => {
   const profile = await prisma.vendorProfile.findUnique({
     where: { userId },
-    include: {
+    select: {
+      ...vendorProfileSelect,
       user: {
         select: { name: true, email: true, avatar: true },
       },
@@ -45,10 +52,9 @@ export const getProfile = async (userId: string) => {
  */
 export const updateProfile = async (
   userId: string,
-  existing: VendorProfile,
   data: UpdateVendorProfileInput,
   files?: { logo?: UploadedFile[]; banner?: UploadedFile[] }
-): Promise<VendorProfile> => {
+) => {
   const updateData: Record<string, unknown> = {};
 
   if (data.storeName !== undefined) {
@@ -84,28 +90,54 @@ export const updateProfile = async (
       throw ApiError.badRequest('No fields to update');
     }
 
-    const updated = await prisma.vendorProfile.update({
-      where: { userId },
-      data: updateData,
-    });
+    const { updated, replacedLogoId, replacedBannerId } =
+      await prisma.$transaction(async (tx) => {
+        const existing = await lockVendorProfile(tx, userId);
+        if (!existing) throw ApiError.notFound('Vendor profile not found');
+        if (
+          existing.status === VendorProfileStatus.REJECTED ||
+          existing.status === VendorProfileStatus.SUSPENDED
+        ) {
+          throw ApiError.forbidden(
+            'Vendor profile cannot be edited in its current status'
+          );
+        }
+
+        return {
+          updated: await tx.vendorProfile.update({
+            where: { userId },
+            data: updateData,
+            select: vendorProfileSelect,
+          }),
+          replacedLogoId: files?.logo?.[0] ? existing.storeLogoPublicId : null,
+          replacedBannerId: files?.banner?.[0]
+            ? existing.storeBannerPublicId
+            : null,
+        };
+      });
 
     // DB update succeeded — now safe to delete old images (best-effort)
-    if (files?.logo?.[0] && existing.storeLogoPublicId) {
-      safeDeleteImage(existing.storeLogoPublicId);
+    if (replacedLogoId) {
+      await cleanupMediaBestEffort(
+        replacedLogoId,
+        'vendor profile logo replacement'
+      );
     }
-    if (files?.banner?.[0] && existing.storeBannerPublicId) {
-      safeDeleteImage(existing.storeBannerPublicId);
+    if (replacedBannerId) {
+      await cleanupMediaBestEffort(
+        replacedBannerId,
+        'vendor profile banner replacement'
+      );
     }
 
     return updated;
   } catch (error) {
     // Rollback: clean up newly uploaded images if DB update failed
     for (const upload of newUploads) {
-      try {
-        await deleteImage(upload.publicId);
-      } catch {
-        // Best-effort cleanup
-      }
+      await cleanupMediaBestEffort(
+        upload.publicId,
+        'vendor profile update rollback'
+      );
     }
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -119,14 +151,17 @@ export const updateProfile = async (
   }
 };
 
-/**
- * Delete an image from Cloudinary by publicId, swallowing errors
- * so a failed cleanup doesn't block the profile update.
- */
-const safeDeleteImage = async (publicId: string): Promise<void> => {
-  try {
-    await deleteImage(publicId);
-  } catch {
-    // Swallow — old image cleanup is best-effort
-  }
+const lockVendorProfile = async (
+  tx: Prisma.TransactionClient,
+  userId: string
+) => {
+  const rows = await tx.$queryRaw<
+    Array<{
+      status: VendorProfileStatus;
+      storeLogoPublicId: string | null;
+      storeBannerPublicId: string | null;
+    }>
+  >`SELECT "status", "storeLogoPublicId", "storeBannerPublicId"
+    FROM "vendor_profiles" WHERE "userId" = ${userId} FOR UPDATE`;
+  return rows[0];
 };
