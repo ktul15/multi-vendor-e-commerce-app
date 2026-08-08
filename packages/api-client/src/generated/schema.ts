@@ -458,7 +458,10 @@ export interface paths {
             readonly path?: never;
             readonly cookie?: never;
         };
-        /** List all orders across the platform (Admin only) */
+        /**
+         * List all orders across the platform (Admin only)
+         * @description Each order retains its per-vendor sub-orders and includes fulfillmentStatus. SINGLE means every sub-order has one shared status, MIXED means vendor statuses differ, and NONE indicates no sub-orders. Without vendorId, status matches an order when any sub-order has that status. With vendorId, both filters must match the same vendor sub-order.
+         */
         readonly get: {
             readonly parameters: {
                 readonly query?: {
@@ -469,7 +472,7 @@ export interface paths {
                     readonly status?: "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "REFUNDED";
                     /** @description Filter by customer ID */
                     readonly userId?: string;
-                    /** @description Filter by vendor ID */
+                    /** @description Filter by vendor owner user-account ID (`User.id`), not the vendor-profile ID. */
                     readonly vendorId?: string;
                 };
                 readonly header?: never;
@@ -484,7 +487,16 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        readonly "application/json": components["schemas"]["ApiSuccess"];
+                        readonly "application/json": components["schemas"]["AdminOrdersSuccess"];
+                    };
+                };
+                /** @description Invalid pagination, date range, status, customer ID, or vendor user ID */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
                     };
                 };
                 /** @description Unauthorized */
@@ -492,7 +504,18 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -511,7 +534,10 @@ export interface paths {
             readonly path?: never;
             readonly cookie?: never;
         };
-        /** Get order detail (Admin only) */
+        /**
+         * Get order detail (Admin only)
+         * @description Returns every vendor sub-order plus the deterministic SINGLE, MIXED, or NONE fulfillmentStatus summary.
+         */
         readonly get: {
             readonly parameters: {
                 readonly query?: never;
@@ -529,7 +555,16 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        readonly "application/json": components["schemas"]["ApiSuccess"];
+                        readonly "application/json": components["schemas"]["AdminOrderDetailSuccess"];
+                    };
+                };
+                /** @description Invalid order ID */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
                     };
                 };
                 /** @description Unauthorized */
@@ -537,14 +572,27 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Order not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -572,6 +620,7 @@ export interface paths {
                     readonly limit?: number;
                     readonly page?: number;
                     readonly search?: string;
+                    /** @description Vendor owner user-account ID (`User.id`), not the vendor-profile ID. */
                     readonly vendorId?: string;
                 };
                 readonly header?: never;
@@ -613,7 +662,68 @@ export interface paths {
             readonly path?: never;
             readonly cookie?: never;
         };
-        readonly get?: never;
+        /**
+         * Get complete product moderation detail (Admin only)
+         * @description Includes inactive products, media URLs, tags, variants and inventory, vendor and vendor-profile identity, category, and rating aggregates.
+         */
+        readonly get: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly productId: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description Product moderation detail */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["AdminProductDetailSuccess"];
+                    };
+                };
+                /** @description Invalid product ID */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Unauthorized */
+                readonly 401: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Product not found */
+                readonly 404: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
         readonly put?: never;
         readonly post?: never;
         /** Delete a product (Admin only) */
@@ -628,26 +738,57 @@ export interface paths {
             };
             readonly requestBody?: never;
             readonly responses: {
-                /** @description Product deleted */
-                readonly 200: {
+                /** @description Product deleted; response body is empty */
+                readonly 204: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Invalid product ID */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Product not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Product has order history and must be deactivated instead */
+                readonly 409: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -688,19 +829,50 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Invalid product ID */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Product not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Product is already active */
+                readonly 409: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -738,19 +910,50 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Invalid product ID */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Product not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Product is already inactive */
+                readonly 409: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -873,6 +1076,81 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/admin/users/{userId}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Get a user by user ID (Admin only) */
+        readonly get: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    /** @description User account ID, not a vendor-profile ID. */
+                    readonly userId: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description User detail, including a vendor-profile summary when applicable */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["AdminUserDetailSuccess"];
+                    };
+                };
+                /** @description Invalid user ID */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Unauthorized */
+                readonly 401: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description User not found */
+                readonly 404: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/admin/users/{userId}/ban": {
         readonly parameters: {
             readonly query?: never;
@@ -905,19 +1183,50 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Invalid user ID */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Admin accounts cannot be banned, or ADMIN role is required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description User not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description User is already banned */
+                readonly 409: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -955,19 +1264,50 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Invalid user ID */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description User not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description User is not currently banned */
+                readonly 409: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -986,7 +1326,7 @@ export interface paths {
                 readonly query?: {
                     readonly limit?: number;
                     readonly page?: number;
-                    /** @description Search by store name or owner email */
+                    /** @description Case-insensitive search by store name or owner email */
                     readonly search?: string;
                     readonly status?: "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
                 };
@@ -1011,6 +1351,81 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content?: never;
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/admin/vendors/{vendorProfileId}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Get a vendor by vendor-profile ID (Admin only) */
+        readonly get: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    /** @description VendorProfile ID. The owner user ID is returned separately as userId. */
+                    readonly vendorProfileId: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description Vendor profile and relevant owner account detail */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["AdminVendorDetailSuccess"];
+                    };
+                };
+                /** @description Invalid vendor-profile ID */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Unauthorized */
+                readonly 401: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Vendor profile not found */
+                readonly 404: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -1052,21 +1467,54 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["AdminVendorLifecycleSuccess"];
+                    };
+                };
+                /** @description Invalid vendor-profile ID */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Vendor profile not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Vendor is already approved */
+                readonly 409: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -1169,21 +1617,54 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["AdminVendorLifecycleSuccess"];
+                    };
+                };
+                /** @description Invalid vendor-profile ID */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Vendor profile not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Vendor is already rejected or an approved vendor must be suspended instead */
+                readonly 409: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -1219,21 +1700,45 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["AdminVendorLifecycleSuccess"];
+                    };
+                };
+                /** @description Invalid vendor-profile ID, or vendor is not approved and cannot be suspended */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Vendor profile not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -6009,6 +6514,172 @@ export interface components {
             /** @enum {boolean} */
             readonly success: true;
         };
+        readonly AdminFulfillmentStatus: {
+            /** @enum {string} */
+            readonly kind: "NONE" | "SINGLE" | "MIXED";
+            /** @enum {string|null} */
+            readonly status: "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "REFUNDED" | null;
+            readonly statuses: readonly ("PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "REFUNDED")[];
+        };
+        readonly AdminOrderDetail: {
+            readonly address: {
+                readonly [key: string]: string;
+            };
+            readonly cancellationReason: string | null;
+            /** Format: date-time */
+            readonly createdAt: string;
+            readonly discount: string;
+            readonly fulfillmentStatus: components["schemas"]["AdminFulfillmentStatus"];
+            readonly id: string;
+            readonly notes: string | null;
+            readonly orderNumber: string;
+            readonly payment: components["schemas"]["VendorOrderPayment"] | null;
+            readonly promoCode: {
+                readonly code: string;
+                /** @enum {string} */
+                readonly discountType: "PERCENTAGE" | "FIXED";
+                readonly discountValue: string;
+            } | null;
+            readonly shippingAddress: {
+                readonly [key: string]: unknown;
+            };
+            readonly subtotal: string;
+            readonly tax: string;
+            readonly total: string;
+            /** Format: date-time */
+            readonly updatedAt: string;
+            readonly user: {
+                readonly email: string;
+                readonly id: string;
+                readonly name: string;
+            };
+            readonly vendorOrders: readonly components["schemas"]["AdminOrderVendorDetail"][];
+        };
+        readonly AdminOrderDetailSuccess: {
+            readonly data: components["schemas"]["AdminOrderDetail"];
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
+        readonly AdminOrderItem: {
+            readonly id: string;
+            readonly quantity: number;
+            readonly totalPrice: string;
+            readonly unitPrice: string;
+            readonly variant: {
+                readonly color: string | null;
+                readonly price: string;
+                readonly product: {
+                    readonly images: readonly string[];
+                    readonly name: string;
+                };
+                readonly size: string | null;
+                readonly sku: string;
+            };
+        };
+        readonly AdminOrderPaymentSummary: {
+            /** @enum {string} */
+            readonly method: "CARD" | "CASH_ON_DELIVERY" | "WALLET";
+            /** @enum {string} */
+            readonly status: "PENDING" | "PROCESSING" | "SUCCEEDED" | "FAILED" | "REFUNDED" | "CANCELLED";
+        };
+        readonly AdminOrdersSuccess: {
+            readonly data: {
+                readonly items: readonly components["schemas"]["AdminOrderSummary"][];
+                readonly meta: components["schemas"]["Pagination"];
+            };
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
+        readonly AdminOrderSummary: {
+            /** Format: date-time */
+            readonly createdAt: string;
+            readonly discount: string;
+            readonly fulfillmentStatus: components["schemas"]["AdminFulfillmentStatus"];
+            readonly id: string;
+            readonly orderNumber: string;
+            readonly payment: components["schemas"]["AdminOrderPaymentSummary"] | null;
+            readonly subtotal: string;
+            readonly tax: string;
+            readonly total: string;
+            readonly user: {
+                readonly email: string;
+                readonly id: string;
+                readonly name: string;
+            };
+            readonly vendorOrders: readonly components["schemas"]["AdminOrderVendorSummary"][];
+        };
+        readonly AdminOrderVendorDetail: {
+            readonly id: string;
+            readonly items: readonly components["schemas"]["AdminOrderItem"][];
+            /** @enum {string} */
+            readonly status: "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "REFUNDED";
+            readonly subtotal: string;
+            readonly trackingCarrier: string | null;
+            readonly trackingNumber: string | null;
+            readonly vendor: {
+                readonly vendorProfile: {
+                    readonly id: string;
+                    readonly storeName: string;
+                } | null;
+            };
+            readonly vendorId: string;
+        };
+        readonly AdminOrderVendorSummary: {
+            readonly id: string;
+            /** @enum {string} */
+            readonly status: "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "REFUNDED";
+            readonly subtotal: string;
+            readonly vendor: {
+                readonly vendorProfile: {
+                    readonly storeName: string;
+                } | null;
+            };
+            readonly vendorId: string;
+        };
+        readonly AdminProductDetail: {
+            readonly avgRating: string;
+            readonly basePrice: string;
+            readonly category: {
+                readonly id: string;
+                readonly name: string;
+                readonly parentId: string | null;
+                readonly slug: string;
+            };
+            readonly categoryId: string;
+            /** Format: date-time */
+            readonly createdAt: string;
+            readonly description: string;
+            readonly id: string;
+            readonly images: readonly string[];
+            readonly isActive: boolean;
+            readonly name: string;
+            readonly reviewCount: number;
+            readonly tags: readonly string[];
+            /** Format: date-time */
+            readonly updatedAt: string;
+            readonly variants: readonly components["schemas"]["ProductVariant"][];
+            readonly vendor: components["schemas"]["AdminProductVendor"];
+            readonly vendorId: string;
+        };
+        readonly AdminProductDetailSuccess: {
+            readonly data: components["schemas"]["AdminProductDetail"];
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
+        readonly AdminProductVendor: {
+            readonly email: string;
+            readonly id: string;
+            readonly name: string;
+            readonly vendorProfile: {
+                readonly id: string;
+                /** @enum {string} */
+                readonly status: "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
+                readonly storeName: string;
+            } | null;
+        };
         readonly AdminRevenueSuccess: {
             readonly data: {
                 readonly dateRange: {
@@ -6022,6 +6693,91 @@ export interface components {
             readonly message: string;
             /** @enum {boolean} */
             readonly success: true;
+        };
+        readonly AdminUserDetail: {
+            readonly avatar: string | null;
+            /** Format: date-time */
+            readonly createdAt: string;
+            readonly email: string;
+            readonly id: string;
+            readonly isBanned: boolean;
+            readonly isVerified: boolean;
+            readonly name: string;
+            /** @enum {string} */
+            readonly role: "CUSTOMER" | "VENDOR" | "ADMIN";
+            /** Format: date-time */
+            readonly updatedAt: string;
+            readonly vendorProfile: components["schemas"]["AdminVendorProfileDetail"] | null;
+        };
+        readonly AdminUserDetailSuccess: {
+            readonly data: components["schemas"]["AdminUserDetail"];
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
+        readonly AdminVendorDetail: {
+            readonly commissionRate: string | null;
+            /** Format: date-time */
+            readonly createdAt: string;
+            readonly description: string | null;
+            readonly id: string;
+            /** @enum {string} */
+            readonly status: "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
+            readonly storeBanner: string | null;
+            readonly storeLogo: string | null;
+            readonly storeName: string;
+            /** @enum {string} */
+            readonly stripeOnboardingStatus: "NOT_STARTED" | "PENDING" | "COMPLETE" | "RESTRICTED";
+            /** Format: date-time */
+            readonly updatedAt: string;
+            readonly user: components["schemas"]["AdminVendorOwner"];
+            readonly userId: string;
+        };
+        readonly AdminVendorDetailSuccess: {
+            readonly data: components["schemas"]["AdminVendorDetail"];
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
+        readonly AdminVendorLifecycle: {
+            readonly id: string;
+            /** @enum {string} */
+            readonly status: "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
+            readonly storeName: string;
+            readonly userId: string;
+        };
+        readonly AdminVendorLifecycleSuccess: {
+            readonly data: components["schemas"]["AdminVendorLifecycle"];
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
+        readonly AdminVendorOwner: {
+            readonly avatar: string | null;
+            /** Format: date-time */
+            readonly createdAt: string;
+            readonly email: string;
+            readonly id: string;
+            readonly isBanned: boolean;
+            readonly isVerified: boolean;
+            readonly name: string;
+        };
+        readonly AdminVendorProfileDetail: {
+            readonly commissionRate: string | null;
+            /** Format: date-time */
+            readonly createdAt: string;
+            readonly description: string | null;
+            readonly id: string;
+            /** @enum {string} */
+            readonly status: "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
+            readonly storeBanner: string | null;
+            readonly storeLogo: string | null;
+            readonly storeName: string;
+            /** @enum {string} */
+            readonly stripeOnboardingStatus: "NOT_STARTED" | "PENDING" | "COMPLETE" | "RESTRICTED";
+            /** Format: date-time */
+            readonly updatedAt: string;
+            readonly userId: string;
         };
         readonly ApiError: {
             readonly errors?: readonly {

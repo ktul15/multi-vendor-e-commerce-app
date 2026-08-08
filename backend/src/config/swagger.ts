@@ -89,6 +89,337 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
       }),
     })
   ),
+  AdminVendorProfileDetail: objectSchema(
+    {
+      id: stringSchema,
+      userId: stringSchema,
+      storeName: stringSchema,
+      storeLogo: nullableString,
+      storeBanner: nullableString,
+      description: nullableString,
+      status: {
+        type: 'string',
+        enum: ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'],
+      },
+      stripeOnboardingStatus: {
+        type: 'string',
+        enum: ['NOT_STARTED', 'PENDING', 'COMPLETE', 'RESTRICTED'],
+      },
+      commissionRate: nullableString,
+      createdAt: { type: 'string', format: 'date-time' },
+      updatedAt: { type: 'string', format: 'date-time' },
+    },
+    [
+      'id',
+      'userId',
+      'storeName',
+      'storeLogo',
+      'storeBanner',
+      'description',
+      'status',
+      'stripeOnboardingStatus',
+      'commissionRate',
+      'createdAt',
+      'updatedAt',
+    ]
+  ),
+  AdminUserDetail: objectSchema(
+    {
+      id: stringSchema,
+      name: stringSchema,
+      email: stringSchema,
+      role: { type: 'string', enum: ['CUSTOMER', 'VENDOR', 'ADMIN'] },
+      avatar: nullableString,
+      isBanned: booleanSchema,
+      isVerified: booleanSchema,
+      createdAt: { type: 'string', format: 'date-time' },
+      updatedAt: { type: 'string', format: 'date-time' },
+      vendorProfile: {
+        allOf: [ref('AdminVendorProfileDetail')],
+        nullable: true,
+      },
+    },
+    [
+      'id',
+      'name',
+      'email',
+      'role',
+      'avatar',
+      'isBanned',
+      'isVerified',
+      'createdAt',
+      'updatedAt',
+      'vendorProfile',
+    ]
+  ),
+  AdminUserDetailSuccess: successEnvelope(ref('AdminUserDetail')),
+  AdminVendorOwner: objectSchema({
+    id: stringSchema,
+    name: stringSchema,
+    email: stringSchema,
+    avatar: nullableString,
+    isBanned: booleanSchema,
+    isVerified: booleanSchema,
+    createdAt: { type: 'string', format: 'date-time' },
+  }),
+  AdminVendorDetail: objectSchema({
+    id: stringSchema,
+    userId: stringSchema,
+    storeName: stringSchema,
+    storeLogo: nullableString,
+    storeBanner: nullableString,
+    description: nullableString,
+    status: {
+      type: 'string',
+      enum: ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'],
+    },
+    stripeOnboardingStatus: {
+      type: 'string',
+      enum: ['NOT_STARTED', 'PENDING', 'COMPLETE', 'RESTRICTED'],
+    },
+    commissionRate: nullableString,
+    createdAt: { type: 'string', format: 'date-time' },
+    updatedAt: { type: 'string', format: 'date-time' },
+    user: ref('AdminVendorOwner'),
+  }),
+  AdminVendorDetailSuccess: successEnvelope(ref('AdminVendorDetail')),
+  AdminVendorLifecycle: objectSchema({
+    id: stringSchema,
+    userId: stringSchema,
+    storeName: stringSchema,
+    status: {
+      type: 'string',
+      enum: ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'],
+    },
+  }),
+  AdminVendorLifecycleSuccess: successEnvelope(ref('AdminVendorLifecycle')),
+  AdminProductVendor: objectSchema(
+    {
+      id: stringSchema,
+      name: stringSchema,
+      email: stringSchema,
+      vendorProfile: {
+        type: 'object',
+        nullable: true,
+        required: ['id', 'storeName', 'status'],
+        properties: {
+          id: stringSchema,
+          storeName: stringSchema,
+          status: {
+            type: 'string',
+            enum: ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'],
+          },
+        },
+      },
+    },
+    ['id', 'name', 'email', 'vendorProfile']
+  ),
+  AdminProductDetail: objectSchema({
+    id: stringSchema,
+    vendorId: stringSchema,
+    categoryId: stringSchema,
+    name: stringSchema,
+    description: stringSchema,
+    basePrice: stringSchema,
+    images: arraySchema(stringSchema),
+    isActive: booleanSchema,
+    avgRating: stringSchema,
+    reviewCount: integerSchema,
+    tags: arraySchema(stringSchema),
+    createdAt: { type: 'string', format: 'date-time' },
+    updatedAt: { type: 'string', format: 'date-time' },
+    vendor: ref('AdminProductVendor'),
+    category: objectSchema(
+      {
+        id: stringSchema,
+        name: stringSchema,
+        slug: stringSchema,
+        parentId: nullableString,
+      },
+      ['id', 'name', 'slug', 'parentId']
+    ),
+    variants: arraySchema(ref('ProductVariant')),
+  }),
+  AdminProductDetailSuccess: successEnvelope(ref('AdminProductDetail')),
+  AdminFulfillmentStatus: objectSchema(
+    {
+      kind: { type: 'string', enum: ['NONE', 'SINGLE', 'MIXED'] },
+      status: {
+        type: 'string',
+        enum: [
+          'PENDING',
+          'CONFIRMED',
+          'PROCESSING',
+          'SHIPPED',
+          'DELIVERED',
+          'CANCELLED',
+          'REFUNDED',
+        ],
+        nullable: true,
+      },
+      statuses: arraySchema({
+        type: 'string',
+        enum: [
+          'PENDING',
+          'CONFIRMED',
+          'PROCESSING',
+          'SHIPPED',
+          'DELIVERED',
+          'CANCELLED',
+          'REFUNDED',
+        ],
+      }),
+    },
+    ['kind', 'status', 'statuses']
+  ),
+  AdminOrderVendorSummary: objectSchema({
+    id: stringSchema,
+    status: {
+      type: 'string',
+      enum: [
+        'PENDING',
+        'CONFIRMED',
+        'PROCESSING',
+        'SHIPPED',
+        'DELIVERED',
+        'CANCELLED',
+        'REFUNDED',
+      ],
+    },
+    vendorId: stringSchema,
+    subtotal: stringSchema,
+    vendor: objectSchema({
+      vendorProfile: {
+        type: 'object',
+        nullable: true,
+        required: ['storeName'],
+        properties: { storeName: stringSchema },
+      },
+    }),
+  }),
+  AdminOrderPaymentSummary: objectSchema({
+    status: {
+      type: 'string',
+      enum: [
+        'PENDING',
+        'PROCESSING',
+        'SUCCEEDED',
+        'FAILED',
+        'REFUNDED',
+        'CANCELLED',
+      ],
+    },
+    method: {
+      type: 'string',
+      enum: ['CARD', 'CASH_ON_DELIVERY', 'WALLET'],
+    },
+  }),
+  AdminOrderSummary: objectSchema({
+    id: stringSchema,
+    orderNumber: stringSchema,
+    subtotal: stringSchema,
+    discount: stringSchema,
+    tax: stringSchema,
+    total: stringSchema,
+    createdAt: { type: 'string', format: 'date-time' },
+    user: objectSchema({
+      id: stringSchema,
+      name: stringSchema,
+      email: stringSchema,
+    }),
+    vendorOrders: arraySchema(ref('AdminOrderVendorSummary')),
+    payment: {
+      allOf: [ref('AdminOrderPaymentSummary')],
+      nullable: true,
+    },
+    fulfillmentStatus: ref('AdminFulfillmentStatus'),
+  }),
+  AdminOrdersSuccess: successEnvelope(
+    objectSchema({
+      items: arraySchema(ref('AdminOrderSummary')),
+      meta: ref('Pagination'),
+    })
+  ),
+  AdminOrderItem: objectSchema({
+    id: stringSchema,
+    quantity: integerSchema,
+    unitPrice: stringSchema,
+    totalPrice: stringSchema,
+    variant: objectSchema({
+      sku: stringSchema,
+      size: nullableString,
+      color: nullableString,
+      price: stringSchema,
+      product: objectSchema({
+        name: stringSchema,
+        images: arraySchema(stringSchema),
+      }),
+    }),
+  }),
+  AdminOrderVendorDetail: objectSchema({
+    id: stringSchema,
+    status: {
+      type: 'string',
+      enum: [
+        'PENDING',
+        'CONFIRMED',
+        'PROCESSING',
+        'SHIPPED',
+        'DELIVERED',
+        'CANCELLED',
+        'REFUNDED',
+      ],
+    },
+    subtotal: stringSchema,
+    trackingNumber: nullableString,
+    trackingCarrier: nullableString,
+    vendorId: stringSchema,
+    vendor: objectSchema({
+      vendorProfile: {
+        type: 'object',
+        nullable: true,
+        required: ['id', 'storeName'],
+        properties: { id: stringSchema, storeName: stringSchema },
+      },
+    }),
+    items: arraySchema(ref('AdminOrderItem')),
+  }),
+  AdminOrderDetail: objectSchema({
+    id: stringSchema,
+    orderNumber: stringSchema,
+    subtotal: stringSchema,
+    discount: stringSchema,
+    tax: stringSchema,
+    total: stringSchema,
+    notes: nullableString,
+    cancellationReason: nullableString,
+    shippingAddress: { type: 'object', additionalProperties: true },
+    createdAt: { type: 'string', format: 'date-time' },
+    updatedAt: { type: 'string', format: 'date-time' },
+    user: objectSchema({
+      id: stringSchema,
+      name: stringSchema,
+      email: stringSchema,
+    }),
+    vendorOrders: arraySchema(ref('AdminOrderVendorDetail')),
+    address: { type: 'object', additionalProperties: stringSchema },
+    payment: {
+      allOf: [ref('VendorOrderPayment')],
+      nullable: true,
+    },
+    promoCode: {
+      type: 'object',
+      nullable: true,
+      required: ['code', 'discountType', 'discountValue'],
+      properties: {
+        code: stringSchema,
+        discountType: { type: 'string', enum: ['PERCENTAGE', 'FIXED'] },
+        discountValue: stringSchema,
+      },
+    },
+    fulfillmentStatus: ref('AdminFulfillmentStatus'),
+  }),
+  AdminOrderDetailSuccess: successEnvelope(ref('AdminOrderDetail')),
   CommissionSuccess: successEnvelope(
     objectSchema(
       {
@@ -480,6 +811,17 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
 
 const dashboardResponseSchemas: Record<string, string> = {
   'get /admin/dashboard': 'AdminDashboardSuccess',
+  'get /admin/users/{userId}': 'AdminUserDetailSuccess',
+  'get /admin/vendors/{vendorProfileId}': 'AdminVendorDetailSuccess',
+  'patch /admin/vendors/{vendorProfileId}/approve':
+    'AdminVendorLifecycleSuccess',
+  'patch /admin/vendors/{vendorProfileId}/reject':
+    'AdminVendorLifecycleSuccess',
+  'patch /admin/vendors/{vendorProfileId}/suspend':
+    'AdminVendorLifecycleSuccess',
+  'get /admin/products/{productId}': 'AdminProductDetailSuccess',
+  'get /admin/orders': 'AdminOrdersSuccess',
+  'get /admin/orders/{orderId}': 'AdminOrderDetailSuccess',
   'get /admin/revenue': 'AdminRevenueSuccess',
   'get /admin/commission': 'CommissionSuccess',
   'get /analytics/vendor/summary': 'VendorAnalyticsSummarySuccess',
@@ -516,6 +858,19 @@ const dashboardResponseSchemas: Record<string, string> = {
 };
 
 const dashboardContractErrorOperations = [
+  'get /admin/users/{userId}',
+  'patch /admin/users/{userId}/ban',
+  'patch /admin/users/{userId}/unban',
+  'get /admin/vendors/{vendorProfileId}',
+  'patch /admin/vendors/{vendorProfileId}/approve',
+  'patch /admin/vendors/{vendorProfileId}/reject',
+  'patch /admin/vendors/{vendorProfileId}/suspend',
+  'get /admin/products/{productId}',
+  'patch /admin/products/{productId}/activate',
+  'patch /admin/products/{productId}/deactivate',
+  'delete /admin/products/{productId}',
+  'get /admin/orders',
+  'get /admin/orders/{orderId}',
   'get /products/vendor',
   'get /orders/vendor/{id}',
   'post /products',
