@@ -1,6 +1,10 @@
 import { Router } from 'express';
 import { authenticate, authorize } from '../../middleware/auth';
-import { validate, validateQuery, validateParams } from '../../middleware/validate';
+import {
+  validate,
+  validateQuery,
+  validateParams,
+} from '../../middleware/validate';
 import { AdminController } from './admin.controller';
 import {
   listUsersQuerySchema,
@@ -93,6 +97,40 @@ router.get('/users', validateQuery(listUsersQuerySchema), controller.listUsers);
 
 /**
  * @openapi
+ * /admin/users/{userId}:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Get a user by user ID (Admin only)
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         description: User account ID, not a vendor-profile ID.
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: User detail, including a vendor-profile summary when applicable
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiSuccess'
+ *       400:
+ *         description: Invalid user ID
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden — ADMIN role required
+ *       404:
+ *         description: User not found
+ */
+router.get(
+  '/users/:userId',
+  validateParams(userIdParamSchema),
+  controller.getUserById
+);
+
+/**
+ * @openapi
  * /admin/users/{userId}/ban:
  *   patch:
  *     tags: [Admin]
@@ -105,10 +143,16 @@ router.get('/users', validateQuery(listUsersQuerySchema), controller.listUsers);
  *     responses:
  *       200:
  *         description: User banned
+ *       400:
+ *         description: Invalid user ID
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: Admin accounts cannot be banned, or ADMIN role is required
  *       404:
  *         description: User not found
+ *       409:
+ *         description: User is already banned
  */
 router.patch(
   '/users/:userId/ban',
@@ -130,10 +174,16 @@ router.patch(
  *     responses:
  *       200:
  *         description: User unbanned
+ *       400:
+ *         description: Invalid user ID
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: Forbidden — ADMIN role required
  *       404:
  *         description: User not found
+ *       409:
+ *         description: User is not currently banned
  */
 router.patch(
   '/users/:userId/unban',
@@ -162,7 +212,7 @@ router.patch(
  *       - in: query
  *         name: search
  *         schema: { type: string }
- *         description: Search by store name or owner email
+ *         description: Case-insensitive search by store name or owner email
  *     responses:
  *       200:
  *         description: Paginated vendor list
@@ -174,7 +224,45 @@ router.patch(
  *         description: Unauthorized
  */
 // Vendor management
-router.get('/vendors', validateQuery(listVendorsQuerySchema), controller.listVendors);
+router.get(
+  '/vendors',
+  validateQuery(listVendorsQuerySchema),
+  controller.listVendors
+);
+
+/**
+ * @openapi
+ * /admin/vendors/{vendorProfileId}:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Get a vendor by vendor-profile ID (Admin only)
+ *     parameters:
+ *       - in: path
+ *         name: vendorProfileId
+ *         required: true
+ *         description: VendorProfile ID. The owner user ID is returned separately as userId.
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Vendor profile and relevant owner account detail
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiSuccess'
+ *       400:
+ *         description: Invalid vendor-profile ID
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden — ADMIN role required
+ *       404:
+ *         description: Vendor profile not found
+ */
+router.get(
+  '/vendors/:vendorProfileId',
+  validateParams(vendorProfileIdParamSchema),
+  controller.getVendorById
+);
 
 /**
  * @openapi
@@ -190,10 +278,16 @@ router.get('/vendors', validateQuery(listVendorsQuerySchema), controller.listVen
  *     responses:
  *       200:
  *         description: Vendor approved
+ *       400:
+ *         description: Invalid vendor-profile ID
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: Forbidden — ADMIN role required
  *       404:
  *         description: Vendor profile not found
+ *       409:
+ *         description: Vendor is already approved
  */
 router.patch(
   '/vendors/:vendorProfileId/approve',
@@ -215,10 +309,16 @@ router.patch(
  *     responses:
  *       200:
  *         description: Vendor rejected
+ *       400:
+ *         description: Invalid vendor-profile ID
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: Forbidden — ADMIN role required
  *       404:
  *         description: Vendor profile not found
+ *       409:
+ *         description: Vendor is already rejected or an approved vendor must be suspended instead
  */
 router.patch(
   '/vendors/:vendorProfileId/reject',
@@ -240,8 +340,12 @@ router.patch(
  *     responses:
  *       200:
  *         description: Vendor suspended
+ *       400:
+ *         description: Invalid vendor-profile ID, or vendor is not approved and cannot be suspended
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: Forbidden — ADMIN role required
  *       404:
  *         description: Vendor profile not found
  */
@@ -313,6 +417,7 @@ router.patch(
  *       - in: query
  *         name: vendorId
  *         schema: { type: string, format: uuid }
+ *         description: Vendor owner user-account ID (`User.id`), not the vendor-profile ID.
  *       - in: query
  *         name: categoryId
  *         schema: { type: string, format: uuid }
@@ -330,7 +435,45 @@ router.patch(
  *         description: Unauthorized
  */
 // Product moderation
-router.get('/products', validateQuery(listProductsQuerySchema), controller.listProducts);
+router.get(
+  '/products',
+  validateQuery(listProductsQuerySchema),
+  controller.listProducts
+);
+
+/**
+ * @openapi
+ * /admin/products/{productId}:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Get complete product moderation detail (Admin only)
+ *     description: Includes inactive products, media URLs, tags, variants and inventory, vendor and vendor-profile identity, category, and rating aggregates.
+ *     parameters:
+ *       - in: path
+ *         name: productId
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Product moderation detail
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiSuccess'
+ *       400:
+ *         description: Invalid product ID
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden — ADMIN role required
+ *       404:
+ *         description: Product not found
+ */
+router.get(
+  '/products/:productId',
+  validateParams(productIdParamSchema),
+  controller.getProductById
+);
 
 /**
  * @openapi
@@ -346,10 +489,16 @@ router.get('/products', validateQuery(listProductsQuerySchema), controller.listP
  *     responses:
  *       200:
  *         description: Product activated
+ *       400:
+ *         description: Invalid product ID
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: Forbidden — ADMIN role required
  *       404:
  *         description: Product not found
+ *       409:
+ *         description: Product is already active
  */
 router.patch(
   '/products/:productId/activate',
@@ -371,10 +520,16 @@ router.patch(
  *     responses:
  *       200:
  *         description: Product deactivated
+ *       400:
+ *         description: Invalid product ID
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: Forbidden — ADMIN role required
  *       404:
  *         description: Product not found
+ *       409:
+ *         description: Product is already inactive
  */
 router.patch(
   '/products/:productId/deactivate',
@@ -394,12 +549,18 @@ router.patch(
  *         required: true
  *         schema: { type: string, format: uuid }
  *     responses:
- *       200:
- *         description: Product deleted
+ *       204:
+ *         description: Product deleted; response body is empty
+ *       400:
+ *         description: Invalid product ID
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: Forbidden — ADMIN role required
  *       404:
  *         description: Product not found
+ *       409:
+ *         description: Product has order history and must be deactivated instead
  */
 router.delete(
   '/products/:productId',
@@ -413,6 +574,11 @@ router.delete(
  *   get:
  *     tags: [Admin]
  *     summary: List all orders across the platform (Admin only)
+ *     description: >
+ *       Each order retains its per-vendor sub-orders and includes fulfillmentStatus. SINGLE means every
+ *       sub-order has one shared status, MIXED means vendor statuses differ, and NONE indicates no sub-orders.
+ *       Without vendorId, status matches an order when any sub-order has that status. With vendorId, both
+ *       filters must match the same vendor sub-order.
  *     parameters:
  *       - in: query
  *         name: page
@@ -432,7 +598,7 @@ router.delete(
  *       - in: query
  *         name: vendorId
  *         schema: { type: string, format: uuid }
- *         description: Filter by vendor ID
+ *         description: Filter by vendor owner user-account ID (`User.id`), not the vendor-profile ID.
  *       - in: query
  *         name: startDate
  *         schema: { type: string, format: date-time }
@@ -446,11 +612,19 @@ router.delete(
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ApiSuccess'
+ *       400:
+ *         description: Invalid pagination, date range, status, customer ID, or vendor user ID
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: Forbidden — ADMIN role required
  */
 // Orders
-router.get('/orders', validateQuery(listOrdersQuerySchema), controller.listAllOrders);
+router.get(
+  '/orders',
+  validateQuery(listOrdersQuerySchema),
+  controller.listAllOrders
+);
 
 /**
  * @openapi
@@ -458,6 +632,7 @@ router.get('/orders', validateQuery(listOrdersQuerySchema), controller.listAllOr
  *   get:
  *     tags: [Admin]
  *     summary: Get order detail (Admin only)
+ *     description: Returns every vendor sub-order plus the deterministic SINGLE, MIXED, or NONE fulfillmentStatus summary.
  *     parameters:
  *       - in: path
  *         name: orderId
@@ -470,8 +645,12 @@ router.get('/orders', validateQuery(listOrdersQuerySchema), controller.listAllOr
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ApiSuccess'
+ *       400:
+ *         description: Invalid order ID
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: Forbidden — ADMIN role required
  *       404:
  *         description: Order not found
  */
@@ -516,7 +695,11 @@ router.get(
  *         description: Unauthorized
  */
 // Revenue reports
-router.get('/revenue', validateQuery(revenueQuerySchema), controller.getPlatformRevenue);
+router.get(
+  '/revenue',
+  validateQuery(revenueQuerySchema),
+  controller.getPlatformRevenue
+);
 
 /**
  * @openapi

@@ -398,6 +398,1043 @@
           }
         }
       },
+      "AdminVendorProfileDetail": {
+        "type": "object",
+        "required": [
+          "id",
+          "userId",
+          "storeName",
+          "storeLogo",
+          "storeBanner",
+          "description",
+          "status",
+          "stripeOnboardingStatus",
+          "commissionRate",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "storeName": {
+            "type": "string"
+          },
+          "storeLogo": {
+            "type": "string",
+            "nullable": true
+          },
+          "storeBanner": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "APPROVED",
+              "REJECTED",
+              "SUSPENDED"
+            ]
+          },
+          "stripeOnboardingStatus": {
+            "type": "string",
+            "enum": [
+              "NOT_STARTED",
+              "PENDING",
+              "COMPLETE",
+              "RESTRICTED"
+            ]
+          },
+          "commissionRate": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AdminUserDetail": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "email",
+          "role",
+          "avatar",
+          "isBanned",
+          "isVerified",
+          "createdAt",
+          "updatedAt",
+          "vendorProfile"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "CUSTOMER",
+              "VENDOR",
+              "ADMIN"
+            ]
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
+          "isBanned": {
+            "type": "boolean"
+          },
+          "isVerified": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "vendorProfile": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AdminVendorProfileDetail"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "AdminUserDetailSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminUserDetail"
+          }
+        }
+      },
+      "AdminVendorOwner": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "email",
+          "avatar",
+          "isBanned",
+          "isVerified",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
+          "isBanned": {
+            "type": "boolean"
+          },
+          "isVerified": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AdminVendorDetail": {
+        "type": "object",
+        "required": [
+          "id",
+          "userId",
+          "storeName",
+          "storeLogo",
+          "storeBanner",
+          "description",
+          "status",
+          "stripeOnboardingStatus",
+          "commissionRate",
+          "createdAt",
+          "updatedAt",
+          "user"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "storeName": {
+            "type": "string"
+          },
+          "storeLogo": {
+            "type": "string",
+            "nullable": true
+          },
+          "storeBanner": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "APPROVED",
+              "REJECTED",
+              "SUSPENDED"
+            ]
+          },
+          "stripeOnboardingStatus": {
+            "type": "string",
+            "enum": [
+              "NOT_STARTED",
+              "PENDING",
+              "COMPLETE",
+              "RESTRICTED"
+            ]
+          },
+          "commissionRate": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user": {
+            "$ref": "#/components/schemas/AdminVendorOwner"
+          }
+        }
+      },
+      "AdminVendorDetailSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminVendorDetail"
+          }
+        }
+      },
+      "AdminVendorLifecycle": {
+        "type": "object",
+        "required": [
+          "id",
+          "userId",
+          "storeName",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "storeName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "APPROVED",
+              "REJECTED",
+              "SUSPENDED"
+            ]
+          }
+        }
+      },
+      "AdminVendorLifecycleSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminVendorLifecycle"
+          }
+        }
+      },
+      "AdminProductVendor": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "email",
+          "vendorProfile"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "vendorProfile": {
+            "type": "object",
+            "nullable": true,
+            "required": [
+              "id",
+              "storeName",
+              "status"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "storeName": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "PENDING",
+                  "APPROVED",
+                  "REJECTED",
+                  "SUSPENDED"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "AdminProductDetail": {
+        "type": "object",
+        "required": [
+          "id",
+          "vendorId",
+          "categoryId",
+          "name",
+          "description",
+          "basePrice",
+          "images",
+          "isActive",
+          "avgRating",
+          "reviewCount",
+          "tags",
+          "createdAt",
+          "updatedAt",
+          "vendor",
+          "category",
+          "variants"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "vendorId": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "basePrice": {
+            "type": "string"
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "avgRating": {
+            "type": "string"
+          },
+          "reviewCount": {
+            "type": "integer"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "vendor": {
+            "$ref": "#/components/schemas/AdminProductVendor"
+          },
+          "category": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "slug",
+              "parentId"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              },
+              "parentId": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          },
+          "variants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductVariant"
+            }
+          }
+        }
+      },
+      "AdminProductDetailSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminProductDetail"
+          }
+        }
+      },
+      "AdminFulfillmentStatus": {
+        "type": "object",
+        "required": [
+          "kind",
+          "status",
+          "statuses"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "SINGLE",
+              "MIXED"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED",
+              "PROCESSING",
+              "SHIPPED",
+              "DELIVERED",
+              "CANCELLED",
+              "REFUNDED"
+            ],
+            "nullable": true
+          },
+          "statuses": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "CONFIRMED",
+                "PROCESSING",
+                "SHIPPED",
+                "DELIVERED",
+                "CANCELLED",
+                "REFUNDED"
+              ]
+            }
+          }
+        }
+      },
+      "AdminOrderVendorSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "vendorId",
+          "subtotal",
+          "vendor"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED",
+              "PROCESSING",
+              "SHIPPED",
+              "DELIVERED",
+              "CANCELLED",
+              "REFUNDED"
+            ]
+          },
+          "vendorId": {
+            "type": "string"
+          },
+          "subtotal": {
+            "type": "string"
+          },
+          "vendor": {
+            "type": "object",
+            "required": [
+              "vendorProfile"
+            ],
+            "properties": {
+              "vendorProfile": {
+                "type": "object",
+                "nullable": true,
+                "required": [
+                  "storeName"
+                ],
+                "properties": {
+                  "storeName": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "AdminOrderPaymentSummary": {
+        "type": "object",
+        "required": [
+          "status",
+          "method"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "SUCCEEDED",
+              "FAILED",
+              "REFUNDED",
+              "CANCELLED"
+            ]
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "CARD",
+              "CASH_ON_DELIVERY",
+              "WALLET"
+            ]
+          }
+        }
+      },
+      "AdminOrderSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "orderNumber",
+          "subtotal",
+          "discount",
+          "tax",
+          "total",
+          "createdAt",
+          "user",
+          "vendorOrders",
+          "payment",
+          "fulfillmentStatus"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orderNumber": {
+            "type": "string"
+          },
+          "subtotal": {
+            "type": "string"
+          },
+          "discount": {
+            "type": "string"
+          },
+          "tax": {
+            "type": "string"
+          },
+          "total": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "email"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              }
+            }
+          },
+          "vendorOrders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminOrderVendorSummary"
+            }
+          },
+          "payment": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AdminOrderPaymentSummary"
+              }
+            ],
+            "nullable": true
+          },
+          "fulfillmentStatus": {
+            "$ref": "#/components/schemas/AdminFulfillmentStatus"
+          }
+        }
+      },
+      "AdminOrdersSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "items",
+              "meta"
+            ],
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AdminOrderSummary"
+                }
+              },
+              "meta": {
+                "$ref": "#/components/schemas/Pagination"
+              }
+            }
+          }
+        }
+      },
+      "AdminOrderItem": {
+        "type": "object",
+        "required": [
+          "id",
+          "quantity",
+          "unitPrice",
+          "totalPrice",
+          "variant"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "unitPrice": {
+            "type": "string"
+          },
+          "totalPrice": {
+            "type": "string"
+          },
+          "variant": {
+            "type": "object",
+            "required": [
+              "sku",
+              "size",
+              "color",
+              "price",
+              "product"
+            ],
+            "properties": {
+              "sku": {
+                "type": "string"
+              },
+              "size": {
+                "type": "string",
+                "nullable": true
+              },
+              "color": {
+                "type": "string",
+                "nullable": true
+              },
+              "price": {
+                "type": "string"
+              },
+              "product": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "images"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "images": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "AdminOrderVendorDetail": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "subtotal",
+          "trackingNumber",
+          "trackingCarrier",
+          "vendorId",
+          "vendor",
+          "items"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED",
+              "PROCESSING",
+              "SHIPPED",
+              "DELIVERED",
+              "CANCELLED",
+              "REFUNDED"
+            ]
+          },
+          "subtotal": {
+            "type": "string"
+          },
+          "trackingNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "trackingCarrier": {
+            "type": "string",
+            "nullable": true
+          },
+          "vendorId": {
+            "type": "string"
+          },
+          "vendor": {
+            "type": "object",
+            "required": [
+              "vendorProfile"
+            ],
+            "properties": {
+              "vendorProfile": {
+                "type": "object",
+                "nullable": true,
+                "required": [
+                  "id",
+                  "storeName"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "storeName": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminOrderItem"
+            }
+          }
+        }
+      },
+      "AdminOrderDetail": {
+        "type": "object",
+        "required": [
+          "id",
+          "orderNumber",
+          "subtotal",
+          "discount",
+          "tax",
+          "total",
+          "notes",
+          "cancellationReason",
+          "shippingAddress",
+          "createdAt",
+          "updatedAt",
+          "user",
+          "vendorOrders",
+          "address",
+          "payment",
+          "promoCode",
+          "fulfillmentStatus"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orderNumber": {
+            "type": "string"
+          },
+          "subtotal": {
+            "type": "string"
+          },
+          "discount": {
+            "type": "string"
+          },
+          "tax": {
+            "type": "string"
+          },
+          "total": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "cancellationReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "shippingAddress": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "email"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              }
+            }
+          },
+          "vendorOrders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminOrderVendorDetail"
+            }
+          },
+          "address": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "payment": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VendorOrderPayment"
+              }
+            ],
+            "nullable": true
+          },
+          "promoCode": {
+            "type": "object",
+            "nullable": true,
+            "required": [
+              "code",
+              "discountType",
+              "discountValue"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "discountType": {
+                "type": "string",
+                "enum": [
+                  "PERCENTAGE",
+                  "FIXED"
+                ]
+              },
+              "discountValue": {
+                "type": "string"
+              }
+            }
+          },
+          "fulfillmentStatus": {
+            "$ref": "#/components/schemas/AdminFulfillmentStatus"
+          }
+        }
+      },
+      "AdminOrderDetailSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminOrderDetail"
+          }
+        }
+      },
       "CommissionSuccess": {
         "type": "object",
         "required": [
@@ -2410,6 +3447,78 @@
         }
       }
     },
+    "/admin/users/{userId}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get a user by user ID (Admin only)",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "description": "User account ID, not a vendor-profile ID.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User detail, including a vendor-profile summary when applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDetailSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid user ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/admin/users/{userId}/ban": {
       "patch": {
         "tags": [
@@ -2431,11 +3540,55 @@
           "200": {
             "description": "User banned"
           },
+          "400": {
+            "description": "Invalid user ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin accounts cannot be banned, or ADMIN role is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "404": {
-            "description": "User not found"
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "User is already banned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -2461,11 +3614,55 @@
           "200": {
             "description": "User unbanned"
           },
+          "400": {
+            "description": "Invalid user ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "404": {
-            "description": "User not found"
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "User is not currently banned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -2513,7 +3710,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "Search by store name or owner email"
+            "description": "Case-insensitive search by store name or owner email"
           }
         ],
         "responses": {
@@ -2529,6 +3726,78 @@
           },
           "401": {
             "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/admin/vendors/{vendorProfileId}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get a vendor by vendor-profile ID (Admin only)",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vendorProfileId",
+            "required": true,
+            "description": "VendorProfile ID. The owner user ID is returned separately as userId.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Vendor profile and relevant owner account detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminVendorDetailSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid vendor-profile ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Vendor profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -2552,13 +3821,64 @@
         ],
         "responses": {
           "200": {
-            "description": "Vendor approved"
+            "description": "Vendor approved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminVendorLifecycleSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid vendor-profile ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Vendor profile not found"
+            "description": "Vendor profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Vendor is already approved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -2582,13 +3902,64 @@
         ],
         "responses": {
           "200": {
-            "description": "Vendor rejected"
+            "description": "Vendor rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminVendorLifecycleSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid vendor-profile ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Vendor profile not found"
+            "description": "Vendor profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Vendor is already rejected or an approved vendor must be suspended instead",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -2612,13 +3983,54 @@
         ],
         "responses": {
           "200": {
-            "description": "Vendor suspended"
+            "description": "Vendor suspended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminVendorLifecycleSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid vendor-profile ID, or vendor is not approved and cannot be suspended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Vendor profile not found"
+            "description": "Vendor profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -2716,7 +4128,8 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "description": "Vendor owner user-account ID (`User.id`), not the vendor-profile ID."
           },
           {
             "in": "query",
@@ -2751,6 +4164,150 @@
         }
       }
     },
+    "/admin/products/{productId}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get complete product moderation detail (Admin only)",
+        "description": "Includes inactive products, media URLs, tags, variants and inventory, vendor and vendor-profile identity, category, and rating aggregates.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "productId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product moderation detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminProductDetailSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid product ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Delete a product (Admin only)",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "productId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Product deleted; response body is empty"
+          },
+          "400": {
+            "description": "Invalid product ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Product has order history and must be deactivated instead",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/admin/products/{productId}/activate": {
       "patch": {
         "tags": [
@@ -2772,11 +4329,55 @@
           "200": {
             "description": "Product activated"
           },
+          "400": {
+            "description": "Invalid product ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Product not found"
+            "description": "Product not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Product is already active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -2802,41 +4403,55 @@
           "200": {
             "description": "Product deactivated"
           },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "404": {
-            "description": "Product not found"
-          }
-        }
-      }
-    },
-    "/admin/products/{productId}": {
-      "delete": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "Delete a product (Admin only)",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "productId",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
+          "400": {
+            "description": "Invalid product ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
             }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Product deleted"
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Product not found"
+            "description": "Product not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Product is already inactive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -2847,6 +4462,7 @@
           "Admin"
         ],
         "summary": "List all orders across the platform (Admin only)",
+        "description": "Each order retains its per-vendor sub-orders and includes fulfillmentStatus. SINGLE means every sub-order has one shared status, MIXED means vendor statuses differ, and NONE indicates no sub-orders. Without vendorId, status matches an order when any sub-order has that status. With vendorId, both filters must match the same vendor sub-order.\n",
         "parameters": [
           {
             "in": "query",
@@ -2897,7 +4513,7 @@
               "type": "string",
               "format": "uuid"
             },
-            "description": "Filter by vendor ID"
+            "description": "Filter by vendor owner user-account ID (`User.id`), not the vendor-profile ID."
           },
           {
             "in": "query",
@@ -2922,13 +4538,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": "#/components/schemas/AdminOrdersSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination, date range, status, customer ID, or vendor user ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -2939,6 +4582,7 @@
           "Admin"
         ],
         "summary": "Get order detail (Admin only)",
+        "description": "Returns every vendor sub-order plus the deterministic SINGLE, MIXED, or NONE fulfillmentStatus summary.",
         "parameters": [
           {
             "in": "path",
@@ -2956,16 +4600,50 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": "#/components/schemas/AdminOrderDetailSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid order ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Order not found"
+            "description": "Order not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
