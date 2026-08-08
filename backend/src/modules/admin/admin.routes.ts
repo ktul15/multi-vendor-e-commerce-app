@@ -32,7 +32,7 @@ router.use(authenticate, authorize('ADMIN'));
  *   get:
  *     tags: [Admin]
  *     summary: Get admin dashboard stats
- *     description: Returns platform-wide summary stats (total users, vendors, products, orders, revenue).
+ *     description: Returns platform-wide counts and platformRevenue, the platform's earned commission (not gross merchandise value).
  *     responses:
  *       200:
  *         description: Dashboard stats
@@ -46,7 +46,9 @@ router.use(authenticate, authorize('ADMIN'));
  *                 totalVendors: 45
  *                 totalProducts: 320
  *                 totalOrders: 850
- *                 totalRevenue: 75000.00
+ *                 bannedUsers: 8
+ *                 pendingVendors: 4
+ *                 platformRevenue: "75000.00"
  *       401:
  *         description: Unauthorized
  *       403:
@@ -665,7 +667,8 @@ router.get(
  * /admin/revenue:
  *   get:
  *     tags: [Admin]
- *     summary: Get platform revenue report (Admin only)
+ *     summary: Get gross merchandise value report (Admin only)
+ *     description: Returns billable order gross merchandise value (GMV) by period. The revenue field is gross order value, not platform commission or vendor net earnings.
  *     parameters:
  *       - in: query
  *         name: startDate
@@ -684,13 +687,8 @@ router.get(
  *         description: Revenue report time series
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               message: Revenue report fetched
- *               data:
- *                 - period: "2024-01"
- *                   revenue: 15000.00
- *                   commissions: 2250.00
+ *             schema:
+ *               $ref: '#/components/schemas/ApiSuccess'
  *       401:
  *         description: Unauthorized
  */

@@ -153,6 +153,54 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
     ]
   ),
   AdminUserDetailSuccess: successEnvelope(ref('AdminUserDetail')),
+  AdminUserSummary: objectSchema(
+    {
+      id: stringSchema,
+      name: stringSchema,
+      email: stringSchema,
+      role: { type: 'string', enum: ['CUSTOMER', 'VENDOR', 'ADMIN'] },
+      isBanned: booleanSchema,
+      isVerified: booleanSchema,
+      createdAt: { type: 'string', format: 'date-time' },
+      vendorProfile: {
+        type: 'object',
+        nullable: true,
+        required: ['id', 'storeName', 'status'],
+        properties: {
+          id: stringSchema,
+          storeName: stringSchema,
+          status: {
+            type: 'string',
+            enum: ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'],
+          },
+        },
+      },
+    },
+    [
+      'id',
+      'name',
+      'email',
+      'role',
+      'isBanned',
+      'isVerified',
+      'createdAt',
+      'vendorProfile',
+    ]
+  ),
+  AdminUsersSuccess: successEnvelope(
+    objectSchema({
+      items: arraySchema(ref('AdminUserSummary')),
+      meta: ref('Pagination'),
+    })
+  ),
+  AdminUserBanMutationSuccess: successEnvelope(
+    objectSchema({
+      id: stringSchema,
+      name: stringSchema,
+      email: stringSchema,
+      isBanned: booleanSchema,
+    })
+  ),
   AdminVendorOwner: objectSchema({
     id: stringSchema,
     name: stringSchema,
@@ -183,6 +231,32 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
     user: ref('AdminVendorOwner'),
   }),
   AdminVendorDetailSuccess: successEnvelope(ref('AdminVendorDetail')),
+  AdminVendorSummary: objectSchema({
+    id: stringSchema,
+    storeName: stringSchema,
+    status: {
+      type: 'string',
+      enum: ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'],
+    },
+    commissionRate: nullableString,
+    stripeOnboardingStatus: {
+      type: 'string',
+      enum: ['NOT_STARTED', 'PENDING', 'COMPLETE', 'RESTRICTED'],
+    },
+    createdAt: { type: 'string', format: 'date-time' },
+    user: objectSchema({
+      id: stringSchema,
+      name: stringSchema,
+      email: stringSchema,
+      isBanned: booleanSchema,
+    }),
+  }),
+  AdminVendorsSuccess: successEnvelope(
+    objectSchema({
+      items: arraySchema(ref('AdminVendorSummary')),
+      meta: ref('Pagination'),
+    })
+  ),
   AdminVendorLifecycle: objectSchema({
     id: stringSchema,
     userId: stringSchema,
@@ -193,6 +267,13 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
     },
   }),
   AdminVendorLifecycleSuccess: successEnvelope(ref('AdminVendorLifecycle')),
+  VendorCommissionMutationSuccess: successEnvelope(
+    objectSchema({
+      id: stringSchema,
+      storeName: stringSchema,
+      commissionRate: nullableString,
+    })
+  ),
   AdminProductVendor: objectSchema(
     {
       id: stringSchema,
@@ -242,6 +323,35 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
     variants: arraySchema(ref('ProductVariant')),
   }),
   AdminProductDetailSuccess: successEnvelope(ref('AdminProductDetail')),
+  AdminProductListItem: objectSchema({
+    id: stringSchema,
+    name: stringSchema,
+    basePrice: stringSchema,
+    isActive: booleanSchema,
+    avgRating: stringSchema,
+    reviewCount: integerSchema,
+    createdAt: { type: 'string', format: 'date-time' },
+    vendor: objectSchema({
+      id: stringSchema,
+      name: stringSchema,
+      email: stringSchema,
+    }),
+    category: objectSchema({ id: stringSchema, name: stringSchema }),
+    _count: objectSchema({ variants: integerSchema }),
+  }),
+  AdminProductsSuccess: successEnvelope(
+    objectSchema({
+      items: arraySchema(ref('AdminProductListItem')),
+      meta: ref('Pagination'),
+    })
+  ),
+  AdminProductStatusMutationSuccess: successEnvelope(
+    objectSchema({
+      id: stringSchema,
+      name: stringSchema,
+      isActive: booleanSchema,
+    })
+  ),
   AdminFulfillmentStatus: objectSchema(
     {
       kind: { type: 'string', enum: ['NONE', 'SINGLE', 'MIXED'] },
@@ -429,6 +539,9 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
       },
       ['rate']
     )
+  ),
+  CommissionMutationSuccess: successEnvelope(
+    objectSchema({ rate: numberSchema })
   ),
   VendorAnalyticsSummarySuccess: successEnvelope(
     objectSchema({
@@ -744,8 +857,79 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
       meta: ref('Pagination'),
     })
   ),
+  PromoCode: objectSchema(
+    {
+      id: stringSchema,
+      code: stringSchema,
+      discountType: { type: 'string', enum: ['PERCENTAGE', 'FIXED'] },
+      discountValue: stringSchema,
+      minOrderValue: nullableString,
+      maxDiscount: nullableString,
+      usageLimit: { type: 'integer', nullable: true },
+      usageCount: integerSchema,
+      perUserLimit: { type: 'integer', nullable: true },
+      isActive: booleanSchema,
+      deletedAt: { type: 'string', format: 'date-time', nullable: true },
+      expiresAt: { type: 'string', format: 'date-time', nullable: true },
+      createdAt: { type: 'string', format: 'date-time' },
+      updatedAt: { type: 'string', format: 'date-time' },
+    },
+    [
+      'id',
+      'code',
+      'discountType',
+      'discountValue',
+      'minOrderValue',
+      'maxDiscount',
+      'usageLimit',
+      'usageCount',
+      'perUserLimit',
+      'isActive',
+      'deletedAt',
+      'expiresAt',
+      'createdAt',
+      'updatedAt',
+    ]
+  ),
+  PromoCodeWithCounts: {
+    allOf: [
+      ref('PromoCode'),
+      objectSchema({
+        _count: objectSchema({ orders: integerSchema, usages: integerSchema }),
+      }),
+    ],
+  },
+  PromoCodeDetail: {
+    allOf: [
+      ref('PromoCodeWithCounts'),
+      objectSchema({
+        usages: arraySchema(
+          objectSchema({
+            id: stringSchema,
+            userId: stringSchema,
+            promoCodeId: stringSchema,
+            orderId: stringSchema,
+            usedAt: { type: 'string', format: 'date-time' },
+            user: objectSchema({
+              id: stringSchema,
+              name: stringSchema,
+              email: stringSchema,
+            }),
+          })
+        ),
+      }),
+    ],
+  },
+  PromoCodeSuccess: successEnvelope(ref('PromoCode')),
+  PromoCodeDetailSuccess: successEnvelope(ref('PromoCodeDetail')),
+  PromoCodesSuccess: successEnvelope(
+    objectSchema({
+      items: arraySchema(ref('PromoCodeWithCounts')),
+      meta: ref('Pagination'),
+    })
+  ),
   ConnectOnboardingSuccess: successEnvelope(
-    objectSchema({ url: stringSchema })
+    objectSchema({ url: { type: 'string', format: 'uri' } })
   ),
   ConnectStatusSuccess: successEnvelope(
     objectSchema({
@@ -771,6 +955,92 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
       failed: ref('EarningsAmounts'),
       reversed: ref('EarningsAmounts'),
     })
+  ),
+  VendorEarning: objectSchema(
+    {
+      id: stringSchema,
+      vendorProfileId: stringSchema,
+      vendorOrderId: stringSchema,
+      orderId: stringSchema,
+      grossAmount: stringSchema,
+      commissionRate: stringSchema,
+      commissionAmount: stringSchema,
+      netAmount: stringSchema,
+      currency: {
+        type: 'string',
+        enum: ['USD', 'EUR', 'GBP', 'INR', 'CAD', 'AUD'],
+      },
+      status: {
+        type: 'string',
+        enum: ['PENDING', 'TRANSFERRED', 'FAILED', 'REVERSED'],
+      },
+      stripeTransferId: nullableString,
+      transferredAt: { type: 'string', format: 'date-time', nullable: true },
+      createdAt: { type: 'string', format: 'date-time' },
+      updatedAt: { type: 'string', format: 'date-time' },
+      order: objectSchema({ orderNumber: stringSchema }),
+    },
+    [
+      'id',
+      'vendorProfileId',
+      'vendorOrderId',
+      'orderId',
+      'grossAmount',
+      'commissionRate',
+      'commissionAmount',
+      'netAmount',
+      'currency',
+      'status',
+      'stripeTransferId',
+      'transferredAt',
+      'createdAt',
+      'updatedAt',
+      'order',
+    ]
+  ),
+  VendorEarningsSuccess: successEnvelope(
+    objectSchema({
+      earnings: arraySchema(ref('VendorEarning')),
+      pagination: ref('Pagination'),
+    })
+  ),
+  VendorPayout: objectSchema(
+    {
+      id: stringSchema,
+      vendorProfileId: stringSchema,
+      stripePayoutId: stringSchema,
+      amount: stringSchema,
+      currency: {
+        type: 'string',
+        enum: ['USD', 'EUR', 'GBP', 'INR', 'CAD', 'AUD'],
+      },
+      status: { type: 'string', enum: ['PENDING', 'PAID', 'FAILED'] },
+      arrivalDate: { type: 'string', format: 'date-time', nullable: true },
+      failureReason: nullableString,
+      createdAt: { type: 'string', format: 'date-time' },
+      updatedAt: { type: 'string', format: 'date-time' },
+    },
+    [
+      'id',
+      'vendorProfileId',
+      'stripePayoutId',
+      'amount',
+      'currency',
+      'status',
+      'arrivalDate',
+      'failureReason',
+      'createdAt',
+      'updatedAt',
+    ]
+  ),
+  VendorPayoutsSuccess: successEnvelope(
+    objectSchema({
+      payouts: arraySchema(ref('VendorPayout')),
+      pagination: ref('Pagination'),
+    })
+  ),
+  VendorPayoutCommissionSuccess: successEnvelope(
+    objectSchema({ vendorId: stringSchema, commissionRate: numberSchema })
   ),
   VendorProfileSuccess: successEnvelope(
     objectSchema(
@@ -823,7 +1093,11 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
 
 const dashboardResponseSchemas: Record<string, string> = {
   'get /admin/dashboard': 'AdminDashboardSuccess',
+  'get /admin/users': 'AdminUsersSuccess',
   'get /admin/users/{userId}': 'AdminUserDetailSuccess',
+  'patch /admin/users/{userId}/ban': 'AdminUserBanMutationSuccess',
+  'patch /admin/users/{userId}/unban': 'AdminUserBanMutationSuccess',
+  'get /admin/vendors': 'AdminVendorsSuccess',
   'get /admin/vendors/{vendorProfileId}': 'AdminVendorDetailSuccess',
   'patch /admin/vendors/{vendorProfileId}/approve':
     'AdminVendorLifecycleSuccess',
@@ -831,11 +1105,19 @@ const dashboardResponseSchemas: Record<string, string> = {
     'AdminVendorLifecycleSuccess',
   'patch /admin/vendors/{vendorProfileId}/suspend':
     'AdminVendorLifecycleSuccess',
+  'patch /admin/vendors/{vendorProfileId}/commission':
+    'VendorCommissionMutationSuccess',
+  'get /admin/products': 'AdminProductsSuccess',
   'get /admin/products/{productId}': 'AdminProductDetailSuccess',
+  'patch /admin/products/{productId}/activate':
+    'AdminProductStatusMutationSuccess',
+  'patch /admin/products/{productId}/deactivate':
+    'AdminProductStatusMutationSuccess',
   'get /admin/orders': 'AdminOrdersSuccess',
   'get /admin/orders/{orderId}': 'AdminOrderDetailSuccess',
   'get /admin/revenue': 'AdminRevenueSuccess',
   'get /admin/commission': 'CommissionSuccess',
+  'patch /admin/commission': 'CommissionMutationSuccess',
   'get /analytics/vendor/summary': 'VendorAnalyticsSummarySuccess',
   'get /analytics/vendor/sales': 'VendorSalesSuccess',
   'get /analytics/vendor/top-products': 'VendorTopProductsSuccess',
@@ -863,16 +1145,28 @@ const dashboardResponseSchemas: Record<string, string> = {
   'post /products/{id}/variants': 'ProductVariantSuccess',
   'put /products/{id}/variants/{vid}': 'ProductVariantSuccess',
   'delete /products/{id}/variants/{vid}': 'NullSuccess',
+  'get /promo-codes': 'PromoCodesSuccess',
+  'post /promo-codes': 'PromoCodeSuccess',
+  'get /promo-codes/{id}': 'PromoCodeDetailSuccess',
+  'put /promo-codes/{id}': 'PromoCodeSuccess',
+  'delete /promo-codes/{id}': 'PromoCodeSuccess',
   'get /orders/vendor': 'VendorOrdersSuccess',
   'get /orders/vendor/{id}': 'VendorOrderDetailSuccess',
   'post /vendor-payouts/connect/onboard': 'ConnectOnboardingSuccess',
+  'get /vendor-payouts/connect/onboard/refresh': 'ConnectOnboardingSuccess',
   'get /vendor-payouts/connect/status': 'ConnectStatusSuccess',
+  'get /vendor-payouts/earnings': 'VendorEarningsSuccess',
   'get /vendor-payouts/earnings/summary': 'EarningsSummarySuccess',
+  'get /vendor-payouts/payouts': 'VendorPayoutsSuccess',
+  'patch /vendor-payouts/admin/commission/{vendorId}':
+    'VendorPayoutCommissionSuccess',
   'get /vendor-profile/me': 'VendorProfileSuccess',
   'put /vendor-profile/me': 'VendorProfileMutationSuccess',
 };
 
 const dashboardContractErrorOperations = [
+  'get /admin/dashboard',
+  'get /admin/users',
   'get /admin/users/{userId}',
   'patch /admin/users/{userId}/ban',
   'patch /admin/users/{userId}/unban',
@@ -880,12 +1174,21 @@ const dashboardContractErrorOperations = [
   'patch /admin/vendors/{vendorProfileId}/approve',
   'patch /admin/vendors/{vendorProfileId}/reject',
   'patch /admin/vendors/{vendorProfileId}/suspend',
+  'patch /admin/vendors/{vendorProfileId}/commission',
+  'get /admin/vendors',
+  'get /admin/products',
   'get /admin/products/{productId}',
   'patch /admin/products/{productId}/activate',
   'patch /admin/products/{productId}/deactivate',
   'delete /admin/products/{productId}',
   'get /admin/orders',
   'get /admin/orders/{orderId}',
+  'get /admin/revenue',
+  'get /admin/commission',
+  'patch /admin/commission',
+  'get /analytics/vendor/summary',
+  'get /analytics/vendor/sales',
+  'get /analytics/vendor/top-products',
   'get /products/vendor',
   'get /orders/vendor/{id}',
   'post /products',
@@ -900,6 +1203,11 @@ const dashboardContractErrorOperations = [
   'post /categories',
   'put /categories/{id}',
   'delete /categories/{id}',
+  'get /promo-codes',
+  'post /promo-codes',
+  'get /promo-codes/{id}',
+  'put /promo-codes/{id}',
+  'delete /promo-codes/{id}',
   'post /banners',
   'get /banners/all',
   'get /banners/{id}',
@@ -907,7 +1215,65 @@ const dashboardContractErrorOperations = [
   'delete /banners/{id}',
   'get /vendor-profile/me',
   'put /vendor-profile/me',
+  'post /vendor-payouts/connect/onboard',
+  'get /vendor-payouts/connect/onboard/refresh',
+  'get /vendor-payouts/connect/status',
+  'get /vendor-payouts/earnings',
+  'get /vendor-payouts/earnings/summary',
+  'get /vendor-payouts/payouts',
+  'patch /vendor-payouts/admin/commission/{vendorId}',
 ];
+
+const dashboardContractAdditionalErrors: Record<
+  string,
+  Record<string, string>
+> = {
+  'get /admin/users': {
+    '400': 'Invalid pagination or user filter query',
+  },
+  'get /admin/vendors': {
+    '400': 'Invalid pagination or vendor filter query',
+    '403': 'Forbidden — ADMIN role required',
+  },
+  'get /admin/products': {
+    '400': 'Invalid pagination or product filter query',
+    '403': 'Forbidden — ADMIN role required',
+  },
+  'get /admin/revenue': {
+    '400': 'Invalid report period or date range',
+    '403': 'Forbidden — ADMIN role required',
+  },
+  'get /admin/commission': {
+    '403': 'Forbidden — ADMIN role required',
+  },
+  'patch /admin/commission': {
+    '403': 'Forbidden — ADMIN role required',
+  },
+  'get /promo-codes': {
+    '400': 'Invalid pagination or filter query',
+  },
+  'get /promo-codes/{id}': {
+    '400': 'Invalid promo code ID',
+    '403': 'Forbidden — ADMIN role required',
+  },
+  'put /promo-codes/{id}': {
+    '403': 'Forbidden — ADMIN role required',
+    '409': 'Promo code already exists',
+  },
+  'delete /promo-codes/{id}': {
+    '400': 'Invalid promo code ID',
+    '403': 'Forbidden — ADMIN role required',
+  },
+  'get /vendor-payouts/connect/onboard/refresh': {
+    '400': 'Stripe onboarding has not been started',
+  },
+  'get /vendor-payouts/earnings': {
+    '400': 'Invalid pagination, status, or date filter',
+  },
+  'get /vendor-payouts/payouts': {
+    '400': 'Invalid pagination or status filter',
+  },
+};
 
 const options: swaggerJsdoc.Options = {
   definition: {
@@ -961,7 +1327,7 @@ const options: swaggerJsdoc.Options = {
           type: 'object',
           required: ['success', 'message'],
           properties: {
-            success: { type: 'boolean', example: false },
+            success: { type: 'boolean', enum: [false], example: false },
             message: { type: 'string', example: 'Validation failed' },
             errors: {
               type: 'array',
@@ -1054,7 +1420,7 @@ export function buildSwaggerSpec(): object {
         {
           responses?: Record<
             string,
-            { content?: Record<string, OpenApiSchema> }
+            { description?: string; content?: Record<string, OpenApiSchema> }
           >;
         }
       >
@@ -1086,6 +1452,26 @@ export function buildSwaggerSpec(): object {
       route && method ? spec.paths?.[route]?.[method]?.responses : undefined;
     for (const [status, response] of Object.entries(responses ?? {})) {
       if (!status.startsWith('4') && !status.startsWith('5')) continue;
+      response.content ??= {};
+      response.content['application/json'] ??= {};
+      response.content['application/json'].schema = ref('ApiError');
+    }
+  }
+
+  // Some route comments predate validation/auth/business-rule behavior. Create
+  // missing responses here so generated clients include every stable dashboard
+  // error status instead of only normalizing statuses that happen to be documented.
+  for (const [operationKey, errors] of Object.entries(
+    dashboardContractAdditionalErrors
+  )) {
+    const [method, route] = operationKey.split(' ');
+    const operation =
+      route && method ? spec.paths?.[route]?.[method] : undefined;
+    if (!operation) continue;
+    operation.responses ??= {};
+    for (const [status, description] of Object.entries(errors)) {
+      operation.responses[status] ??= { description };
+      const response = operation.responses[status];
       response.content ??= {};
       response.content['application/json'] ??= {};
       response.content['application/json'].schema = ref('ApiError');

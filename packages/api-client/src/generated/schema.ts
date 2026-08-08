@@ -334,7 +334,18 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -365,21 +376,36 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["CommissionMutationSuccess"];
+                    };
                 };
                 /** @description Validation error */
                 readonly 400: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -394,7 +420,7 @@ export interface paths {
         };
         /**
          * Get admin dashboard stats
-         * @description Returns platform-wide summary stats (total users, vendors, products, orders, revenue).
+         * @description Returns platform-wide counts and platformRevenue, the platform's earned commission (not gross merchandise value).
          */
         readonly get: {
             readonly parameters: {
@@ -420,7 +446,9 @@ export interface paths {
                          *         "totalVendors": 45,
                          *         "totalProducts": 320,
                          *         "totalOrders": 850,
-                         *         "totalRevenue": 75000
+                         *         "bannedUsers": 8,
+                         *         "pendingVendors": 4,
+                         *         "platformRevenue": "75000.00"
                          *       }
                          *     }
                          */
@@ -432,14 +460,18 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden — ADMIN role required */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -635,7 +667,16 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        readonly "application/json": components["schemas"]["ApiSuccess"];
+                        readonly "application/json": components["schemas"]["AdminProductsSuccess"];
+                    };
+                };
+                /** @description Invalid pagination or product filter query */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
                     };
                 };
                 /** @description Unauthorized */
@@ -643,7 +684,18 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -827,7 +879,9 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["AdminProductStatusMutationSuccess"];
+                    };
                 };
                 /** @description Invalid product ID */
                 readonly 400: {
@@ -908,7 +962,9 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["AdminProductStatusMutationSuccess"];
+                    };
                 };
                 /** @description Invalid product ID */
                 readonly 400: {
@@ -966,7 +1022,10 @@ export interface paths {
             readonly path?: never;
             readonly cookie?: never;
         };
-        /** Get platform revenue report (Admin only) */
+        /**
+         * Get gross merchandise value report (Admin only)
+         * @description Returns billable order gross merchandise value (GMV) by period. The revenue field is gross order value, not platform commission or vendor net earnings.
+         */
         readonly get: {
             readonly parameters: {
                 readonly query?: {
@@ -986,20 +1045,16 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        /**
-                         * @example {
-                         *       "success": true,
-                         *       "message": "Revenue report fetched",
-                         *       "data": [
-                         *         {
-                         *           "period": "2024-01",
-                         *           "revenue": 15000,
-                         *           "commissions": 2250
-                         *         }
-                         *       ]
-                         *     }
-                         */
                         readonly "application/json": components["schemas"]["AdminRevenueSuccess"];
+                    };
+                };
+                /** @description Invalid report period or date range */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
                     };
                 };
                 /** @description Unauthorized */
@@ -1007,7 +1062,18 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -1049,7 +1115,16 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        readonly "application/json": components["schemas"]["ApiSuccess"];
+                        readonly "application/json": components["schemas"]["AdminUsersSuccess"];
+                    };
+                };
+                /** @description Invalid pagination or user filter query */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
                     };
                 };
                 /** @description Unauthorized */
@@ -1057,14 +1132,18 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -1181,7 +1260,9 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["AdminUserBanMutationSuccess"];
+                    };
                 };
                 /** @description Invalid user ID */
                 readonly 400: {
@@ -1262,7 +1343,9 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["AdminUserBanMutationSuccess"];
+                    };
                 };
                 /** @description Invalid user ID */
                 readonly 400: {
@@ -1342,7 +1425,16 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        readonly "application/json": components["schemas"]["ApiSuccess"];
+                        readonly "application/json": components["schemas"]["AdminVendorsSuccess"];
+                    };
+                };
+                /** @description Invalid pagination or vendor filter query */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
                     };
                 };
                 /** @description Unauthorized */
@@ -1350,7 +1442,18 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -1560,28 +1663,36 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["VendorCommissionMutationSuccess"];
+                    };
                 };
                 /** @description Validation error */
                 readonly 400: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Vendor profile not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -1795,21 +1906,27 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -1871,21 +1988,27 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden — must be an approved vendor */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -1947,14 +2070,18 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -5371,7 +5498,16 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        readonly "application/json": components["schemas"]["ApiSuccess"];
+                        readonly "application/json": components["schemas"]["PromoCodesSuccess"];
+                    };
+                };
+                /** @description Invalid pagination or filter query */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
                     };
                 };
                 /** @description Unauthorized */
@@ -5379,14 +5515,18 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -5440,7 +5580,7 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        readonly "application/json": components["schemas"]["ApiSuccess"];
+                        readonly "application/json": components["schemas"]["PromoCodeSuccess"];
                     };
                 };
                 /** @description Validation error */
@@ -5448,28 +5588,36 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden — ADMIN role required */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Promo code already exists */
                 readonly 409: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -5504,7 +5652,16 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        readonly "application/json": components["schemas"]["ApiSuccess"];
+                        readonly "application/json": components["schemas"]["PromoCodeDetailSuccess"];
+                    };
+                };
+                /** @description Invalid promo code ID */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
                     };
                 };
                 /** @description Unauthorized */
@@ -5512,14 +5669,27 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Promo code not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -5541,12 +5711,12 @@ export interface paths {
                         readonly discountType?: "PERCENTAGE" | "FIXED";
                         readonly discountValue?: number;
                         /** Format: date-time */
-                        readonly expiresAt?: string;
+                        readonly expiresAt?: string | null;
                         readonly isActive?: boolean;
-                        readonly maxDiscount?: number;
-                        readonly minOrderValue?: number;
-                        readonly perUserLimit?: number;
-                        readonly usageLimit?: number;
+                        readonly maxDiscount?: number | null;
+                        readonly minOrderValue?: number | null;
+                        readonly perUserLimit?: number | null;
+                        readonly usageLimit?: number | null;
                     };
                 };
             };
@@ -5556,33 +5726,62 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["PromoCodeSuccess"];
+                    };
                 };
                 /** @description Validation error */
                 readonly 400: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Promo code not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Promo code already exists */
+                readonly 409: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
         readonly post?: never;
-        /** Delete a promo code (Admin only) */
+        /**
+         * Archive a promo code (Admin only)
+         * @description Soft-deactivates the promo by setting isActive=false and deletedAt. Order and usage history are retained; this is not a permanent deletion.
+         */
         readonly delete: {
             readonly parameters: {
                 readonly query?: never;
@@ -5594,26 +5793,50 @@ export interface paths {
             };
             readonly requestBody?: never;
             readonly responses: {
-                /** @description Promo code deleted */
+                /** @description Promo code archived and returned with its inactive/deleted state */
                 readonly 200: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["PromoCodeSuccess"];
+                    };
+                };
+                /** @description Invalid promo code ID */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden — ADMIN role required */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Promo code not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -5943,35 +6166,45 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["VendorPayoutCommissionSuccess"];
+                    };
                 };
                 /** @description Validation error */
                 readonly 400: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Unauthorized */
                 readonly 401: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden — ADMIN role required */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Vendor not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -5988,7 +6221,7 @@ export interface paths {
         readonly put?: never;
         /**
          * Start Stripe Connect onboarding (approved Vendors only)
-         * @description Generates a Stripe Connect onboarding URL. The vendor is redirected to Stripe to complete account setup.
+         * @description Generates a single-use Stripe-hosted onboarding URL using backend-configured return and refresh URLs; clients cannot supply either redirect. Navigate the browser at top level, then reconcile completion with GET /vendor-payouts/connect/status after Stripe returns.
          */
         readonly post: {
             readonly parameters: {
@@ -6022,21 +6255,27 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden — must be an approved vendor */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Vendor profile not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -6055,7 +6294,7 @@ export interface paths {
         };
         /**
          * Refresh the Stripe Connect onboarding link (approved Vendors only)
-         * @description Returns a fresh onboarding URL if the previous one expired.
+         * @description Returns a fresh single-use onboarding URL when Stripe reaches the backend-configured refresh route. Call once per refresh event, navigate at top level, and guard the client against retry loops. Redirect targets are server configuration, never request input.
          */
         readonly get: {
             readonly parameters: {
@@ -6072,7 +6311,16 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        readonly "application/json": components["schemas"]["ApiSuccess"];
+                        readonly "application/json": components["schemas"]["ConnectOnboardingSuccess"];
+                    };
+                };
+                /** @description Stripe onboarding has not been started */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
                     };
                 };
                 /** @description Unauthorized */
@@ -6080,21 +6328,27 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden — must be an approved vendor */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Vendor profile not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -6115,7 +6369,7 @@ export interface paths {
         };
         /**
          * Get Stripe Connect account status (Vendor only)
-         * @description Returns whether the vendor's Stripe Connect account is fully onboarded and enabled for payouts.
+         * @description Reconciles the Stripe account after onboarding return. Use onboardingStatus, chargesEnabled, payoutsEnabled, and detailsSubmitted as authoritative UI inputs; return query parameters are not proof of completion.
          */
         readonly get: {
             readonly parameters: {
@@ -6137,9 +6391,10 @@ export interface paths {
                          *       "success": true,
                          *       "message": "Connect status fetched",
                          *       "data": {
-                         *         "connected": true,
+                         *         "onboardingStatus": "COMPLETE",
                          *         "chargesEnabled": true,
-                         *         "payoutsEnabled": true
+                         *         "payoutsEnabled": true,
+                         *         "detailsSubmitted": true
                          *       }
                          *     }
                          */
@@ -6151,14 +6406,18 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden — VENDOR role required */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -6199,7 +6458,16 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        readonly "application/json": components["schemas"]["ApiSuccess"];
+                        readonly "application/json": components["schemas"]["VendorEarningsSuccess"];
+                    };
+                };
+                /** @description Invalid pagination, status, or date filter */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
                     };
                 };
                 /** @description Unauthorized */
@@ -6207,14 +6475,18 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -6235,7 +6507,7 @@ export interface paths {
         };
         /**
          * Get earnings summary (approved Vendors only)
-         * @description Returns total lifetime earnings, pending balance, and transferred amount.
+         * @description Returns count, gross, commission, and net aggregates for every earning status.
          */
         readonly get: {
             readonly parameters: {
@@ -6252,17 +6524,6 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        /**
-                         * @example {
-                         *       "success": true,
-                         *       "message": "Earnings summary fetched",
-                         *       "data": {
-                         *         "totalEarnings": 1500,
-                         *         "pendingBalance": 200,
-                         *         "transferred": 1300
-                         *       }
-                         *     }
-                         */
                         readonly "application/json": components["schemas"]["EarningsSummarySuccess"];
                     };
                 };
@@ -6271,21 +6532,27 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden — must be an approved vendor */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Vendor profile not found */
                 readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -6324,7 +6591,16 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        readonly "application/json": components["schemas"]["ApiSuccess"];
+                        readonly "application/json": components["schemas"]["VendorPayoutsSuccess"];
+                    };
+                };
+                /** @description Invalid pagination or status filter */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
                     };
                 };
                 /** @description Unauthorized */
@@ -6332,14 +6608,18 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
                 /** @description Forbidden */
                 readonly 403: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -6918,6 +7198,47 @@ export interface components {
             /** @enum {boolean} */
             readonly success: true;
         };
+        readonly AdminProductListItem: {
+            readonly _count: {
+                readonly variants: number;
+            };
+            readonly avgRating: string;
+            readonly basePrice: string;
+            readonly category: {
+                readonly id: string;
+                readonly name: string;
+            };
+            /** Format: date-time */
+            readonly createdAt: string;
+            readonly id: string;
+            readonly isActive: boolean;
+            readonly name: string;
+            readonly reviewCount: number;
+            readonly vendor: {
+                readonly email: string;
+                readonly id: string;
+                readonly name: string;
+            };
+        };
+        readonly AdminProductsSuccess: {
+            readonly data: {
+                readonly items: readonly components["schemas"]["AdminProductListItem"][];
+                readonly meta: components["schemas"]["Pagination"];
+            };
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
+        readonly AdminProductStatusMutationSuccess: {
+            readonly data: {
+                readonly id: string;
+                readonly isActive: boolean;
+                readonly name: string;
+            };
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
         readonly AdminProductVendor: {
             readonly email: string;
             readonly id: string;
@@ -6943,6 +7264,17 @@ export interface components {
             /** @enum {boolean} */
             readonly success: true;
         };
+        readonly AdminUserBanMutationSuccess: {
+            readonly data: {
+                readonly email: string;
+                readonly id: string;
+                readonly isBanned: boolean;
+                readonly name: string;
+            };
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
         readonly AdminUserDetail: {
             readonly avatar: string | null;
             /** Format: date-time */
@@ -6963,6 +7295,32 @@ export interface components {
             readonly message: string;
             /** @enum {boolean} */
             readonly success: true;
+        };
+        readonly AdminUsersSuccess: {
+            readonly data: {
+                readonly items: readonly components["schemas"]["AdminUserSummary"][];
+                readonly meta: components["schemas"]["Pagination"];
+            };
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
+        readonly AdminUserSummary: {
+            /** Format: date-time */
+            readonly createdAt: string;
+            readonly email: string;
+            readonly id: string;
+            readonly isBanned: boolean;
+            readonly isVerified: boolean;
+            readonly name: string;
+            /** @enum {string} */
+            readonly role: "CUSTOMER" | "VENDOR" | "ADMIN";
+            readonly vendorProfile: {
+                readonly id: string;
+                /** @enum {string} */
+                readonly status: "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
+                readonly storeName: string;
+            } | null;
         };
         readonly AdminVendorDetail: {
             readonly commissionRate: string | null;
@@ -7028,6 +7386,32 @@ export interface components {
             readonly updatedAt: string;
             readonly userId: string;
         };
+        readonly AdminVendorsSuccess: {
+            readonly data: {
+                readonly items: readonly components["schemas"]["AdminVendorSummary"][];
+                readonly meta: components["schemas"]["Pagination"];
+            };
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
+        readonly AdminVendorSummary: {
+            readonly commissionRate: string | null;
+            /** Format: date-time */
+            readonly createdAt: string;
+            readonly id: string;
+            /** @enum {string} */
+            readonly status: "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
+            readonly storeName: string;
+            /** @enum {string} */
+            readonly stripeOnboardingStatus: "NOT_STARTED" | "PENDING" | "COMPLETE" | "RESTRICTED";
+            readonly user: {
+                readonly email: string;
+                readonly id: string;
+                readonly isBanned: boolean;
+                readonly name: string;
+            };
+        };
         readonly ApiError: {
             readonly errors?: readonly {
                 /** @example email */
@@ -7037,8 +7421,11 @@ export interface components {
             }[];
             /** @example Validation failed */
             readonly message: string;
-            /** @example false */
-            readonly success: boolean;
+            /**
+             * @example false
+             * @enum {boolean}
+             */
+            readonly success: false;
         };
         readonly ApiSuccess: {
             readonly data: unknown;
@@ -7116,6 +7503,14 @@ export interface components {
             /** Format: date-time */
             readonly updatedAt: string;
         };
+        readonly CommissionMutationSuccess: {
+            readonly data: {
+                readonly rate: number;
+            };
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
         readonly CommissionSuccess: {
             readonly data: {
                 readonly rate: number;
@@ -7128,6 +7523,7 @@ export interface components {
         };
         readonly ConnectOnboardingSuccess: {
             readonly data: {
+                /** Format: uri */
                 readonly url: string;
             };
             readonly message: string;
@@ -7311,6 +7707,69 @@ export interface components {
             /** @enum {boolean} */
             readonly success: true;
         };
+        readonly PromoCode: {
+            readonly code: string;
+            /** Format: date-time */
+            readonly createdAt: string;
+            /** Format: date-time */
+            readonly deletedAt: string | null;
+            /** @enum {string} */
+            readonly discountType: "PERCENTAGE" | "FIXED";
+            readonly discountValue: string;
+            /** Format: date-time */
+            readonly expiresAt: string | null;
+            readonly id: string;
+            readonly isActive: boolean;
+            readonly maxDiscount: string | null;
+            readonly minOrderValue: string | null;
+            readonly perUserLimit: number | null;
+            /** Format: date-time */
+            readonly updatedAt: string;
+            readonly usageCount: number;
+            readonly usageLimit: number | null;
+        };
+        readonly PromoCodeDetail: components["schemas"]["PromoCodeWithCounts"] & {
+            readonly usages: readonly {
+                readonly id: string;
+                readonly orderId: string;
+                readonly promoCodeId: string;
+                /** Format: date-time */
+                readonly usedAt: string;
+                readonly user: {
+                    readonly email: string;
+                    readonly id: string;
+                    readonly name: string;
+                };
+                readonly userId: string;
+            }[];
+        };
+        readonly PromoCodeDetailSuccess: {
+            readonly data: components["schemas"]["PromoCodeDetail"];
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
+        readonly PromoCodesSuccess: {
+            readonly data: {
+                readonly items: readonly components["schemas"]["PromoCodeWithCounts"][];
+                readonly meta: components["schemas"]["Pagination"];
+            };
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
+        readonly PromoCodeSuccess: {
+            readonly data: components["schemas"]["PromoCode"];
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
+        readonly PromoCodeWithCounts: components["schemas"]["PromoCode"] & {
+            readonly _count: {
+                readonly orders: number;
+                readonly usages: number;
+            };
+        };
         readonly PublicBanner: {
             readonly id: string;
             readonly imageUrl: string;
@@ -7369,6 +7828,49 @@ export interface components {
                     readonly gross: string;
                     readonly net: string;
                 };
+            };
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
+        readonly VendorCommissionMutationSuccess: {
+            readonly data: {
+                readonly commissionRate: string | null;
+                readonly id: string;
+                readonly storeName: string;
+            };
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
+        readonly VendorEarning: {
+            readonly commissionAmount: string;
+            readonly commissionRate: string;
+            /** Format: date-time */
+            readonly createdAt: string;
+            /** @enum {string} */
+            readonly currency: "USD" | "EUR" | "GBP" | "INR" | "CAD" | "AUD";
+            readonly grossAmount: string;
+            readonly id: string;
+            readonly netAmount: string;
+            readonly order: {
+                readonly orderNumber: string;
+            };
+            readonly orderId: string;
+            /** @enum {string} */
+            readonly status: "PENDING" | "TRANSFERRED" | "FAILED" | "REVERSED";
+            readonly stripeTransferId: string | null;
+            /** Format: date-time */
+            readonly transferredAt: string | null;
+            /** Format: date-time */
+            readonly updatedAt: string;
+            readonly vendorOrderId: string;
+            readonly vendorProfileId: string;
+        };
+        readonly VendorEarningsSuccess: {
+            readonly data: {
+                readonly earnings: readonly components["schemas"]["VendorEarning"][];
+                readonly pagination: components["schemas"]["Pagination"];
             };
             readonly message: string;
             /** @enum {boolean} */
@@ -7449,6 +7951,41 @@ export interface components {
             readonly data: {
                 readonly items: readonly components["schemas"]["VendorOrderDetail"][];
                 readonly meta: components["schemas"]["Pagination"];
+            };
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
+        readonly VendorPayout: {
+            readonly amount: string;
+            /** Format: date-time */
+            readonly arrivalDate: string | null;
+            /** Format: date-time */
+            readonly createdAt: string;
+            /** @enum {string} */
+            readonly currency: "USD" | "EUR" | "GBP" | "INR" | "CAD" | "AUD";
+            readonly failureReason: string | null;
+            readonly id: string;
+            /** @enum {string} */
+            readonly status: "PENDING" | "PAID" | "FAILED";
+            readonly stripePayoutId: string;
+            /** Format: date-time */
+            readonly updatedAt: string;
+            readonly vendorProfileId: string;
+        };
+        readonly VendorPayoutCommissionSuccess: {
+            readonly data: {
+                readonly commissionRate: number;
+                readonly vendorId: string;
+            };
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
+        readonly VendorPayoutsSuccess: {
+            readonly data: {
+                readonly pagination: components["schemas"]["Pagination"];
+                readonly payouts: readonly components["schemas"]["VendorPayout"][];
             };
             readonly message: string;
             /** @enum {boolean} */
