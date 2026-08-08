@@ -4696,6 +4696,254 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/products/{id}/media": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /**
+         * Upload product images (approved owner vendor only)
+         * @description Appends one to five managed images without exceeding five total. Uploads are rolled back if persistence fails. JPEG, PNG, and WebP files up to 5 MB each are accepted.
+         */
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly id: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody: {
+                readonly content: {
+                    readonly "multipart/form-data": {
+                        readonly images: readonly Blob[];
+                    };
+                };
+            };
+            readonly responses: {
+                /** @description Ordered product media after upload */
+                readonly 201: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ProductMediaSuccess"];
+                    };
+                };
+                /** @description Missing files, invalid type, excess files, or five-image limit exceeded */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Unauthorized */
+                readonly 401: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Vendor is unapproved or does not own the product */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Product not found */
+                readonly 404: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description A file exceeds 5 MB */
+                readonly 413: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/products/{id}/media/{mediaId}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        /**
+         * Replace one product image (approved owner vendor only)
+         * @description Preserves the media ID and ordering position. The new upload rolls back on persistence failure; replaced managed media is deleted best effort after commit.
+         */
+        readonly put: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly id: string;
+                    readonly mediaId: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody: {
+                readonly content: {
+                    readonly "multipart/form-data": {
+                        /** Format: binary */
+                        readonly image: Blob;
+                    };
+                };
+            };
+            readonly responses: {
+                /** @description Ordered product media after replacement */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ProductMediaSuccess"];
+                    };
+                };
+                /** @description Missing image, invalid type, or unexpected field */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Unauthorized */
+                readonly 401: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Vendor is unapproved or does not own the product */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Product or media not found */
+                readonly 404: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description The file exceeds 5 MB */
+                readonly 413: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        readonly post?: never;
+        /**
+         * Remove one product image (approved owner vendor only)
+         * @description The database mutation is authoritative. Managed Cloudinary cleanup is best effort and observable in server logs.
+         */
+        readonly delete: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly id: string;
+                    readonly mediaId: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description Ordered remaining product media */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ProductMediaSuccess"];
+                    };
+                };
+                /** @description Invalid product or media ID */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Unauthorized */
+                readonly 401: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Vendor is unapproved or does not own the product */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Product or media not found */
+                readonly 404: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/products/{id}/variants": {
         readonly parameters: {
             readonly query?: never;
@@ -6654,6 +6902,7 @@ export interface components {
             readonly id: string;
             readonly images: readonly string[];
             readonly isActive: boolean;
+            readonly media: readonly components["schemas"]["ProductMedia"][];
             readonly name: string;
             readonly reviewCount: number;
             readonly tags: readonly string[];
@@ -6959,6 +7208,23 @@ export interface components {
             /** @example 10 */
             readonly totalPages?: number;
         };
+        readonly ProductMedia: {
+            /** Format: date-time */
+            readonly createdAt: string;
+            /** Format: uuid */
+            readonly id: string;
+            readonly position: number;
+            /** Format: date-time */
+            readonly updatedAt: string;
+            /** Format: uri */
+            readonly url: string;
+        };
+        readonly ProductMediaSuccess: {
+            readonly data: readonly components["schemas"]["ProductMedia"][];
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
+        };
         readonly ProductMutation: {
             readonly avgRating: string;
             readonly basePrice: string;
@@ -6969,6 +7235,7 @@ export interface components {
             readonly id: string;
             readonly images: readonly string[];
             readonly isActive: boolean;
+            readonly media: readonly components["schemas"]["ProductMedia"][];
             readonly name: string;
             readonly reviewCount: number;
             readonly tags: readonly string[];
@@ -7006,6 +7273,7 @@ export interface components {
             readonly id: string;
             readonly images: readonly string[];
             readonly isActive: boolean;
+            readonly media: readonly components["schemas"]["ProductMedia"][];
             readonly name: string;
             readonly reviewCount: number;
             readonly tags: readonly string[];

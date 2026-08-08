@@ -14,6 +14,22 @@ const coerceStrictBoolean = (value: unknown) => {
   return value;
 };
 
+const productImageUrlSchema = z
+  .string()
+  .url('Invalid image URL')
+  .refine(
+    (value) => {
+      try {
+        return new URL(value).protocol === 'https:';
+      } catch {
+        return false;
+      }
+    },
+    {
+      message: 'Image URL must use HTTPS',
+    }
+  );
+
 export const variantSchema = z.object({
   size: z.string().optional(),
   color: z.string().optional(),
@@ -35,7 +51,7 @@ export const createProductSchema = z
       .number({ message: 'Base price is required' })
       .nonnegative('Base price must be non-negative'),
     images: z
-      .array(z.string().url('Invalid image URL'))
+      .array(productImageUrlSchema)
       .max(5, 'Maximum 5 images allowed')
       .optional()
       .default([]),
@@ -70,7 +86,7 @@ export const updateProductSchema = z
       .nonnegative('Base price must be non-negative')
       .optional(),
     images: z
-      .array(z.string().url('Invalid image URL'))
+      .array(productImageUrlSchema)
       .max(5, 'Maximum 5 images allowed')
       .optional(),
     isActive: z.boolean().optional(),
@@ -128,6 +144,11 @@ export const productParamSchema = z.object({
 export const productVariantParamSchema = z.object({
   id: z.string().uuid('Invalid product ID'),
   vid: z.string().uuid('Invalid variant ID'),
+});
+
+export const productMediaParamSchema = z.object({
+  id: z.string().uuid('Invalid product ID'),
+  mediaId: z.string().uuid('Invalid media ID'),
 });
 
 export const getProductQuerySchema = z

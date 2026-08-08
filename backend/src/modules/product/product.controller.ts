@@ -3,6 +3,7 @@ import { AuthRequest } from '../../types';
 import { ProductService } from './product.service';
 import catchAsync from '../../utils/catchAsync';
 import { ApiResponse } from '../../utils/apiResponse';
+import { ApiError } from '../../utils/apiError';
 import {
   GetProductQueryInput,
   SearchProductQueryInput,
@@ -81,6 +82,36 @@ export class ProductController {
     const vendorId = req.user!.userId;
     await productService.deleteProduct(id, vendorId);
     ApiResponse.success(res, null, 'Product deleted successfully');
+  });
+
+  uploadMedia = catchAsync(async (req: AuthRequest, res: Response) => {
+    const files = (req.files as Express.Multer.File[] | undefined) ?? [];
+    const media = await productService.uploadProductMedia(
+      req.params.id as string,
+      req.user!.userId,
+      files
+    );
+    ApiResponse.created(res, media, 'Product media uploaded successfully');
+  });
+
+  replaceMedia = catchAsync(async (req: AuthRequest, res: Response) => {
+    if (!req.file) throw ApiError.badRequest('Image is required');
+    const media = await productService.replaceProductMedia(
+      req.params.id as string,
+      req.params.mediaId as string,
+      req.user!.userId,
+      req.file
+    );
+    ApiResponse.success(res, media, 'Product media replaced successfully');
+  });
+
+  removeMedia = catchAsync(async (req: AuthRequest, res: Response) => {
+    const media = await productService.removeProductMedia(
+      req.params.id as string,
+      req.params.mediaId as string,
+      req.user!.userId
+    );
+    ApiResponse.success(res, media, 'Product media removed successfully');
   });
 
   /**
