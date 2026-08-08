@@ -9,6 +9,18 @@ import {
   VendorInventoryQueryInput,
 } from './product.validation';
 import { Prisma, VendorProfileStatus } from '../../generated/prisma/client';
+import { uploadImage, UploadResult } from '../../utils/cloudinaryUpload';
+import { cleanupMediaBestEffort } from '../../utils/mediaCleanup';
+
+const MAX_PRODUCT_MEDIA = 5;
+const PRODUCT_MEDIA_FOLDER = 'products';
+const productMediaPublicSelect = {
+  id: true,
+  url: true,
+  position: true,
+  createdAt: true,
+  updatedAt: true,
+} satisfies Prisma.ProductMediaSelect;
 
 const skuConflict = (field = 'sku') =>
   ApiError.conflict('SKU is already in use by another variant', [
@@ -19,6 +31,110 @@ const isPrismaError = (error: unknown, code: string): boolean =>
   error instanceof Prisma.PrismaClientKnownRequestError && error.code === code;
 
 export class ProductService {
+  private async lockProduct(
+    tx: Prisma.TransactionClient,
+    productId: string
+  ): Promise<{ id: string; vendorId: string } | undefined> {
+    const rows = await tx.$queryRaw<Array<{ id: string; vendorId: string }>>`
+      SELECT "id", "vendorId" FROM "products"
+      WHERE "id" = ${productId}
+      FOR UPDATE
+    `;
+    return rows[0];
+  }
+
+  private async assertVendorApprovedInTransaction(
+    tx: Prisma.TransactionClient,
+    vendorId: string
+  ): Promise<void> {
+    const rows = await tx.$queryRaw<Array<{ status: VendorProfileStatus }>>`
+      SELECT "status" FROM "vendor_profiles"
+      WHERE "userId" = ${vendorId}
+      FOR SHARE
+    `;
+    if (rows[0]?.status !== VendorProfileStatus.APPROVED) {
+      throw ApiError.forbidden(
+        'Your vendor account must be approved before you can manage products.'
+      );
+    }
+  }
+
+  private assertProductOwner(
+    product: { vendorId: string } | null | undefined,
+    vendorId: string
+  ): void {
+    if (!product) throw ApiError.notFound('Product not found');
+    if (product.vendorId !== vendorId) {
+      throw ApiError.forbidden(
+        'You do not have permission to modify this product'
+      );
+    }
+  }
+
+  private validateUploadResult(upload: UploadResult): void {
+    let url: URL;
+    try {
+      url = new URL(upload.url);
+    } catch {
+      throw ApiError.internal('Media provider returned an invalid image URL');
+    }
+    if (url.protocol !== 'https:' || !upload.publicId.trim()) {
+      throw ApiError.internal('Media provider returned invalid image metadata');
+    }
+  }
+
+  private validateFileContents(file: Express.Multer.File): void {
+    const bytes = file.buffer;
+    const isJpeg =
+      bytes.length >= 3 &&
+      bytes[0] === 0xff &&
+      bytes[1] === 0xd8 &&
+      bytes[2] === 0xff;
+    const isPng =
+      bytes.length >= 8 &&
+      bytes
+        .subarray(0, 8)
+        .equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    const isWebp =
+      bytes.length >= 12 &&
+      bytes.subarray(0, 4).toString('ascii') === 'RIFF' &&
+      bytes.subarray(8, 12).toString('ascii') === 'WEBP';
+    const matchesMime =
+      (file.mimetype === 'image/jpeg' && isJpeg) ||
+      (file.mimetype === 'image/png' && isPng) ||
+      (file.mimetype === 'image/webp' && isWebp);
+    if (!matchesMime) {
+      throw ApiError.badRequest(
+        'Image content does not match its declared JPEG, PNG, or WebP type'
+      );
+    }
+  }
+
+  private async cleanupUploads(
+    uploads: UploadResult[],
+    context: string
+  ): Promise<void> {
+    await Promise.all(
+      uploads.map((upload) => cleanupMediaBestEffort(upload.publicId, context))
+    );
+  }
+
+  private async syncLegacyImages(
+    tx: Prisma.TransactionClient,
+    productId: string
+  ) {
+    const media = await tx.productMedia.findMany({
+      where: { productId },
+      orderBy: [{ position: 'asc' }, { id: 'asc' }],
+      select: productMediaPublicSelect,
+    });
+    await tx.product.update({
+      where: { id: productId },
+      data: { images: media.map((item) => item.url) },
+    });
+    return media;
+  }
+
   private async assertVendorApproved(vendorId: string): Promise<void> {
     const profile = await prisma.vendorProfile.findUnique({
       where: { userId: vendorId },
@@ -92,6 +208,10 @@ export class ProductService {
         orderBy,
         include: {
           variants: true,
+          media: {
+            orderBy: [{ position: 'asc' }, { id: 'asc' }],
+            select: productMediaPublicSelect,
+          },
           vendor: { select: { id: true, name: true } },
           category: { select: { id: true, name: true } },
         },
@@ -158,6 +278,10 @@ export class ProductService {
         orderBy,
         include: {
           variants: true,
+          media: {
+            orderBy: [{ position: 'asc' }, { id: 'asc' }],
+            select: productMediaPublicSelect,
+          },
           vendor: { select: { id: true, name: true } },
           category: { select: { id: true, name: true } },
         },
@@ -183,6 +307,10 @@ export class ProductService {
       where: { id },
       include: {
         variants: true,
+        media: {
+          orderBy: [{ position: 'asc' }, { id: 'asc' }],
+          select: productMediaPublicSelect,
+        },
         vendor: { select: { id: true, name: true } },
         category: { select: { id: true, name: true, parentId: true } },
       },
@@ -219,12 +347,19 @@ export class ProductService {
           images: data.images,
           isActive: data.isActive,
           tags: data.tags,
+          media: {
+            create: data.images.map((url, position) => ({ url, position })),
+          },
           variants: {
             create: data.variants,
           },
         },
         include: {
           variants: true,
+          media: {
+            orderBy: [{ position: 'asc' }, { id: 'asc' }],
+            select: productMediaPublicSelect,
+          },
         },
       });
     } catch (error) {
@@ -259,10 +394,241 @@ export class ProductService {
       }
     }
 
-    return prisma.product.update({
-      where: { id },
-      data,
+    const { images, ...productData } = data;
+    if (images === undefined) {
+      return prisma.product.update({
+        where: { id },
+        data: productData,
+        include: {
+          media: {
+            orderBy: [{ position: 'asc' }, { id: 'asc' }],
+            select: productMediaPublicSelect,
+          },
+        },
+      });
+    }
+
+    let removedPublicIds: string[] = [];
+    const updated = await prisma.$transaction(async (tx) => {
+      await this.assertVendorApprovedInTransaction(tx, vendorId);
+      this.assertProductOwner(await this.lockProduct(tx, id), vendorId);
+      const existingMedia = await tx.productMedia.findMany({
+        where: { productId: id },
+        orderBy: [{ position: 'asc' }, { id: 'asc' }],
+        select: {
+          id: true,
+          url: true,
+          publicId: true,
+          createdAt: true,
+        },
+      });
+      const availableByUrl = new Map<string, typeof existingMedia>();
+      for (const item of existingMedia) {
+        const matches = availableByUrl.get(item.url) ?? [];
+        matches.push(item);
+        availableByUrl.set(item.url, matches);
+      }
+      const desiredMedia = images.map((url) => {
+        const matches = availableByUrl.get(url);
+        return { url, existing: matches?.shift() };
+      });
+      const retainedIds = new Set(
+        desiredMedia.flatMap((item) =>
+          item.existing ? [item.existing.id] : []
+        )
+      );
+      removedPublicIds = existingMedia.flatMap((item) =>
+        item.publicId && !retainedIds.has(item.id) ? [item.publicId] : []
+      );
+      await tx.productMedia.deleteMany({ where: { productId: id } });
+      for (const [position, item] of desiredMedia.entries()) {
+        await tx.productMedia.create({
+          data: {
+            ...(item.existing && {
+              id: item.existing.id,
+              publicId: item.existing.publicId,
+              createdAt: item.existing.createdAt,
+            }),
+            productId: id,
+            url: item.url,
+            position,
+          },
+        });
+      }
+      return tx.product.update({
+        where: { id },
+        data: { ...productData, images },
+        include: {
+          media: {
+            orderBy: [{ position: 'asc' }, { id: 'asc' }],
+            select: productMediaPublicSelect,
+          },
+        },
+      });
     });
+    await Promise.all(
+      removedPublicIds.map((publicId) =>
+        cleanupMediaBestEffort(publicId, 'product JSON media replacement')
+      )
+    );
+    return updated;
+  }
+
+  async uploadProductMedia(
+    productId: string,
+    vendorId: string,
+    files: Express.Multer.File[]
+  ) {
+    await this.assertVendorApproved(vendorId);
+    if (files.length === 0) {
+      throw ApiError.badRequest('At least one image is required');
+    }
+    files.forEach((file) => this.validateFileContents(file));
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { vendorId: true },
+    });
+    this.assertProductOwner(product, vendorId);
+
+    const uploads: UploadResult[] = [];
+    try {
+      for (const file of files) {
+        const uploaded = await uploadImage(
+          file.buffer,
+          `${PRODUCT_MEDIA_FOLDER}/${productId}`
+        );
+        uploads.push(uploaded);
+        this.validateUploadResult(uploaded);
+      }
+    } catch (error) {
+      await this.cleanupUploads(
+        uploads,
+        'product media partial upload rollback'
+      );
+      throw error;
+    }
+
+    try {
+      return await prisma.$transaction(async (tx) => {
+        await this.assertVendorApprovedInTransaction(tx, vendorId);
+        this.assertProductOwner(
+          await this.lockProduct(tx, productId),
+          vendorId
+        );
+        const aggregate = await tx.productMedia.aggregate({
+          where: { productId },
+          _count: true,
+          _max: { position: true },
+        });
+        if (aggregate._count + uploads.length > MAX_PRODUCT_MEDIA) {
+          throw ApiError.badRequest(
+            `Maximum ${MAX_PRODUCT_MEDIA} product images allowed`
+          );
+        }
+        const startPosition = (aggregate._max.position ?? -1) + 1;
+        await tx.productMedia.createMany({
+          data: uploads.map((upload, index) => ({
+            productId,
+            url: upload.url,
+            publicId: upload.publicId,
+            position: startPosition + index,
+          })),
+        });
+        return this.syncLegacyImages(tx, productId);
+      });
+    } catch (error) {
+      await this.cleanupUploads(uploads, 'product media database rollback');
+      throw error;
+    }
+  }
+
+  async replaceProductMedia(
+    productId: string,
+    mediaId: string,
+    vendorId: string,
+    file: Express.Multer.File
+  ) {
+    await this.assertVendorApproved(vendorId);
+    this.validateFileContents(file);
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { vendorId: true },
+    });
+    this.assertProductOwner(product, vendorId);
+
+    const uploaded = await uploadImage(
+      file.buffer,
+      `${PRODUCT_MEDIA_FOLDER}/${productId}`
+    );
+    try {
+      this.validateUploadResult(uploaded);
+    } catch (error) {
+      await cleanupMediaBestEffort(
+        uploaded.publicId,
+        'product media invalid-provider rollback'
+      );
+      throw error;
+    }
+
+    let replacedPublicId: string | null = null;
+    try {
+      const media = await prisma.$transaction(async (tx) => {
+        await this.assertVendorApprovedInTransaction(tx, vendorId);
+        this.assertProductOwner(
+          await this.lockProduct(tx, productId),
+          vendorId
+        );
+        const existing = await tx.productMedia.findFirst({
+          where: { id: mediaId, productId },
+          select: { publicId: true },
+        });
+        if (!existing) throw ApiError.notFound('Product media not found');
+        replacedPublicId = existing.publicId;
+        await tx.productMedia.update({
+          where: { id: mediaId },
+          data: { url: uploaded.url, publicId: uploaded.publicId },
+        });
+        return this.syncLegacyImages(tx, productId);
+      });
+      if (replacedPublicId) {
+        await cleanupMediaBestEffort(
+          replacedPublicId,
+          'product media replacement'
+        );
+      }
+      return media;
+    } catch (error) {
+      await cleanupMediaBestEffort(
+        uploaded.publicId,
+        'product media replacement rollback'
+      );
+      throw error;
+    }
+  }
+
+  async removeProductMedia(
+    productId: string,
+    mediaId: string,
+    vendorId: string
+  ) {
+    await this.assertVendorApproved(vendorId);
+    let removedPublicId: string | null = null;
+    const media = await prisma.$transaction(async (tx) => {
+      await this.assertVendorApprovedInTransaction(tx, vendorId);
+      this.assertProductOwner(await this.lockProduct(tx, productId), vendorId);
+      const existing = await tx.productMedia.findFirst({
+        where: { id: mediaId, productId },
+        select: { publicId: true },
+      });
+      if (!existing) throw ApiError.notFound('Product media not found');
+      removedPublicId = existing.publicId;
+      await tx.productMedia.delete({ where: { id: mediaId } });
+      return this.syncLegacyImages(tx, productId);
+    });
+    if (removedPublicId) {
+      await cleanupMediaBestEffort(removedPublicId, 'product media removal');
+    }
+    return media;
   }
 
   /**
@@ -270,21 +636,19 @@ export class ProductService {
    */
   async deleteProduct(id: string, vendorId: string) {
     await this.assertVendorApproved(vendorId);
-    const product = await prisma.product.findUnique({ where: { id } });
-
-    if (!product) {
-      throw new ApiError(404, 'Product not found');
-    }
-
-    if (product.vendorId !== vendorId) {
-      throw ApiError.forbidden(
-        'You do not have permission to delete this product'
-      );
-    }
-
-    // Deleting the product will automatically delete variants due to onDelete: Cascade in Prisma schema
+    let publicIds: string[] = [];
     try {
-      await prisma.product.delete({ where: { id } });
+      await prisma.$transaction(async (tx) => {
+        await this.assertVendorApprovedInTransaction(tx, vendorId);
+        this.assertProductOwner(await this.lockProduct(tx, id), vendorId);
+        publicIds = (
+          await tx.productMedia.findMany({
+            where: { productId: id, publicId: { not: null } },
+            select: { publicId: true },
+          })
+        ).flatMap((item) => (item.publicId ? [item.publicId] : []));
+        await tx.product.delete({ where: { id } });
+      });
     } catch (error) {
       if (isPrismaError(error, 'P2003')) {
         throw ApiError.conflict(
@@ -293,6 +657,11 @@ export class ProductService {
       }
       throw error;
     }
+    await Promise.all(
+      publicIds.map((publicId) =>
+        cleanupMediaBestEffort(publicId, 'product deletion')
+      )
+    );
   }
 
   /**

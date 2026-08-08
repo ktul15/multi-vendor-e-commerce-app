@@ -343,16 +343,20 @@ describe('vendor product mutation contracts', () => {
   });
 
   it.each([
-    ['put', () => '/api/v1/products/not-a-uuid', { name: 'Valid Name' }],
-    ['delete', () => '/api/v1/products/not-a-uuid', undefined],
+    [
+      'put',
+      (): string => '/api/v1/products/not-a-uuid',
+      { name: 'Valid Name' },
+    ],
+    ['delete', (): string => '/api/v1/products/not-a-uuid', undefined],
     [
       'post',
-      () => '/api/v1/products/not-a-uuid/variants',
+      (): string => '/api/v1/products/not-a-uuid/variants',
       { sku: 'INVALID-PATH-SKU', price: 10, stock: 1 },
     ],
     [
       'put',
-      () => `/api/v1/products/${activeProductId}/variants/not-a-uuid`,
+      (): string => `/api/v1/products/${activeProductId}/variants/not-a-uuid`,
       { stock: 2 },
     ],
   ] as const)(

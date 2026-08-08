@@ -17,8 +17,10 @@ import {
   vendorInventoryQuerySchema,
   productParamSchema,
   productVariantParamSchema,
+  productMediaParamSchema,
 } from './product.validation';
 import { Role } from '../../generated/prisma/client';
+import upload, { withUpload } from '../../middleware/upload';
 
 const router = Router();
 const productController = new ProductController();
@@ -255,7 +257,7 @@ router.use(authenticate, authorize(Role.VENDOR), requireApprovedVendor);
  *                 example: 99.99
  *               images:
  *                 type: array
- *                 items: { type: string, format: uri }
+ *                 items: { type: string, format: uri, pattern: '^https://' }
  *                 maxItems: 5
  *               isActive:
  *                 type: boolean
@@ -302,6 +304,122 @@ router.post(
 
 /**
  * @openapi
+ * /products/{id}/media:
+ *   post:
+ *     tags: [Products]
+ *     summary: Upload product images (approved owner vendor only)
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     description: Appends one to five managed images without exceeding five total. Uploads are rolled back if persistence fails. JPEG, PNG, and WebP files up to 5 MB each are accepted.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [images]
+ *             properties:
+ *               images:
+ *                 type: array
+ *                 minItems: 1
+ *                 maxItems: 5
+ *                 items: { type: string, format: binary }
+ *     responses:
+ *       201:
+ *         description: Ordered product media after upload
+ *       400:
+ *         description: Missing files, invalid type, excess files, or five-image limit exceeded
+ *       401: { description: Unauthorized }
+ *       403: { description: Vendor is unapproved or does not own the product }
+ *       404: { description: Product not found }
+ *       413: { description: A file exceeds 5 MB }
+ */
+router.post(
+  '/:id/media',
+  validateParams(productParamSchema),
+  withUpload(upload.array('images', 5)),
+  productController.uploadMedia
+);
+
+/**
+ * @openapi
+ * /products/{id}/media/{mediaId}:
+ *   put:
+ *     tags: [Products]
+ *     summary: Replace one product image (approved owner vendor only)
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     description: Preserves the media ID and ordering position. The new upload rolls back on persistence failure; replaced managed media is deleted best effort after commit.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *       - in: path
+ *         name: mediaId
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [image]
+ *             properties:
+ *               image: { type: string, format: binary }
+ *     responses:
+ *       200: { description: Ordered product media after replacement }
+ *       400:
+ *         description: "Missing image, invalid type, or unexpected field"
+ *       401: { description: Unauthorized }
+ *       403: { description: Vendor is unapproved or does not own the product }
+ *       404: { description: Product or media not found }
+ *       413: { description: The file exceeds 5 MB }
+ *   delete:
+ *     tags: [Products]
+ *     summary: Remove one product image (approved owner vendor only)
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     description: The database mutation is authoritative. Managed Cloudinary cleanup is best effort and observable in server logs.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *       - in: path
+ *         name: mediaId
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200: { description: Ordered remaining product media }
+ *       400: { description: Invalid product or media ID }
+ *       401: { description: Unauthorized }
+ *       403: { description: Vendor is unapproved or does not own the product }
+ *       404: { description: Product or media not found }
+ */
+router.put(
+  '/:id/media/:mediaId',
+  validateParams(productMediaParamSchema),
+  withUpload(upload.single('image')),
+  productController.replaceMedia
+);
+router.delete(
+  '/:id/media/:mediaId',
+  validateParams(productMediaParamSchema),
+  productController.removeMedia
+);
+
+/**
+ * @openapi
  * /products/{id}:
  *   put:
  *     tags: [Products]
@@ -326,7 +444,7 @@ router.post(
  *               basePrice: { type: number, minimum: 0 }
  *               images:
  *                 type: array
- *                 items: { type: string, format: uri }
+ *                 items: { type: string, format: uri, pattern: '^https://' }
  *                 maxItems: 5
  *               isActive: { type: boolean }
  *               tags:

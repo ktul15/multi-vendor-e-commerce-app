@@ -8,6 +8,7 @@ import {
 import { prisma } from '../../config/prisma';
 import { env } from '../../config/env';
 import { ApiError } from '../../utils/apiError';
+import { cleanupMediaBestEffort } from '../../utils/mediaCleanup';
 import {
   ListUsersQueryInput,
   ListVendorsQueryInput,
@@ -433,6 +434,16 @@ export class AdminService {
         description: true,
         basePrice: true,
         images: true,
+        media: {
+          orderBy: [{ position: 'asc' }, { id: 'asc' }],
+          select: {
+            id: true,
+            url: true,
+            position: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
         isActive: true,
         avgRating: true,
         reviewCount: true,
@@ -504,10 +515,17 @@ export class AdminService {
   }
 
   async deleteProduct(productId: string) {
+    let publicIds: string[] = [];
     try {
       await prisma.$transaction(async (tx) => {
         const product = await this.lockProduct(tx, productId);
         if (!product) throw ApiError.notFound('Product not found');
+        publicIds = (
+          await tx.productMedia.findMany({
+            where: { productId, publicId: { not: null } },
+            select: { publicId: true },
+          })
+        ).flatMap((item) => (item.publicId ? [item.publicId] : []));
         await tx.product.delete({ where: { id: productId } });
       });
     } catch (err) {
@@ -527,6 +545,11 @@ export class AdminService {
       }
       throw err;
     }
+    await Promise.all(
+      publicIds.map((publicId) =>
+        cleanupMediaBestEffort(publicId, 'admin product deletion')
+      )
+    );
   }
 
   // ---- Orders ----

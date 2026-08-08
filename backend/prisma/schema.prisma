@@ -207,6 +207,7 @@ model Product {
   vendor   User      @relation(fields: [vendorId], references: [id])
   category Category  @relation(fields: [categoryId], references: [id])
   variants      Variant[]
+  media         ProductMedia[]
   reviews       Review[]
   wishlistItems WishlistItem[]
 
@@ -219,6 +220,22 @@ model Product {
   @@index([avgRating])
   @@index([reviewCount])
   @@map("products")
+}
+
+model ProductMedia {
+  id        String   @id @default(uuid())
+  productId String
+  url       String
+  // Kept server-side for managed Cloudinary cleanup. Legacy/external URLs are null.
+  publicId  String?
+  position  Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, position])
+  @@index([productId])
+  @@map("product_media")
 }
 
 model Variant {
