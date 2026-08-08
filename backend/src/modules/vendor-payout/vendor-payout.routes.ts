@@ -54,7 +54,7 @@ const router = Router();
  *   post:
  *     tags: [Vendor Payouts]
  *     summary: Start Stripe Connect onboarding (approved Vendors only)
- *     description: Generates a Stripe Connect onboarding URL. The vendor is redirected to Stripe to complete account setup.
+ *     description: Generates a single-use Stripe-hosted onboarding URL using backend-configured return and refresh URLs; clients cannot supply either redirect. Navigate the browser at top level, then reconcile completion with GET /vendor-payouts/connect/status after Stripe returns.
  *     responses:
  *       200:
  *         description: Onboarding URL
@@ -87,7 +87,7 @@ router.post(
  *   get:
  *     tags: [Vendor Payouts]
  *     summary: Refresh the Stripe Connect onboarding link (approved Vendors only)
- *     description: Returns a fresh onboarding URL if the previous one expired.
+ *     description: Returns a fresh single-use onboarding URL when Stripe reaches the backend-configured refresh route. Call once per refresh event, navigate at top level, and guard the client against retry loops. Redirect targets are server configuration, never request input.
  *     responses:
  *       200:
  *         description: Refreshed onboarding URL
@@ -116,7 +116,7 @@ router.get(
  *   get:
  *     tags: [Vendor Payouts]
  *     summary: Get Stripe Connect account status (Vendor only)
- *     description: Returns whether the vendor's Stripe Connect account is fully onboarded and enabled for payouts.
+ *     description: Reconciles the Stripe account after onboarding return. Use onboardingStatus, chargesEnabled, payoutsEnabled, and detailsSubmitted as authoritative UI inputs; return query parameters are not proof of completion.
  *     responses:
  *       200:
  *         description: Connect account status
@@ -126,9 +126,10 @@ router.get(
  *               success: true
  *               message: Connect status fetched
  *               data:
- *                 connected: true
+ *                 onboardingStatus: COMPLETE
  *                 chargesEnabled: true
  *                 payoutsEnabled: true
+ *                 detailsSubmitted: true
  *       401:
  *         description: Unauthorized
  *       403:
@@ -193,19 +194,14 @@ router.get(
  *   get:
  *     tags: [Vendor Payouts]
  *     summary: Get earnings summary (approved Vendors only)
- *     description: Returns total lifetime earnings, pending balance, and transferred amount.
+ *     description: Returns count, gross, commission, and net aggregates for every earning status.
  *     responses:
  *       200:
  *         description: Earnings summary
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               message: Earnings summary fetched
- *               data:
- *                 totalEarnings: 1500.00
- *                 pendingBalance: 200.00
- *                 transferred: 1300.00
+ *             schema:
+ *               $ref: '#/components/schemas/ApiSuccess'
  *       401:
  *         description: Unauthorized
  *       403:

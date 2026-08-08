@@ -1,6 +1,6 @@
 # Dashboard API Contract Audit
 
-Status: Baseline for issue #74
+Status: Reconciled under issue #130
 
 Clients: `vendor_dashboard/` and `admin_panel/` (Flutter)
 
@@ -195,17 +195,17 @@ Environment-specific return and refresh origins must be allowlisted configuratio
 | API-08 | Banner reorder is multi-request/non-atomic and may be unreachable in Flutter                                                                                                                                | Add atomic reorder only if #112 retains the requirement                                                                             | Link to #112 plus backend follow-up if retained. |
 | API-09 | Product, variant, and category update schemas accepted empty objects and permitted no-op mutations                                                                                                          | Fixed for product/variant under #129 and category under #131                                                                        | #129, #131                                       |
 | API-10 | Admin order filtering uses any vendor sub-order while summary clients display the first status                                                                                                              | Resolved with per-vendor statuses, `NONE`/`SINGLE`/`MIXED` summary, and same-sub-order combined filters                             | #134                                             |
-| API-11 | Admin dashboard runtime returns `platformRevenue` as commission revenue while OpenAPI uses `totalRevenue` with gross-sounding semantics; `/admin/revenue` returns only gross series/dateRange and no totals | Correct keys, metric meanings, and response shapes; keep GMV labels or add an approved reporting contract                           | #130; frontend #113                              |
+| API-11 | Admin dashboard runtime returns `platformRevenue` as commission revenue while `/admin/revenue` returns gross series/dateRange | Resolved: concrete schemas use `platformRevenue` for commission earned and document `/admin/revenue` buckets as gross merchandise value (GMV) | #130; frontend #113 |
 | API-12 | Product media previously had URL fields but no dashboard upload endpoint                                                                                                                                    | Resolved with owner-scoped upload/replace/remove routes, stable ordered records, and a synchronized legacy URL projection           | #135; frontend #93                               |
-| API-13 | Promo delete is always soft delete but naming/documentation can imply permanent deletion                                                                                                                    | Document as archive/soft delete consistently                                                                                        | Link to #111.                                    |
+| API-13 | Promo delete is always soft delete but naming/documentation can imply permanent deletion | Resolved: the operation is documented as archive/soft-deactivate and its returned inactive/deleted record has a concrete schema | #130; frontend #111 |
 | API-14 | Upload cleanup must distinguish rollback from post-commit best effort                                                                                                                                       | #131, #133, and #135 roll back new files on primary mutation failure; replaced/deleted cleanup is logged best effort after commit   | #131, #133, #135                                 |
-| API-15 | Refresh returns direct access/refresh token fields while login/register nest them under `tokens`; OpenAPI omits the refresh response's `refreshToken`                                                       | Preserve distinct schemas or standardize them during cookie migration and correct the spec                                          | #82, #130                                        |
-| API-16 | Payout lists use resource-specific arrays plus `pagination` and zero empty pages; most dashboard lists use `items/meta` and one empty page                                                                  | Standardize or explicitly generate both pagination families                                                                         | #130                                             |
-| API-17 | Duplicate store/SKU and product deletion FK failures are inconsistently mapped to 400 or unknown 500 instead of stable conflict responses                                                                   | Resolved at runtime with structured 409 conflicts and integration tests; final generated-contract reconciliation remains under #130 | #129, #130                                       |
-| API-18 | Business-rule failures inconsistently use 400 and 409 across order/vendor/category mutations                                                                                                                | #134 documents admin 409 no-op/conflict versus 400 invalid-transition semantics; final cross-API reconciliation remains in #130     | #130, #134                                       |
-| API-19 | Admin product delete returns 204 while most mutations return a success envelope                                                                                                                             | Model the no-content response explicitly in OpenAPI/generated clients                                                               | #130                                             |
-| API-20 | Vendor profile, analytics, Connect-status, and earnings-summary OpenAPI examples use keys/shapes that differ materially from runtime                                                                        | Define stable DTOs and correct generated schemas/examples with contract tests                                                       | #130                                             |
-| API-21 | Banner delete returns 204 empty while OpenAPI documents 200                                                                                                                                                 | Model the no-content response and cleanup semantics                                                                                 | #133, #130                                       |
+| API-15 | Refresh returns direct access/refresh token fields while login/register nest them under `tokens` | Resolved: OpenAPI preserves the distinct direct token-pair response (including `refreshToken`) and cookie-mode null response | #82, #130 |
+| API-16 | Payout lists use resource-specific arrays plus `pagination` and zero empty pages; most dashboard lists use `items/meta` and one empty page | Resolved: generated schemas explicitly model both runtime pagination families without changing empty-page semantics | #130 |
+| API-17 | Duplicate store/SKU and product deletion FK failures previously mapped inconsistently to 400 or unknown 500 | Resolved with stable runtime 409 responses, structured `ApiError` schemas, integration coverage, and generated-contract reconciliation | #129, #130 |
+| API-18 | Business-rule failures use 400 for invalid transitions and 409 for stale/no-op conflicts | Resolved: dashboard operations consistently generate the structured `ApiError` body for their declared statuses | #130, #134 |
+| API-19 | Admin product delete returns 204 while most mutations return a success envelope | Resolved: OpenAPI models an empty 204 response | #130 |
+| API-20 | Vendor profile, analytics, Connect-status, and earnings-summary examples differed materially from runtime | Resolved with concrete DTO schemas, corrected redirect/status descriptions, and representative contract tests | #130 |
+| API-21 | Banner delete returns 204 empty while OpenAPI previously documented 200 | Resolved with an explicit empty 204 response | #133, #130 |
 
 ## Follow-up issue requirements
 
@@ -220,14 +220,14 @@ Confirmed gaps should be grouped into implementation-sized backend issues rather
 
 ## Contract sign-off checklist
 
-- [ ] Every Flutter vendor/admin repository call appears in an inventory table.
-- [ ] Every web-required Stripe/payout capability appears in an inventory table.
-- [ ] Requests, responses, authorization, pagination, filters, and expected error states are explicit.
-- [ ] JSON, multipart, browser-cookie, and external redirect boundaries are defined.
-- [ ] Runtime/OpenAPI mismatches have a migration decision.
-- [ ] Every confirmed gap links to an implementation issue and dependent frontend issue.
-- [ ] Generated client work in #81 consumes the corrected spec rather than hand-maintained duplicate types.
-- [ ] Contract tests cover permission, validation, pagination, not-found, conflict, upload, and redirect cases.
+- [x] Every Flutter vendor/admin repository call appears in an inventory table.
+- [x] Every web-required Stripe/payout capability appears in an inventory table.
+- [x] Requests, responses, authorization, pagination, filters, and expected error states are explicit.
+- [x] JSON, multipart, browser-cookie, and external redirect boundaries are defined.
+- [x] Runtime/OpenAPI mismatches have a migration decision.
+- [x] Every confirmed gap links to an implementation issue and dependent frontend issue.
+- [x] Generated client work in #81 consumes the corrected spec rather than hand-maintained duplicate types.
+- [x] Contract tests cover permission, validation, pagination, not-found, conflict, upload, and redirect cases.
 
 ## Evidence references
 

@@ -549,6 +549,153 @@
           }
         }
       },
+      "AdminUserSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "email",
+          "role",
+          "isBanned",
+          "isVerified",
+          "createdAt",
+          "vendorProfile"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "CUSTOMER",
+              "VENDOR",
+              "ADMIN"
+            ]
+          },
+          "isBanned": {
+            "type": "boolean"
+          },
+          "isVerified": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "vendorProfile": {
+            "type": "object",
+            "nullable": true,
+            "required": [
+              "id",
+              "storeName",
+              "status"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "storeName": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "PENDING",
+                  "APPROVED",
+                  "REJECTED",
+                  "SUSPENDED"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "AdminUsersSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "items",
+              "meta"
+            ],
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AdminUserSummary"
+                }
+              },
+              "meta": {
+                "$ref": "#/components/schemas/Pagination"
+              }
+            }
+          }
+        }
+      },
+      "AdminUserBanMutationSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "email",
+              "isBanned"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "isBanned": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
       "AdminVendorOwner": {
         "type": "object",
         "required": [
@@ -681,6 +828,112 @@
           }
         }
       },
+      "AdminVendorSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "storeName",
+          "status",
+          "commissionRate",
+          "stripeOnboardingStatus",
+          "createdAt",
+          "user"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "storeName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "APPROVED",
+              "REJECTED",
+              "SUSPENDED"
+            ]
+          },
+          "commissionRate": {
+            "type": "string",
+            "nullable": true
+          },
+          "stripeOnboardingStatus": {
+            "type": "string",
+            "enum": [
+              "NOT_STARTED",
+              "PENDING",
+              "COMPLETE",
+              "RESTRICTED"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "email",
+              "isBanned"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "isBanned": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
+      "AdminVendorsSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "items",
+              "meta"
+            ],
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AdminVendorSummary"
+                }
+              },
+              "meta": {
+                "$ref": "#/components/schemas/Pagination"
+              }
+            }
+          }
+        }
+      },
       "AdminVendorLifecycle": {
         "type": "object",
         "required": [
@@ -729,6 +982,45 @@
           },
           "data": {
             "$ref": "#/components/schemas/AdminVendorLifecycle"
+          }
+        }
+      },
+      "VendorCommissionMutationSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "id",
+              "storeName",
+              "commissionRate"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "storeName": {
+                "type": "string"
+              },
+              "commissionRate": {
+                "type": "string",
+                "nullable": true
+              }
+            }
           }
         }
       },
@@ -907,6 +1199,165 @@
           },
           "data": {
             "$ref": "#/components/schemas/AdminProductDetail"
+          }
+        }
+      },
+      "AdminProductListItem": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "basePrice",
+          "isActive",
+          "avgRating",
+          "reviewCount",
+          "createdAt",
+          "vendor",
+          "category",
+          "_count"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "basePrice": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "avgRating": {
+            "type": "string"
+          },
+          "reviewCount": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "vendor": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "email"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              }
+            }
+          },
+          "category": {
+            "type": "object",
+            "required": [
+              "id",
+              "name"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "_count": {
+            "type": "object",
+            "required": [
+              "variants"
+            ],
+            "properties": {
+              "variants": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "AdminProductsSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "items",
+              "meta"
+            ],
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AdminProductListItem"
+                }
+              },
+              "meta": {
+                "$ref": "#/components/schemas/Pagination"
+              }
+            }
+          }
+        }
+      },
+      "AdminProductStatusMutationSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "isActive"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "isActive": {
+                "type": "boolean"
+              }
+            }
           }
         }
       },
@@ -1474,6 +1925,36 @@
                   "database",
                   "env_fallback"
                 ]
+              }
+            }
+          }
+        }
+      },
+      "CommissionMutationSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "rate"
+            ],
+            "properties": {
+              "rate": {
+                "type": "number"
               }
             }
           }
@@ -2701,6 +3182,260 @@
           }
         }
       },
+      "PromoCode": {
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "discountType",
+          "discountValue",
+          "minOrderValue",
+          "maxDiscount",
+          "usageLimit",
+          "usageCount",
+          "perUserLimit",
+          "isActive",
+          "deletedAt",
+          "expiresAt",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "discountType": {
+            "type": "string",
+            "enum": [
+              "PERCENTAGE",
+              "FIXED"
+            ]
+          },
+          "discountValue": {
+            "type": "string"
+          },
+          "minOrderValue": {
+            "type": "string",
+            "nullable": true
+          },
+          "maxDiscount": {
+            "type": "string",
+            "nullable": true
+          },
+          "usageLimit": {
+            "type": "integer",
+            "nullable": true
+          },
+          "usageCount": {
+            "type": "integer"
+          },
+          "perUserLimit": {
+            "type": "integer",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PromoCodeWithCounts": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PromoCode"
+          },
+          {
+            "type": "object",
+            "required": [
+              "_count"
+            ],
+            "properties": {
+              "_count": {
+                "type": "object",
+                "required": [
+                  "orders",
+                  "usages"
+                ],
+                "properties": {
+                  "orders": {
+                    "type": "integer"
+                  },
+                  "usages": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "PromoCodeDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PromoCodeWithCounts"
+          },
+          {
+            "type": "object",
+            "required": [
+              "usages"
+            ],
+            "properties": {
+              "usages": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "userId",
+                    "promoCodeId",
+                    "orderId",
+                    "usedAt",
+                    "user"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "userId": {
+                      "type": "string"
+                    },
+                    "promoCodeId": {
+                      "type": "string"
+                    },
+                    "orderId": {
+                      "type": "string"
+                    },
+                    "usedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "user": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "name",
+                        "email"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "PromoCodeSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PromoCode"
+          }
+        }
+      },
+      "PromoCodeDetailSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PromoCodeDetail"
+          }
+        }
+      },
+      "PromoCodesSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "items",
+              "meta"
+            ],
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PromoCodeWithCounts"
+                }
+              },
+              "meta": {
+                "$ref": "#/components/schemas/Pagination"
+              }
+            }
+          }
+        }
+      },
       "ConnectOnboardingSuccess": {
         "type": "object",
         "required": [
@@ -2725,7 +3460,8 @@
             ],
             "properties": {
               "url": {
-                "type": "string"
+                "type": "string",
+                "format": "uri"
               }
             }
           }
@@ -2839,6 +3575,273 @@
               },
               "reversed": {
                 "$ref": "#/components/schemas/EarningsAmounts"
+              }
+            }
+          }
+        }
+      },
+      "VendorEarning": {
+        "type": "object",
+        "required": [
+          "id",
+          "vendorProfileId",
+          "vendorOrderId",
+          "orderId",
+          "grossAmount",
+          "commissionRate",
+          "commissionAmount",
+          "netAmount",
+          "currency",
+          "status",
+          "stripeTransferId",
+          "transferredAt",
+          "createdAt",
+          "updatedAt",
+          "order"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "vendorProfileId": {
+            "type": "string"
+          },
+          "vendorOrderId": {
+            "type": "string"
+          },
+          "orderId": {
+            "type": "string"
+          },
+          "grossAmount": {
+            "type": "string"
+          },
+          "commissionRate": {
+            "type": "string"
+          },
+          "commissionAmount": {
+            "type": "string"
+          },
+          "netAmount": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "USD",
+              "EUR",
+              "GBP",
+              "INR",
+              "CAD",
+              "AUD"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "TRANSFERRED",
+              "FAILED",
+              "REVERSED"
+            ]
+          },
+          "stripeTransferId": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferredAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "order": {
+            "type": "object",
+            "required": [
+              "orderNumber"
+            ],
+            "properties": {
+              "orderNumber": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "VendorEarningsSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "earnings",
+              "pagination"
+            ],
+            "properties": {
+              "earnings": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/VendorEarning"
+                }
+              },
+              "pagination": {
+                "$ref": "#/components/schemas/Pagination"
+              }
+            }
+          }
+        }
+      },
+      "VendorPayout": {
+        "type": "object",
+        "required": [
+          "id",
+          "vendorProfileId",
+          "stripePayoutId",
+          "amount",
+          "currency",
+          "status",
+          "arrivalDate",
+          "failureReason",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "vendorProfileId": {
+            "type": "string"
+          },
+          "stripePayoutId": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "USD",
+              "EUR",
+              "GBP",
+              "INR",
+              "CAD",
+              "AUD"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PAID",
+              "FAILED"
+            ]
+          },
+          "arrivalDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "failureReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "VendorPayoutsSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "payouts",
+              "pagination"
+            ],
+            "properties": {
+              "payouts": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/VendorPayout"
+                }
+              },
+              "pagination": {
+                "$ref": "#/components/schemas/Pagination"
+              }
+            }
+          }
+        }
+      },
+      "VendorPayoutCommissionSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "vendorId",
+              "commissionRate"
+            ],
+            "properties": {
+              "vendorId": {
+                "type": "string"
+              },
+              "commissionRate": {
+                "type": "number"
               }
             }
           }
@@ -3019,6 +4022,9 @@
         "properties": {
           "success": {
             "type": "boolean",
+            "enum": [
+              false
+            ],
             "example": false
           },
           "message": {
@@ -3421,7 +4427,7 @@
           "Admin"
         ],
         "summary": "Get admin dashboard stats",
-        "description": "Returns platform-wide summary stats (total users, vendors, products, orders, revenue).",
+        "description": "Returns platform-wide counts and platformRevenue, the platform's earned commission (not gross merchandise value).",
         "responses": {
           "200": {
             "description": "Dashboard stats",
@@ -3435,7 +4441,9 @@
                     "totalVendors": 45,
                     "totalProducts": 320,
                     "totalOrders": 850,
-                    "totalRevenue": 75000
+                    "bannedUsers": 8,
+                    "pendingVendors": 4,
+                    "platformRevenue": "75000.00"
                   }
                 },
                 "schema": {
@@ -3445,10 +4453,24 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden — ADMIN role required"
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -3511,16 +4533,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": "#/components/schemas/AdminUsersSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination or user filter query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -3616,7 +4662,14 @@
         ],
         "responses": {
           "200": {
-            "description": "User banned"
+            "description": "User banned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserBanMutationSuccess"
+                }
+              }
+            }
           },
           "400": {
             "description": "Invalid user ID",
@@ -3690,7 +4743,14 @@
         ],
         "responses": {
           "200": {
-            "description": "User unbanned"
+            "description": "User unbanned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserBanMutationSuccess"
+                }
+              }
+            }
           },
           "400": {
             "description": "Invalid user ID",
@@ -3797,13 +4857,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": "#/components/schemas/AdminVendorsSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination or vendor filter query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -4155,16 +5242,44 @@
         },
         "responses": {
           "200": {
-            "description": "Commission rate updated"
+            "description": "Commission rate updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VendorCommissionMutationSuccess"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Validation error"
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Vendor profile not found"
+            "description": "Vendor profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -4231,13 +5346,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": "#/components/schemas/AdminProductsSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination or product filter query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -4405,7 +5547,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Product activated"
+            "description": "Product activated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminProductStatusMutationSuccess"
+                }
+              }
+            }
           },
           "400": {
             "description": "Invalid product ID",
@@ -4479,7 +5628,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Product deactivated"
+            "description": "Product deactivated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminProductStatusMutationSuccess"
+                }
+              }
+            }
           },
           "400": {
             "description": "Invalid product ID",
@@ -4731,7 +5887,8 @@
         "tags": [
           "Admin"
         ],
-        "summary": "Get platform revenue report (Admin only)",
+        "summary": "Get gross merchandise value report (Admin only)",
+        "description": "Returns billable order gross merchandise value (GMV) by period. The revenue field is gross order value, not platform commission or vendor net earnings.",
         "parameters": [
           {
             "in": "query",
@@ -4768,25 +5925,41 @@
             "description": "Revenue report time series",
             "content": {
               "application/json": {
-                "example": {
-                  "success": true,
-                  "message": "Revenue report fetched",
-                  "data": [
-                    {
-                      "period": "2024-01",
-                      "revenue": 15000,
-                      "commissions": 2250
-                    }
-                  ]
-                },
                 "schema": {
                   "$ref": "#/components/schemas/AdminRevenueSuccess"
                 }
               }
             }
           },
+          "400": {
+            "description": "Invalid report period or date range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -4816,7 +5989,24 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       },
@@ -4848,13 +6038,44 @@
         },
         "responses": {
           "200": {
-            "description": "Commission rate updated"
+            "description": "Commission rate updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommissionMutationSuccess"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Validation error"
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -4907,13 +6128,34 @@
             }
           },
           "400": {
-            "description": "Invalid date range (max 366 days)"
+            "description": "Invalid date range (max 366 days)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden — must be an approved vendor"
+            "description": "Forbidden — must be an approved vendor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -4979,13 +6221,34 @@
             }
           },
           "400": {
-            "description": "Invalid date range"
+            "description": "Invalid date range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -5049,10 +6312,24 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -8737,22 +10014,50 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": "#/components/schemas/PromoCodeSuccess"
                 }
               }
             }
           },
           "400": {
-            "description": "Validation error"
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden — ADMIN role required"
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "409": {
-            "description": "Promo code already exists"
+            "description": "Promo code already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       },
@@ -8812,16 +10117,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": "#/components/schemas/PromoCodesSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination or filter query",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -8849,16 +10178,50 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": "#/components/schemas/PromoCodeDetailSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid promo code ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Promo code not found"
+            "description": "Promo code not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       },
@@ -8900,23 +10263,28 @@
                     "type": "number"
                   },
                   "minOrderValue": {
-                    "type": "number"
+                    "type": "number",
+                    "nullable": true
                   },
                   "maxDiscount": {
-                    "type": "number"
+                    "type": "number",
+                    "nullable": true
                   },
                   "usageLimit": {
-                    "type": "integer"
+                    "type": "integer",
+                    "nullable": true
                   },
                   "perUserLimit": {
-                    "type": "integer"
+                    "type": "integer",
+                    "nullable": true
                   },
                   "isActive": {
                     "type": "boolean"
                   },
                   "expiresAt": {
                     "type": "string",
-                    "format": "date-time"
+                    "format": "date-time",
+                    "nullable": true
                   }
                 }
               }
@@ -8925,16 +10293,64 @@
         },
         "responses": {
           "200": {
-            "description": "Promo code updated"
+            "description": "Promo code updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromoCodeSuccess"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Validation error"
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Promo code not found"
+            "description": "Promo code not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Promo code already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       },
@@ -8942,7 +10358,8 @@
         "tags": [
           "Promo Codes"
         ],
-        "summary": "Delete a promo code (Admin only)",
+        "summary": "Archive a promo code (Admin only)",
+        "description": "Soft-deactivates the promo by setting isActive=false and deletedAt. Order and usage history are retained; this is not a permanent deletion.",
         "parameters": [
           {
             "in": "path",
@@ -8956,13 +10373,54 @@
         ],
         "responses": {
           "200": {
-            "description": "Promo code deleted"
+            "description": "Promo code archived and returned with its inactive/deleted state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromoCodeSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid promo code ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Promo code not found"
+            "description": "Promo code not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -9272,7 +10730,7 @@
           "Vendor Payouts"
         ],
         "summary": "Start Stripe Connect onboarding (approved Vendors only)",
-        "description": "Generates a Stripe Connect onboarding URL. The vendor is redirected to Stripe to complete account setup.",
+        "description": "Generates a single-use Stripe-hosted onboarding URL using backend-configured return and refresh URLs; clients cannot supply either redirect. Navigate the browser at top level, then reconcile completion with GET /vendor-payouts/connect/status after Stripe returns.",
         "responses": {
           "200": {
             "description": "Onboarding URL",
@@ -9292,13 +10750,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden — must be an approved vendor"
+            "description": "Forbidden — must be an approved vendor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Vendor profile not found"
+            "description": "Vendor profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -9309,26 +10788,57 @@
           "Vendor Payouts"
         ],
         "summary": "Refresh the Stripe Connect onboarding link (approved Vendors only)",
-        "description": "Returns a fresh onboarding URL if the previous one expired.",
+        "description": "Returns a fresh single-use onboarding URL when Stripe reaches the backend-configured refresh route. Call once per refresh event, navigate at top level, and guard the client against retry loops. Redirect targets are server configuration, never request input.",
         "responses": {
           "200": {
             "description": "Refreshed onboarding URL",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": "#/components/schemas/ConnectOnboardingSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Stripe onboarding has not been started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden — must be an approved vendor"
+            "description": "Forbidden — must be an approved vendor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Vendor profile not found"
+            "description": "Vendor profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -9339,7 +10849,7 @@
           "Vendor Payouts"
         ],
         "summary": "Get Stripe Connect account status (Vendor only)",
-        "description": "Returns whether the vendor's Stripe Connect account is fully onboarded and enabled for payouts.",
+        "description": "Reconciles the Stripe account after onboarding return. Use onboardingStatus, chargesEnabled, payoutsEnabled, and detailsSubmitted as authoritative UI inputs; return query parameters are not proof of completion.",
         "responses": {
           "200": {
             "description": "Connect account status",
@@ -9349,9 +10859,10 @@
                   "success": true,
                   "message": "Connect status fetched",
                   "data": {
-                    "connected": true,
+                    "onboardingStatus": "COMPLETE",
                     "chargesEnabled": true,
-                    "payoutsEnabled": true
+                    "payoutsEnabled": true,
+                    "detailsSubmitted": true
                   }
                 },
                 "schema": {
@@ -9361,10 +10872,24 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden — VENDOR role required"
+            "description": "Forbidden — VENDOR role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -9429,16 +10954,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": "#/components/schemas/VendorEarningsSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination, status, or date filter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -9449,21 +10998,12 @@
           "Vendor Payouts"
         ],
         "summary": "Get earnings summary (approved Vendors only)",
-        "description": "Returns total lifetime earnings, pending balance, and transferred amount.",
+        "description": "Returns count, gross, commission, and net aggregates for every earning status.",
         "responses": {
           "200": {
             "description": "Earnings summary",
             "content": {
               "application/json": {
-                "example": {
-                  "success": true,
-                  "message": "Earnings summary fetched",
-                  "data": {
-                    "totalEarnings": 1500,
-                    "pendingBalance": 200,
-                    "transferred": 1300
-                  }
-                },
                 "schema": {
                   "$ref": "#/components/schemas/EarningsSummarySuccess"
                 }
@@ -9471,13 +11011,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden — must be an approved vendor"
+            "description": "Forbidden — must be an approved vendor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Vendor profile not found"
+            "description": "Vendor profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -9525,16 +11086,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": "#/components/schemas/VendorPayoutsSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination or status filter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -9581,19 +11166,54 @@
         },
         "responses": {
           "200": {
-            "description": "Commission rate updated"
+            "description": "Commission rate updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VendorPayoutCommissionSuccess"
+                }
+              }
+            }
           },
           "400": {
-            "description": "Validation error"
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Forbidden — ADMIN role required"
+            "description": "Forbidden — ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Vendor not found"
+            "description": "Vendor not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
