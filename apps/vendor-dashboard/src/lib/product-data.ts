@@ -8,6 +8,7 @@ import type { ProductListState } from "./product-list-state";
 
 export type VendorInventory = components["schemas"]["ProductsSuccess"]["data"];
 export type VendorProduct = VendorInventory["items"][number];
+export type ProductMedia = components["schemas"]["ProductMedia"];
 export type Category = Readonly<{ children: Category[]; id: string; name: string }>;
 export type EditableProduct = Readonly<{
   basePrice: string;
@@ -16,7 +17,7 @@ export type EditableProduct = Readonly<{
   id: string;
   images: string[];
   isActive: boolean;
-  media: Array<Readonly<{ url: string }>>;
+  media: ProductMedia[];
   name: string;
   tags: string[];
   variants: Array<
