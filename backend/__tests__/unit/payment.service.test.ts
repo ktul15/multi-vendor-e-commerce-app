@@ -11,6 +11,8 @@ var mockCreate: jest.Mock;
 // eslint-disable-next-line no-var
 var mockRetrieve: jest.Mock;
 // eslint-disable-next-line no-var
+var mockUpdate: jest.Mock;
+// eslint-disable-next-line no-var
 var mockConstructEvent: jest.Mock;
 // eslint-disable-next-line no-var
 var mockRefundsCreate: jest.Mock;
@@ -21,16 +23,18 @@ const MOCK_INTENT_ID = 'pi_unit_test_intent';
 jest.mock('stripe', () => {
     const create = jest.fn();
     const retrieve = jest.fn();
+    const update = jest.fn();
     const constructEvent = jest.fn();
     const refundsCreate = jest.fn();
 
     mockCreate = create;
     mockRetrieve = retrieve;
+    mockUpdate = update;
     mockConstructEvent = constructEvent;
     mockRefundsCreate = refundsCreate;
 
     return jest.fn().mockImplementation(() => ({
-        paymentIntents: { create, retrieve },
+        paymentIntents: { create, retrieve, update },
         webhooks: { constructEvent },
         refunds: { create: refundsCreate },
     }));
@@ -120,10 +124,12 @@ afterAll(teardownTestDB);
 beforeEach(() => {
     mockCreate.mockClear();
     mockRetrieve.mockClear();
+    mockUpdate.mockClear();
     mockConstructEvent.mockClear();
     mockRefundsCreate.mockClear();
     mockCreate.mockResolvedValue({ id: MOCK_INTENT_ID, client_secret: MOCK_CLIENT_SECRET });
     mockRetrieve.mockResolvedValue({ id: MOCK_INTENT_ID, client_secret: MOCK_CLIENT_SECRET, status: 'requires_payment_method' });
+    mockUpdate.mockResolvedValue({ id: MOCK_INTENT_ID, client_secret: MOCK_CLIENT_SECRET });
 });
 
 // ---------------------
@@ -209,6 +215,10 @@ describe('PaymentService — createPaymentIntent()', () => {
         expect(result.clientSecret).toBe(MOCK_CLIENT_SECRET);
         expect(mockCreate).not.toHaveBeenCalled();
         expect(mockRetrieve).toHaveBeenCalledWith(MOCK_INTENT_ID);
+        expect(mockUpdate).toHaveBeenCalledWith(
+            MOCK_INTENT_ID,
+            expect.objectContaining({ description: expect.stringContaining('ORD-TEST-') })
+        );
     });
 
     it('should create a fresh intent when existing intent was cancelled on Stripe side', async () => {

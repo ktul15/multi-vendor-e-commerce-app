@@ -13,6 +13,8 @@ describe('Production security headers', () => {
     process.env.STOREFRONT_URL = 'https://storefront.example.com';
     process.env.VENDOR_DASHBOARD_URL = 'https://vendor.example.com';
     process.env.ADMIN_DASHBOARD_URL = 'https://admin.example.com';
+    process.env.DASHBOARD_BFF_SECRET =
+      'production-security-test-secret-32-characters';
     jest.resetModules();
     const { default: productionApp } = await import('../../app');
 
