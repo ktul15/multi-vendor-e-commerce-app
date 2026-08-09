@@ -4,6 +4,16 @@ dotenv.config();
 
 const nodeEnv = process.env.NODE_ENV || 'development';
 
+const dashboardBffSecret = (): string => {
+  const configured = process.env.DASHBOARD_BFF_SECRET?.trim();
+  if (nodeEnv === 'production' && (!configured || configured.length < 32)) {
+    throw new Error(
+      'DASHBOARD_BFF_SECRET must contain at least 32 characters in production'
+    );
+  }
+  return configured || 'development-dashboard-bff-secret-change-me';
+};
+
 const exactOrigin = (name: string, developmentFallback: string): string => {
   const configured = process.env[name]?.trim();
   if (!configured && nodeEnv === 'production') {
@@ -54,6 +64,7 @@ export const env = {
     process.env.JWT_REFRESH_SECRET || 'default-refresh-secret',
   JWT_ACCESS_EXPIRY: process.env.JWT_ACCESS_EXPIRY || '15m',
   JWT_REFRESH_EXPIRY: process.env.JWT_REFRESH_EXPIRY || '7d',
+  DASHBOARD_BFF_SECRET: dashboardBffSecret(),
 
   // Stripe
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || '',

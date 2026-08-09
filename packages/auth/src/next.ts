@@ -10,6 +10,7 @@ import {
   DashboardAuthError,
   dashboardCookieNames,
   isValidDashboardMutation,
+  isValidDashboardEntryMutation,
   loginRedirectPath,
   logoutRedirectPath,
   resolveDashboardSession,
@@ -29,9 +30,11 @@ const publicPaths = new Set(["/design-system", "/forbidden", "/login"]);
 export type NextDashboardAuthConfig = Readonly<{
   apiBaseUrl: () => string | undefined;
   appOrigin: () => string | undefined;
+  bffSecret?: () => string | undefined;
   dashboard: "admin" | "vendor";
   requiredRole: DashboardRole;
   secure: () => boolean;
+  trustedClientIpHeader?: () => string | undefined;
 }>;
 
 function encodeVerifiedSession(session: SessionSummary): string {
@@ -66,7 +69,9 @@ export function createNextDashboardAuth(config: NextDashboardAuthConfig) {
   const runtimeConfig = () => {
     const apiBaseUrl = config.apiBaseUrl();
     const appOrigin = config.appOrigin();
+    const bffSecret = config.bffSecret?.()?.trim();
     const secure = config.secure();
+    const trustedClientIpHeader = config.trustedClientIpHeader?.()?.trim().toLowerCase();
     if (!apiBaseUrl || !appOrigin) {
       throw new Error("API_BASE_URL and NEXT_PUBLIC_APP_URL are required");
     }
@@ -91,7 +96,22 @@ export function createNextDashboardAuth(config: NextDashboardAuthConfig) {
     if (secure && (parsedApiUrl.protocol !== "https:" || parsedAppOrigin.protocol !== "https:")) {
       throw new Error("Dashboard and API URLs must use HTTPS in production");
     }
-    return { apiBaseUrl: parsedApiUrl.href.replace(/\/$/, ""), appOrigin, secure };
+    if (secure && (!bffSecret || bffSecret.length < 32)) {
+      throw new Error("DASHBOARD_BFF_SECRET must contain at least 32 characters in production");
+    }
+    if (trustedClientIpHeader && !/^[a-z0-9-]+$/.test(trustedClientIpHeader)) {
+      throw new Error("DASHBOARD_TRUSTED_CLIENT_IP_HEADER must be a valid header name");
+    }
+    if (secure && !trustedClientIpHeader) {
+      throw new Error("DASHBOARD_TRUSTED_CLIENT_IP_HEADER is required in production");
+    }
+    return {
+      apiBaseUrl: parsedApiUrl.href.replace(/\/$/, ""),
+      appOrigin,
+      bffSecret,
+      secure,
+      trustedClientIpHeader,
+    };
   };
 
   const trustedLocation = (path: string): URL => new URL(path, runtimeConfig().appOrigin);
@@ -130,12 +150,43 @@ export function createNextDashboardAuth(config: NextDashboardAuthConfig) {
     );
   };
 
-  const sessionBackend = () =>
-    createDashboardSessionBackend({ apiBaseUrl: runtimeConfig().apiBaseUrl });
+  const establishSession = (response: NextResponse, tokens: SessionTokens): void => {
+    applyCookieWrites(
+      response,
+      createSessionCookieWrites({
+        dashboard: config.dashboard,
+        secure: runtimeConfig().secure,
+        tokens,
+      }),
+    );
+  };
+
+  const trustedClientKey = (request?: NextRequest): string | undefined => {
+    const { secure, trustedClientIpHeader } = runtimeConfig();
+    if (!trustedClientIpHeader) return undefined;
+    const rawValue = request?.headers.get(trustedClientIpHeader)?.trim();
+    if (!rawValue) {
+      if (secure) throw new Error("Trusted client IP header is missing");
+      return undefined;
+    }
+    const clientKey = rawValue.split(",", 1)[0]?.trim();
+    if (!clientKey || clientKey.length > 200) {
+      throw new Error("Trusted client IP header is invalid");
+    }
+    return clientKey;
+  };
+
+  const sessionBackend = (request?: NextRequest) =>
+    createDashboardSessionBackend({
+      apiBaseUrl: runtimeConfig().apiBaseUrl,
+      bffSecret: runtimeConfig().bffSecret,
+      clientKey: trustedClientKey(request),
+      dashboard: config.dashboard,
+    });
 
   const resolveRequestSession = (request: NextRequest) =>
     resolveDashboardSession({
-      backend: sessionBackend(),
+      backend: sessionBackend(request),
       credentials: requestCredentials(request),
       requiredRole: config.requiredRole,
     });
@@ -169,6 +220,13 @@ export function createNextDashboardAuth(config: NextDashboardAuthConfig) {
       cookieToken: request.cookies.get(names.csrf)?.value,
       fetchSite: request.headers.get("Sec-Fetch-Site"),
       headerToken: request.headers.get("X-CSRF-Token"),
+      origin: request.headers.get("Origin"),
+    });
+
+  const validEntryMutation = (request: NextRequest): boolean =>
+    isValidDashboardEntryMutation({
+      appOrigin: runtimeConfig().appOrigin,
+      fetchSite: request.headers.get("Sec-Fetch-Site"),
       origin: request.headers.get("Origin"),
     });
 
@@ -263,7 +321,9 @@ export function createNextDashboardAuth(config: NextDashboardAuthConfig) {
     const refreshToken = requestCredentials(request).refreshToken;
     let revocationFailed = false;
     try {
-      if (refreshToken) await sessionBackend().logout(refreshToken);
+      if (refreshToken) {
+        await sessionBackend(request).logout(refreshToken, requestCredentials(request).sessionId);
+      }
     } catch {
       revocationFailed = true;
     }
@@ -273,6 +333,7 @@ export function createNextDashboardAuth(config: NextDashboardAuthConfig) {
   return {
     applyCookieWrites,
     clearSession,
+    establishSession,
     forbiddenLocation,
     loginLocation,
     logoutRequest,
@@ -285,5 +346,6 @@ export function createNextDashboardAuth(config: NextDashboardAuthConfig) {
     sessionBackend,
     sessionResponse,
     validMutation,
+    validEntryMutation,
   } as const;
 }

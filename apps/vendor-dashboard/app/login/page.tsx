@@ -1,11 +1,16 @@
-import { AppPlaceholder } from "@repo/ui";
+import { postLoginReturnPath } from "@repo/auth";
+import { VendorAuthPanel } from "./vendor-auth-panel";
 
-export default function LoginPage() {
-  return (
-    <AppPlaceholder
-      eyebrow="Vendor Hub"
-      title="Sign in"
-      description="Vendor authentication forms will be added in issue #86."
-    />
+type LoginPageProps = Readonly<{
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}>;
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = await searchParams;
+  const returnTo = postLoginReturnPath(
+    typeof params.returnTo === "string" ? params.returnTo : undefined,
   );
+  const initialMode = params.mode === "register" ? "register" : "login";
+
+  return <VendorAuthPanel initialMode={initialMode} returnTo={returnTo} />;
 }
