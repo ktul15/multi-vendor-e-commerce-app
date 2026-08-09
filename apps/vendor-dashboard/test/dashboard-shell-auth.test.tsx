@@ -5,10 +5,14 @@ import type { ComponentProps } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { VendorDashboardShell } from "../app/dashboard-shell";
 
-const navigation = vi.hoisted(() => ({ refresh: vi.fn(), replace: vi.fn() }));
+const navigation = vi.hoisted(() => ({
+  pathname: "/",
+  refresh: vi.fn(),
+  replace: vi.fn(),
+}));
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/",
+  usePathname: () => navigation.pathname,
   useRouter: () => navigation,
 }));
 vi.mock("next/link", () => ({
@@ -19,6 +23,7 @@ beforeEach(() => {
   vi.unstubAllGlobals();
   navigation.refresh.mockReset();
   navigation.replace.mockReset();
+  navigation.pathname = "/";
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
     value: vi.fn(() => ({
@@ -36,7 +41,10 @@ describe("vendor dashboard logout", () => {
     vi.stubGlobal("fetch", fetch);
     const user = userEvent.setup();
     renderWithProviders(
-      <VendorDashboardShell account={{ actions: [], email: "vendor@example.test", name: "Vendor" }}>
+      <VendorDashboardShell
+        account={{ actions: [], email: "vendor@example.test", name: "Vendor" }}
+        profile={{ status: "APPROVED", storeName: "Maple Market" }}
+      >
         <p>Dashboard content</p>
       </VendorDashboardShell>,
     );
@@ -56,7 +64,10 @@ describe("vendor dashboard logout", () => {
     vi.stubGlobal("fetch", fetch);
     const user = userEvent.setup();
     renderWithProviders(
-      <VendorDashboardShell account={{ actions: [], email: "vendor@example.test", name: "Vendor" }}>
+      <VendorDashboardShell
+        account={{ actions: [], email: "vendor@example.test", name: "Vendor" }}
+        profile={{ status: "APPROVED", storeName: "Maple Market" }}
+      >
         <p>Dashboard content</p>
       </VendorDashboardShell>,
     );
@@ -66,5 +77,67 @@ describe("vendor dashboard logout", () => {
 
     expect(navigation.replace).toHaveBeenCalledWith("/login");
     expect(navigation.refresh).toHaveBeenCalled();
+  });
+
+  it.each([
+    ["PENDING", "Your application is under review"],
+    ["REJECTED", "Your vendor application was rejected"],
+    ["SUSPENDED", "Your store access is paused"],
+  ] as const)("renders the %s lifecycle gate without operational content", (status, title) => {
+    renderWithProviders(
+      <VendorDashboardShell
+        account={{ actions: [], email: "vendor@example.test", name: "Vendor" }}
+        profile={{ status, storeName: "Maple Market" }}
+      >
+        <button type="button">Delete product</button>
+      </VendorDashboardShell>,
+    );
+
+    expect(screen.getByRole("heading", { name: title })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Delete product" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Products" })).not.toBeInTheDocument();
+  });
+
+  it("shows approved status and renders operational content", () => {
+    renderWithProviders(
+      <VendorDashboardShell
+        account={{ actions: [], email: "vendor@example.test", name: "Vendor" }}
+        profile={{ status: "APPROVED", storeName: "Maple Market" }}
+      >
+        <button type="button">Delete product</button>
+      </VendorDashboardShell>,
+    );
+
+    expect(screen.getByText("Maple Market has full vendor access.")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Delete product" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Products" })).toBeVisible();
+  });
+
+  it("lets pending vendors access store pages and refresh their status", async () => {
+    navigation.pathname = "/store";
+    const user = userEvent.setup();
+    const { rerender } = renderWithProviders(
+      <VendorDashboardShell
+        account={{ actions: [], email: "vendor@example.test", name: "Vendor" }}
+        profile={{ status: "PENDING", storeName: "Maple Market" }}
+      >
+        <p>Store profile form</p>
+      </VendorDashboardShell>,
+    );
+
+    expect(screen.getByText("Store profile form")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Store" })).toBeVisible();
+
+    navigation.pathname = "/";
+    rerender(
+      <VendorDashboardShell
+        account={{ actions: [], email: "vendor@example.test", name: "Vendor" }}
+        profile={{ status: "PENDING", storeName: "Maple Market" }}
+      >
+        <p>Operational dashboard</p>
+      </VendorDashboardShell>,
+    );
+    await user.click(screen.getByRole("button", { name: "Refresh status" }));
+    expect(navigation.refresh).toHaveBeenCalledOnce();
   });
 });

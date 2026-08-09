@@ -6,8 +6,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ReactNode } from "react";
+import { canEditStoreProfile, canRenderVendorRoute } from "../src/lib/vendor-access";
+import type { VendorAccessProfile } from "../src/lib/vendor-access";
+import { ApprovedVendorNotice, VendorStatusGate } from "./vendor-status-gate";
 
-const navigation: readonly DashboardNavItem[] = [
+const operationalNavigation: readonly DashboardNavItem[] = [
   { href: "/", icon: "⌂", label: "Dashboard" },
   {
     children: [{ href: "/products/new", label: "Add product" }],
@@ -23,7 +26,12 @@ const navigation: readonly DashboardNavItem[] = [
 export function VendorDashboardShell({
   account,
   children,
-}: Readonly<{ account: DashboardAccount; children: ReactNode }>) {
+  profile,
+}: Readonly<{
+  account: DashboardAccount;
+  children: ReactNode;
+  profile: VendorAccessProfile;
+}>) {
   const currentPath = usePathname();
   const router = useRouter();
   const [logoutError, setLogoutError] = useState<string>();
@@ -56,6 +64,13 @@ export function VendorDashboardShell({
     ...account,
     actions: [...account.actions, { label: "Sign out", onSelect: () => void logout() }],
   };
+  const navigation =
+    profile.status === "APPROVED"
+      ? operationalNavigation
+      : canEditStoreProfile(profile.status)
+        ? [{ href: "/store", icon: "◇", label: "Store" }]
+        : [];
+  const canRenderRoute = canRenderVendorRoute(profile.status, currentPath);
 
   return (
     <>
@@ -71,7 +86,16 @@ export function VendorDashboardShell({
         LinkComponent={Link}
         navigation={navigation}
       >
-        {children}
+        {profile.status === "APPROVED" ? (
+          <>
+            <ApprovedVendorNotice storeName={profile.storeName} />
+            {children}
+          </>
+        ) : canRenderRoute ? (
+          children
+        ) : (
+          <VendorStatusGate profile={profile} />
+        )}
       </DashboardShell>
     </>
   );
