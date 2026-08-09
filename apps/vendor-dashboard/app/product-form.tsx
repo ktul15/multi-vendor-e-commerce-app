@@ -1,24 +1,18 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, Select } from "@repo/ui";
+import { Button, Card, CardContent, CardHeader, CardTitle, Input } from "@repo/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useFieldArray, useForm, useWatch } from "react-hook-form";
+import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import type { FieldPath } from "react-hook-form";
 import type { Category, EditableProduct } from "../src/lib/product-data";
 import { productFormSchema } from "../src/lib/product-form-schema";
 import type { ProductFormValues } from "../src/lib/product-form-schema";
+import { CategorySelector, flattenCategoryOptions } from "./category-selector";
 
-type CategoryOption = Readonly<{ id: string; label: string }>;
-
-function categoryOptions(categories: readonly Category[], depth = 0): CategoryOption[] {
-  return categories.flatMap((category) => [
-    { id: category.id, label: `${"— ".repeat(depth)}${category.name}` },
-    ...categoryOptions(category.children, depth + 1),
-  ]);
-}
+const EMPTY_DISABLED_CATEGORY_IDS: ReadonlySet<string> = new Set();
 
 function csrfToken(): string | undefined {
   return document.cookie
@@ -63,8 +57,13 @@ function defaults(product?: EditableProduct): ProductFormValues {
 
 export function ProductForm({
   categories,
+  disabledCategoryIds = EMPTY_DISABLED_CATEGORY_IDS,
   product,
-}: Readonly<{ categories: readonly Category[]; product?: EditableProduct }>) {
+}: Readonly<{
+  categories: readonly Category[];
+  disabledCategoryIds?: ReadonlySet<string>;
+  product?: EditableProduct;
+}>) {
   const router = useRouter();
   const editing = Boolean(product);
   const [submissionError, setSubmissionError] = useState<string>();
@@ -82,6 +81,11 @@ export function ProductForm({
   });
   const variants = useFieldArray({ control, name: "variants" });
   const images = useWatch({ control, name: "images" });
+  const validCategoryIds = new Set(
+    flattenCategoryOptions(categories)
+      .filter((category) => !disabledCategoryIds.has(category.id))
+      .map((category) => category.id),
+  );
 
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {
@@ -135,6 +139,10 @@ export function ProductForm({
 
   const submit = handleSubmit(async (values) => {
     setSubmissionError(undefined);
+    if (!validCategoryIds.has(values.categoryId)) {
+      setError("categoryId", { message: "Choose an available category", type: "validate" });
+      return;
+    }
     const token = csrfToken();
     try {
       const response = await fetch(product ? `/api/products/${product.id}` : "/api/products", {
@@ -210,19 +218,19 @@ export function ProductForm({
         </CardHeader>
         <CardContent className="vendor-product-form__grid">
           <Input error={errors.name?.message} label="Name" required {...register("name")} />
-          <Select
-            error={errors.categoryId?.message}
-            label="Category"
-            required
-            {...register("categoryId")}
-          >
-            <option value="">Choose a category</option>
-            {categoryOptions(categories).map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.label}
-              </option>
-            ))}
-          </Select>
+          <Controller
+            control={control}
+            name="categoryId"
+            render={({ field }) => (
+              <CategorySelector
+                categories={categories}
+                disabledIds={disabledCategoryIds}
+                error={errors.categoryId?.message}
+                onChange={field.onChange}
+                value={field.value}
+              />
+            )}
+          />
           <Input
             error={errors.basePrice?.message}
             label="Base price"

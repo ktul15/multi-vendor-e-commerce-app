@@ -314,6 +314,94 @@
   margin: 0;
 }
 
+.vendor-category-selector {
+  min-width: 0;
+  position: relative;
+}
+
+.vendor-category-selector__options {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  display: grid;
+  left: 0;
+  margin-top: var(--space-1);
+  max-height: 22rem;
+  overflow-y: auto;
+  position: absolute;
+  right: 0;
+  z-index: 20;
+}
+
+.vendor-category-selector__option {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  cursor: pointer;
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: var(--space-3);
+  padding-left: calc(var(--space-3) + var(--category-depth) * 1.25rem);
+  text-align: left;
+  width: 100%;
+}
+
+.vendor-category-selector__option:last-child {
+  border-bottom: 0;
+}
+
+.vendor-category-selector__option:hover,
+.vendor-category-selector__option:focus,
+.vendor-category-selector__option[data-active="true"],
+.vendor-category-selector__option[aria-selected="true"] {
+  background: var(--color-brand-50);
+  outline: none;
+}
+
+.vendor-category-selector__option[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.vendor-category-selector__icon {
+  color: var(--color-text-muted);
+}
+
+.vendor-category-selector__copy {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.vendor-category-selector__copy strong,
+.vendor-category-selector__copy small {
+  overflow-wrap: anywhere;
+}
+
+.vendor-category-selector__copy small {
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.vendor-category-selector__group {
+  background: var(--color-brand-50);
+  border-radius: 999px;
+  color: var(--color-brand-700);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-1) var(--space-2);
+}
+
+.vendor-category-selector__empty {
+  color: var(--color-text-muted);
+  margin: 0;
+  padding: var(--space-4);
+}
+
 @media (max-width: 900px) {
   .vendor-product-form__variant {
     grid-template-columns: repeat(2, minmax(0, 1fr));
