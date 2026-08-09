@@ -10,5 +10,8 @@
 - Missing or unrecoverable sessions redirect to `/login` with a validated relative `returnTo`; wrong roles redirect to `/forbidden`. Every redirect is resolved against the configured dashboard origin, never the incoming Host value.
 - Transient backend errors propagate to route error handling and never masquerade as logout.
 - Logout attempts backend revocation, always clears the dashboard-host cookies, and redirects to `/login`.
+- Dashboard entry routes proxy credentials server-side, reject cross-origin submissions, force the intended account role, and establish isolated dashboard-host sessions only after the backend response is validated.
+- Dashboard-to-backend auth calls carry short-lived HMAC signatures over per-account or opaque per-session rate-limit identities, a hashed client identity, and the dashboard source. The backend enforces identity, client, and dashboard-wide ceilings independently, so neither shared server egress nor attacker-rotated identities bypass throttling.
+- `DASHBOARD_TRUSTED_CLIENT_IP_HEADER` must name an infrastructure-controlled header that the dashboard's trusted reverse proxy overwrites and strips from public requests. Production rejects missing configuration or request values; raw client addresses are never sent to the API.
 
 Never expose the access token, refresh token, or raw backend cookies to client components, browser storage, URLs, logs, or hydrated props.

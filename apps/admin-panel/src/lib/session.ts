@@ -3,9 +3,11 @@ import { createNextDashboardAuth } from "@repo/auth/next";
 const auth = createNextDashboardAuth({
   apiBaseUrl: () => process.env.API_BASE_URL,
   appOrigin: () => process.env.NEXT_PUBLIC_APP_URL,
+  bffSecret: () => process.env.DASHBOARD_BFF_SECRET,
   dashboard: "admin",
   requiredRole: "ADMIN",
   secure: () => process.env.NODE_ENV === "production",
+  trustedClientIpHeader: () => process.env.DASHBOARD_TRUSTED_CLIENT_IP_HEADER,
 });
 
 export const applyCookieWrites = auth.applyCookieWrites;

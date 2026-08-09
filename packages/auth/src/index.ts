@@ -34,6 +34,20 @@ export type SessionResolution =
 
 export type DashboardCookieName = "access" | "csrf" | "refresh" | "session";
 
+export type LoginCredentials = Readonly<{ email: string; password: string }>;
+
+export type VendorRegistration = Readonly<{
+  email: string;
+  name: string;
+  password: string;
+  storeName: string;
+}>;
+
+export type AuthenticationResult = Readonly<{
+  tokens: SessionTokens;
+  user: DashboardUser;
+}>;
+
 export const SESSION_ERROR_HEADER = "X-Dashboard-Session-Error";
 
 export type DashboardCookieNames = Readonly<Record<DashboardCookieName, string>>;
@@ -51,18 +65,26 @@ export type DashboardCookieWrite = Readonly<{
 }>;
 
 export class DashboardAuthError extends Error {
+  readonly fieldErrors: readonly Readonly<{ field?: string; message: string }>[];
   readonly status: number;
 
-  constructor(message: string, status: number) {
+  constructor(
+    message: string,
+    status: number,
+    fieldErrors: readonly Readonly<{ field?: string; message: string }>[] = [],
+  ) {
     super(message);
     this.name = "DashboardAuthError";
+    this.fieldErrors = fieldErrors;
     this.status = status;
   }
 }
 
 export type DashboardSessionBackend = Readonly<{
-  getProfile(accessToken: string): Promise<DashboardUser>;
-  logout(refreshToken: string): Promise<void>;
+  getProfile(accessToken: string, sessionId?: string): Promise<DashboardUser>;
+  login(credentials: LoginCredentials): Promise<AuthenticationResult>;
+  logout(refreshToken: string, sessionId?: string): Promise<void>;
+  registerVendor(input: VendorRegistration): Promise<AuthenticationResult>;
   refresh(refreshToken: string, rotationKey?: string): Promise<SessionTokens>;
 }>;
 
@@ -104,7 +126,20 @@ async function parseError(response: Response): Promise<DashboardAuthError> {
     isRecord(payload) && typeof payload.message === "string"
       ? payload.message
       : "Authentication request failed";
-  return new DashboardAuthError(message, response.status);
+  const fieldErrors =
+    isRecord(payload) && Array.isArray(payload.errors)
+      ? payload.errors.flatMap((entry) =>
+          isRecord(entry) && typeof entry.message === "string"
+            ? [
+                {
+                  field: typeof entry.field === "string" ? entry.field : undefined,
+                  message: entry.message,
+                },
+              ]
+            : [],
+        )
+      : [];
+  return new DashboardAuthError(message, response.status, fieldErrors);
 }
 
 function parseUser(payload: unknown): DashboardUser {
@@ -138,33 +173,134 @@ function parseTokens(payload: unknown): SessionTokens {
   return { accessToken: payload.accessToken, refreshToken: payload.refreshToken };
 }
 
+function parseAuthenticationResult(payload: unknown): AuthenticationResult {
+  const data = parseEnvelopeData(payload);
+  if (!isRecord(data)) throw new DashboardAuthError("Invalid authentication response", 502);
+  return { tokens: parseTokens(data.tokens), user: parseUser(data.user) };
+}
+
+async function sha256(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function createBffRateLimitHeaders({
+  clientKey,
+  dashboard,
+  identity,
+  method,
+  pathname,
+  secret,
+}: Readonly<{
+  clientKey: string | undefined;
+  dashboard: "admin" | "vendor" | undefined;
+  identity: string | undefined;
+  method: string;
+  pathname: string;
+  secret: string | undefined;
+}>): Promise<Record<string, string>> {
+  if (!clientKey || !dashboard || !identity || !secret) return {};
+  const clientIdentity = `client:${await sha256(clientKey)}`;
+  const timestamp = Date.now().toString();
+  const payload = `${timestamp}\n${method}\n${pathname}\n${dashboard}\n${clientIdentity}\n${identity}`;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { hash: "SHA-256", name: "HMAC" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
+  const encoded = Array.from(new Uint8Array(signature), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+  return {
+    "X-Dashboard-BFF-Client": clientIdentity,
+    "X-Dashboard-BFF-Identity": identity,
+    "X-Dashboard-BFF-Signature": encoded,
+    "X-Dashboard-BFF-Source": dashboard,
+    "X-Dashboard-BFF-Timestamp": timestamp,
+  };
+}
+
 export function createDashboardSessionBackend({
   apiBaseUrl,
+  bffSecret,
+  clientKey,
+  dashboard,
   fetch = globalThis.fetch,
   timeoutMs = 5000,
 }: Readonly<{
   apiBaseUrl: string;
+  bffSecret?: string;
+  clientKey?: string;
+  dashboard?: "admin" | "vendor";
   fetch?: typeof globalThis.fetch;
   timeoutMs?: number;
 }>): DashboardSessionBackend {
   const baseUrl = apiBaseUrl.replace(/\/$/, "");
 
   return {
-    async getProfile(accessToken) {
+    async getProfile(accessToken, sessionId) {
+      const pathname = "/api/v1/auth/profile";
       const response = await fetch(`${baseUrl}/auth/profile`, {
         cache: "no-store",
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          ...(await createBffRateLimitHeaders({
+            clientKey,
+            dashboard,
+            identity: sessionId ? `session:${sessionId}` : undefined,
+            method: "GET",
+            pathname,
+            secret: bffSecret,
+          })),
+        },
         redirect: "error",
         signal: AbortSignal.timeout(timeoutMs),
       });
       if (!response.ok) throw await parseError(response);
       return parseUser(parseEnvelopeData(await response.json()));
     },
-    async logout(refreshToken) {
+    async login(credentials) {
+      const pathname = "/api/v1/auth/login";
+      const response = await fetch(`${baseUrl}/auth/login`, {
+        body: JSON.stringify(credentials),
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+          ...(await createBffRateLimitHeaders({
+            clientKey,
+            dashboard,
+            identity: `account:${await sha256(credentials.email.trim().toLowerCase())}`,
+            method: "POST",
+            pathname,
+            secret: bffSecret,
+          })),
+        },
+        method: "POST",
+        redirect: "error",
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (!response.ok) throw await parseError(response);
+      return parseAuthenticationResult(await response.json());
+    },
+    async logout(refreshToken, sessionId) {
+      const pathname = "/api/v1/auth/logout";
       const response = await fetch(`${baseUrl}/auth/logout`, {
         body: JSON.stringify({ refreshToken }),
         cache: "no-store",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(await createBffRateLimitHeaders({
+            clientKey,
+            dashboard,
+            identity: sessionId ? `session:${sessionId}` : undefined,
+            method: "POST",
+            pathname,
+            secret: bffSecret,
+          })),
+        },
         method: "POST",
         redirect: "error",
         signal: AbortSignal.timeout(timeoutMs),
@@ -172,12 +308,21 @@ export function createDashboardSessionBackend({
       if (!response.ok) throw await parseError(response);
     },
     async refresh(refreshToken, rotationKey) {
+      const pathname = "/api/v1/auth/refresh";
       const response = await fetch(`${baseUrl}/auth/refresh`, {
         body: JSON.stringify({ refreshToken }),
         cache: "no-store",
         headers: {
           "Content-Type": "application/json",
           ...(rotationKey ? { "X-Refresh-Rotation-Key": rotationKey } : {}),
+          ...(await createBffRateLimitHeaders({
+            clientKey,
+            dashboard,
+            identity: rotationKey ? `session:${rotationKey}` : undefined,
+            method: "POST",
+            pathname,
+            secret: bffSecret,
+          })),
         },
         method: "POST",
         redirect: "error",
@@ -185,6 +330,29 @@ export function createDashboardSessionBackend({
       });
       if (!response.ok) throw await parseError(response);
       return parseTokens(parseEnvelopeData(await response.json()));
+    },
+    async registerVendor(input) {
+      const pathname = "/api/v1/auth/register";
+      const response = await fetch(`${baseUrl}/auth/register`, {
+        body: JSON.stringify({ ...input, role: "VENDOR" }),
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+          ...(await createBffRateLimitHeaders({
+            clientKey,
+            dashboard,
+            identity: `account:${await sha256(input.email.trim().toLowerCase())}`,
+            method: "POST",
+            pathname,
+            secret: bffSecret,
+          })),
+        },
+        method: "POST",
+        redirect: "error",
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (!response.ok) throw await parseError(response);
+      return parseAuthenticationResult(await response.json());
     },
   };
 }
@@ -286,9 +454,14 @@ export function safeReturnPath(value: null | string | undefined, fallback = "/")
 }
 
 export function loginRedirectPath(returnTo: null | string | undefined): string {
-  const safePath = safeReturnPath(returnTo);
-  if (safePath === "/login" || safePath.startsWith("/login?")) return "/login";
+  const safePath = postLoginReturnPath(returnTo);
+  if (safePath === "/") return "/login";
   return `/login?returnTo=${encodeURIComponent(safePath)}`;
+}
+
+export function postLoginReturnPath(returnTo: null | string | undefined): string {
+  const safePath = safeReturnPath(returnTo);
+  return safePath === "/login" || safePath.startsWith("/login?") ? "/" : safePath;
 }
 
 export function logoutRedirectPath(): "/login" {
@@ -316,6 +489,18 @@ export function isValidDashboardMutation({
     difference |= cookieToken.charCodeAt(index) ^ headerToken.charCodeAt(index);
   }
   return difference === 0;
+}
+
+export function isValidDashboardEntryMutation({
+  appOrigin,
+  fetchSite,
+  origin,
+}: Readonly<{
+  appOrigin: string;
+  fetchSite?: string | null;
+  origin?: string | null;
+}>): boolean {
+  return origin === new URL(appOrigin).origin && fetchSite?.toLowerCase() !== "cross-site";
 }
 
 export async function refreshSingleFlight(
@@ -380,14 +565,14 @@ export async function resolveDashboardSession({
 
   let user: DashboardUser;
   try {
-    user = await backend.getProfile(accessToken as string);
+    user = await backend.getProfile(accessToken as string, credentials.sessionId);
   } catch (error) {
     if (!(error instanceof DashboardAuthError) || error.status !== 401 || !(await rotate())) {
       if (isUnrecoverable(error)) return { kind: "unauthenticated" };
       throw error;
     }
     try {
-      user = await backend.getProfile(accessToken as string);
+      user = await backend.getProfile(accessToken as string, credentials.sessionId);
     } catch (retryError) {
       if (isUnrecoverable(retryError)) return { kind: "unauthenticated" };
       throw retryError;

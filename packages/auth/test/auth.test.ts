@@ -2,11 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 import {
   DashboardAuthError,
   createClearedSessionCookieWrites,
+  createDashboardSessionBackend,
   createSessionCookieWrites,
   dashboardCookieNames,
   isValidDashboardMutation,
   loginRedirectPath,
   logoutRedirectPath,
+  postLoginReturnPath,
   resolveDashboardSession,
   safeReturnPath,
 } from "../src";
@@ -23,7 +25,15 @@ const vendor: DashboardUser = {
 function backend(overrides: Partial<DashboardSessionBackend> = {}): DashboardSessionBackend {
   return {
     getProfile: vi.fn(async () => vendor),
+    login: vi.fn(async () => ({
+      tokens: { accessToken: "access", refreshToken: "refresh" },
+      user: vendor,
+    })),
     logout: vi.fn(async () => undefined),
+    registerVendor: vi.fn(async () => ({
+      tokens: { accessToken: "access", refreshToken: "refresh" },
+      user: vendor,
+    })),
     refresh: vi.fn(async () => ({ accessToken: "new-access", refreshToken: "new-refresh" })),
     ...overrides,
   };
@@ -42,6 +52,7 @@ describe("safe dashboard navigation", () => {
 
   it("prevents login redirect loops and uses login after logout", () => {
     expect(loginRedirectPath("/login?returnTo=/orders")).toBe("/login");
+    expect(postLoginReturnPath("/login?returnTo=/orders")).toBe("/");
     expect(logoutRedirectPath()).toBe("/login");
   });
 });
@@ -66,6 +77,77 @@ describe("dashboard mutation protection", () => {
     { headerToken: "wrong-token" },
   ])("rejects an unsafe mutation variant %#", (override) => {
     expect(isValidDashboardMutation({ ...request, ...override })).toBe(false);
+  });
+});
+
+describe("dashboard authentication backend", () => {
+  it("parses login tokens and forces vendor registration role", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+      Response.json({
+        data: {
+          tokens: { accessToken: "access", refreshToken: "refresh" },
+          user: vendor,
+        },
+        success: true,
+      }),
+    );
+    const sessionBackend = createDashboardSessionBackend({
+      apiBaseUrl: "https://api.example.test/api/v1",
+      bffSecret: "test-dashboard-bff-secret-with-32-characters",
+      clientKey: "203.0.113.10",
+      dashboard: "vendor",
+      fetch,
+    });
+
+    await expect(
+      sessionBackend.login({ email: vendor.email, password: "secret123" }),
+    ).resolves.toMatchObject({ user: { role: "VENDOR" } });
+    await sessionBackend.registerVendor({
+      email: vendor.email,
+      name: vendor.name,
+      password: "secret123",
+      storeName: "Vendor Store",
+    });
+
+    expect(JSON.parse(String(fetch.mock.calls[1]?.[1]?.body))).toMatchObject({
+      role: "VENDOR",
+      storeName: "Vendor Store",
+    });
+    expect(fetch.mock.calls[0]?.[1]?.headers).toMatchObject({
+      "X-Dashboard-BFF-Client": expect.stringMatching(/^client:[a-f0-9]{64}$/),
+      "X-Dashboard-BFF-Identity": expect.stringMatching(/^account:[a-f0-9]{64}$/),
+      "X-Dashboard-BFF-Signature": expect.stringMatching(/^[a-f0-9]{64}$/),
+      "X-Dashboard-BFF-Source": "vendor",
+      "X-Dashboard-BFF-Timestamp": expect.any(String),
+    });
+  });
+
+  it("preserves backend field errors for forms", async () => {
+    const sessionBackend = createDashboardSessionBackend({
+      apiBaseUrl: "https://api.example.test/api/v1",
+      fetch: vi.fn(async () =>
+        Response.json(
+          {
+            errors: [{ field: "storeName", message: "Store name must be unique" }],
+            message: "A store with this name already exists",
+            success: false,
+          },
+          { status: 409 },
+        ),
+      ),
+    });
+
+    await expect(
+      sessionBackend.registerVendor({
+        email: vendor.email,
+        name: vendor.name,
+        password: "secret123",
+        storeName: "Vendor Store",
+      }),
+    ).rejects.toMatchObject({
+      fieldErrors: [{ field: "storeName", message: "Store name must be unique" }],
+      status: 409,
+    });
   });
 });
 

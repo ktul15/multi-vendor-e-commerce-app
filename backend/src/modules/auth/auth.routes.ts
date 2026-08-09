@@ -3,6 +3,11 @@ import { authenticate } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
 import { registerSchema, loginSchema, refreshSchema } from './auth.schema';
 import * as authController from './auth.controller';
+import {
+  authDashboardAggregateLimiter,
+  authDashboardClientLimiter,
+  authLimiter,
+} from '../../middleware/rateLimiter';
 
 const router = Router();
 
@@ -81,7 +86,14 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/ApiError'
  */
-router.post('/register', validate(registerSchema), authController.register);
+router.post(
+  '/register',
+  authDashboardClientLimiter,
+  authDashboardAggregateLimiter,
+  authLimiter,
+  validate(registerSchema),
+  authController.register
+);
 
 /**
  * @openapi
@@ -142,7 +154,14 @@ router.post('/register', validate(registerSchema), authController.register);
  *             schema:
  *               $ref: '#/components/schemas/ApiError'
  */
-router.post('/login', validate(loginSchema), authController.login);
+router.post(
+  '/login',
+  authDashboardClientLimiter,
+  authDashboardAggregateLimiter,
+  authLimiter,
+  validate(loginSchema),
+  authController.login
+);
 
 /**
  * @openapi

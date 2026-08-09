@@ -4,7 +4,11 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { env } from './config/env';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
-import { globalLimiter, authLimiter } from './middleware/rateLimiter';
+import {
+  dashboardAggregateLimiter,
+  dashboardClientLimiter,
+  globalLimiter,
+} from './middleware/rateLimiter';
 import { ApiResponse } from './utils/apiResponse';
 import { corsOptions } from './middleware/cors';
 import { csrfProtection } from './middleware/csrf';
@@ -40,6 +44,8 @@ app.use('/api/v1/vendor-payouts', vendorPayoutWebhookRouter);
 // Rate Limiting
 // ---------------------
 app.use(globalLimiter);
+app.use(dashboardClientLimiter);
+app.use(dashboardAggregateLimiter);
 
 // ---------------------
 // Logging
@@ -127,7 +133,7 @@ import analyticsRoutes from './modules/analytics/analytics.routes';
 import adminRoutes from './modules/admin/admin.routes';
 import bannerRoutes from './modules/banner/banner.routes';
 
-app.use('/api/v1/auth', authLimiter, authRoutes);
+app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/cart', cartRoutes);

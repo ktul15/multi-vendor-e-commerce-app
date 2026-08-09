@@ -18,9 +18,11 @@ import { createNextDashboardAuth } from "../src/next";
 const auth = createNextDashboardAuth({
   apiBaseUrl: () => "https://api.example.test/api/v1",
   appOrigin: () => "https://vendor.example.test",
+  bffSecret: () => "test-dashboard-bff-secret-with-32-characters",
   dashboard: "vendor",
   requiredRole: "VENDOR",
   secure: () => true,
+  trustedClientIpHeader: () => "x-real-ip",
 });
 
 const vendor = {
@@ -42,6 +44,7 @@ const authenticatedRequest = (origin = "https://vendor.example.test") =>
     headers: {
       Cookie:
         "vendor_access_token=access; vendor_refresh_token=refresh; vendor_session_id=opaque-session; vendor_csrf_token=csrf-token",
+      "X-Real-IP": "203.0.113.10",
     },
   });
 
@@ -99,7 +102,9 @@ describe("Next.js dashboard auth adapter", () => {
 
   it("protects missing sessions before rendering and clears stale cookies", async () => {
     const response = await auth.protectRequest(
-      new NextRequest("https://attacker.example/orders?page=2"),
+      new NextRequest("https://attacker.example/orders?page=2", {
+        headers: { "X-Real-IP": "203.0.113.10" },
+      }),
     );
 
     expect(response.headers.get("Location")).toBe(
@@ -178,6 +183,7 @@ describe("Next.js dashboard auth adapter", () => {
         Origin: "https://vendor.example.test",
         "Sec-Fetch-Site": "same-origin",
         "X-CSRF-Token": "csrf-token",
+        "X-Real-IP": "203.0.113.10",
       },
       method: "POST",
     });
