@@ -1,0 +1,63 @@
+export const dashboardRanges = ["7d", "30d", "90d", "1y"] as const;
+export const salesPeriods = ["day", "week", "month"] as const;
+
+export type DashboardRange = (typeof dashboardRanges)[number];
+export type SalesPeriod = (typeof salesPeriods)[number];
+
+export type DashboardRangeState = Readonly<{
+  endDate: string;
+  period: SalesPeriod;
+  range: DashboardRange;
+  startDate: string;
+}>;
+
+const rangeDays: Record<DashboardRange, number> = { "7d": 7, "30d": 30, "90d": 90, "1y": 365 };
+const defaultPeriod: Record<DashboardRange, SalesPeriod> = {
+  "7d": "day",
+  "30d": "day",
+  "90d": "week",
+  "1y": "month",
+};
+
+type SearchParams = Readonly<Record<string, string | readonly string[] | undefined>>;
+
+function first(value: string | readonly string[] | undefined): string | undefined {
+  return typeof value === "string" ? value : value?.[0];
+}
+
+function includes<const T extends string>(
+  values: readonly T[],
+  value: string | undefined,
+): value is T {
+  return value !== undefined && values.some((candidate) => candidate === value);
+}
+
+export function parseDashboardRange(
+  searchParams: SearchParams,
+  now = new Date(),
+): DashboardRangeState {
+  const rawRange = first(searchParams.range);
+  const range = includes(dashboardRanges, rawRange) ? rawRange : "30d";
+  const rawPeriod = first(searchParams.period);
+  const period = includes(salesPeriods, rawPeriod) ? rawPeriod : defaultPeriod[range];
+  const end = new Date(now);
+  end.setUTCHours(24, 0, 0, 0);
+  const start = new Date(end.getTime() - rangeDays[range] * 24 * 60 * 60 * 1000);
+
+  return {
+    endDate: end.toISOString(),
+    period,
+    range,
+    startDate: start.toISOString(),
+  };
+}
+
+export function dashboardRangeHref(range: DashboardRange): string {
+  const params = new URLSearchParams({ period: defaultPeriod[range], range });
+  return `/?${params.toString()}`;
+}
+
+export function salesPeriodHref(range: DashboardRange, period: SalesPeriod): string {
+  const params = new URLSearchParams({ period, range });
+  return `/?${params.toString()}`;
+}
