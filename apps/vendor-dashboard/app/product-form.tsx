@@ -8,8 +8,8 @@ import { useEffect, useState } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import type { FieldPath } from "react-hook-form";
 import type { Category, EditableProduct } from "../src/lib/product-data";
-import { productFormSchema } from "../src/lib/product-form-schema";
-import type { ProductFormValues } from "../src/lib/product-form-schema";
+import { productEditorSchema, toProductFormValues } from "../src/lib/product-form-schema";
+import type { ProductEditorValues } from "../src/lib/product-form-schema";
 import { CategorySelector, flattenCategoryOptions } from "./category-selector";
 
 const EMPTY_DISABLED_CATEGORY_IDS: ReadonlySet<string> = new Set();
@@ -23,7 +23,7 @@ function csrfToken(): string | undefined {
     .join("=");
 }
 
-function defaults(product?: EditableProduct): ProductFormValues {
+function defaults(product?: EditableProduct): ProductEditorValues {
   return product
     ? {
         basePrice: Number(product.basePrice),
@@ -37,7 +37,8 @@ function defaults(product?: EditableProduct): ProductFormValues {
         variants: (product.variants ?? []).map((variant) => ({
           color: variant.color ?? "",
           id: variant.id,
-          price: Number(variant.price),
+          priceAdjustment:
+            Math.round((Number(variant.price) - Number(product.basePrice)) * 100) / 100,
           size: variant.size ?? "",
           sku: variant.sku,
           stock: variant.stock,
@@ -51,7 +52,7 @@ function defaults(product?: EditableProduct): ProductFormValues {
         isActive: true,
         name: "",
         tags: [],
-        variants: [{ color: "", price: 0, size: "", sku: "", stock: 0 }],
+        variants: [{ color: "", priceAdjustment: 0, size: "", sku: "", stock: 0 }],
       };
 }
 
@@ -75,12 +76,18 @@ export function ProductForm({
     register,
     setError,
     setValue,
-  } = useForm<ProductFormValues>({
+  } = useForm<ProductEditorValues>({
     defaultValues: defaults(product),
-    resolver: zodResolver(productFormSchema),
+    resolver: zodResolver(productEditorSchema),
   });
   const variants = useFieldArray({ control, name: "variants" });
   const images = useWatch({ control, name: "images" });
+  const variantValues = useWatch({ control, name: "variants" });
+  const totalAvailability = variantValues.reduce(
+    (total, variant) =>
+      total + (Number.isInteger(variant.stock) && variant.stock >= 0 ? variant.stock : 0),
+    0,
+  );
   const validCategoryIds = new Set(
     flattenCategoryOptions(categories)
       .filter((category) => !disabledCategoryIds.has(category.id))
@@ -146,7 +153,7 @@ export function ProductForm({
     const token = csrfToken();
     try {
       const response = await fetch(product ? `/api/products/${product.id}` : "/api/products", {
-        body: JSON.stringify(values),
+        body: JSON.stringify(toProductFormValues(values)),
         headers: {
           "Content-Type": "application/json",
           ...(token ? { "X-CSRF-Token": decodeURIComponent(token) } : {}),
@@ -161,14 +168,15 @@ export function ProductForm({
         | undefined;
       if (!response.ok) {
         for (const error of payload?.errors ?? []) {
-          const field = error.field ?? error.path?.join(".");
+          const serverField = error.field ?? error.path?.join(".");
+          const field = serverField?.replace(/(variants\.\d+)\.price$/, "$1.priceAdjustment");
           if (
             field &&
-            /^(name|description|basePrice|categoryId|images(\.\d+)?|isActive|tags|variants(\.\d+\.(sku|price|stock|size|color))?)$/.test(
+            /^(name|description|basePrice|categoryId|images(\.\d+)?|isActive|tags|variants(\.\d+\.(sku|priceAdjustment|stock|size|color))?)$/.test(
               field,
             )
           ) {
-            setError(field as FieldPath<ProductFormValues>, {
+            setError(field as FieldPath<ProductEditorValues>, {
               message: error.message ?? "Invalid value",
               type: "server",
             });
@@ -328,6 +336,13 @@ export function ProductForm({
           <CardTitle>Variants and inventory</CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="vendor-product-form__inventory-summary">
+            <span>Total availability</span>
+            <output aria-live="polite">
+              <strong>{totalAvailability}</strong> {totalAvailability === 1 ? "unit" : "units"}
+            </output>
+            <small>Calculated from variant stock so the product total always stays in sync.</small>
+          </div>
           {(errors.variants?.root?.message ?? errors.variants?.message) ? (
             <p className="vendor-product-form__error">
               {errors.variants?.root?.message ?? errors.variants?.message}
@@ -344,13 +359,13 @@ export function ProductForm({
                   {...register(`variants.${index}.sku`)}
                 />
                 <Input
-                  error={errors.variants?.[index]?.price?.message}
-                  label="Price"
-                  min="0"
+                  error={errors.variants?.[index]?.priceAdjustment?.message}
+                  hint="Added to the base price; negative values discount this variant."
+                  label="Price adjustment"
                   required
                   step="0.01"
                   type="number"
-                  {...register(`variants.${index}.price`, { valueAsNumber: true })}
+                  {...register(`variants.${index}.priceAdjustment`, { valueAsNumber: true })}
                 />
                 <Input
                   error={errors.variants?.[index]?.stock?.message}
@@ -361,8 +376,16 @@ export function ProductForm({
                   type="number"
                   {...register(`variants.${index}.stock`, { valueAsNumber: true })}
                 />
-                <Input label="Size" {...register(`variants.${index}.size`)} />
-                <Input label="Color" {...register(`variants.${index}.color`)} />
+                <Input
+                  error={errors.variants?.[index]?.size?.message}
+                  label="Size"
+                  {...register(`variants.${index}.size`)}
+                />
+                <Input
+                  error={errors.variants?.[index]?.color?.message}
+                  label="Color"
+                  {...register(`variants.${index}.color`)}
+                />
                 <Button
                   disabled={variants.fields.length === 1}
                   onClick={() => variants.remove(index)}
@@ -374,7 +397,9 @@ export function ProductForm({
             ))}
           </div>
           <Button
-            onClick={() => variants.append({ color: "", price: 0, size: "", sku: "", stock: 0 })}
+            onClick={() =>
+              variants.append({ color: "", priceAdjustment: 0, size: "", sku: "", stock: 0 })
+            }
             variant="secondary"
           >
             Add variant

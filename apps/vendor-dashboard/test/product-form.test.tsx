@@ -88,3 +88,65 @@ describe("product form navigation protection", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 });
+
+describe("product variant inventory editor", () => {
+  const availability = (units: number) =>
+    screen.getByText(
+      (_, element) =>
+        element?.tagName === "OUTPUT" &&
+        element.textContent?.replace(/\s+/g, " ").trim() ===
+          `${units} ${units === 1 ? "unit" : "units"}`,
+    );
+
+  it("adds variant rows and derives total availability from their stock", async () => {
+    render(<ProductForm categories={categories} />);
+
+    expect(availability(0)).toBeVisible();
+    fireEvent.change(screen.getByRole("spinbutton", { name: /^Stock/ }), {
+      target: { value: "4" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add variant" }));
+    const stockInputs = screen.getAllByRole("spinbutton", { name: /^Stock/ });
+    fireEvent.change(stockInputs[1]!, { target: { value: "3" } });
+
+    await waitFor(() => expect(availability(7)).toBeVisible());
+    expect(screen.getAllByRole("spinbutton", { name: /^Price adjustment/ })).toHaveLength(2);
+    expect(screen.getAllByLabelText("Size")).toHaveLength(2);
+    expect(screen.getAllByLabelText("Color")).toHaveLength(2);
+  });
+
+  it("loads adjustments for edits and submits final prices with updated stock", async () => {
+    const fetch = vi.fn().mockResolvedValue(Response.json({ success: true }));
+    vi.stubGlobal("fetch", fetch);
+    render(
+      <ProductForm
+        categories={categories}
+        product={{ ...product, categoryId: categories[0]!.id }}
+      />,
+    );
+
+    const adjustment = screen.getByRole("spinbutton", { name: /^Price adjustment/ });
+    expect(adjustment).toHaveValue(0);
+    expect(availability(2)).toBeVisible();
+
+    fireEvent.change(adjustment, { target: { value: "-2" } });
+    fireEvent.change(screen.getByRole("spinbutton", { name: /^Stock/ }), {
+      target: { value: "5" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    const request = fetch.mock.calls[0]?.[1] as RequestInit;
+    expect(JSON.parse(String(request.body))).toMatchObject({
+      basePrice: 10,
+      variants: [
+        {
+          id: product.variants[0]!.id,
+          price: 8,
+          sku: "EXISTING-1",
+          stock: 5,
+        },
+      ],
+    });
+  });
+});
