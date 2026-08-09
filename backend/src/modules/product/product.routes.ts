@@ -9,6 +9,7 @@ import {
 } from '../../middleware/validate';
 import {
   createProductSchema,
+  editProductSchema,
   updateProductSchema,
   addVariantSchema,
   updateVariantSchema,
@@ -197,6 +198,35 @@ router.get(
   requireApprovedVendor,
   validateQuery(vendorInventoryQuerySchema),
   productController.getVendorInventory
+);
+
+/**
+ * @openapi
+ * /products/vendor/{id}:
+ *   get:
+ *     tags: [Products]
+ *     summary: Get an owned product for editing
+ *     description: Returns active or inactive product details only when the authenticated approved vendor owns the product.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Owned product detail
+ *       400: { description: Invalid product ID }
+ *       401: { description: Unauthorized }
+ *       403: { description: Vendor account is not approved }
+ *       404: { description: Product not found }
+ */
+router.get(
+  '/vendor/:id',
+  authenticate,
+  authorize(Role.VENDOR),
+  requireApprovedVendor,
+  validateParams(productParamSchema),
+  productController.getVendorProductById
 );
 
 /**
@@ -416,6 +446,39 @@ router.delete(
   '/:id/media/:mediaId',
   validateParams(productMediaParamSchema),
   productController.removeMedia
+);
+
+/**
+ * @openapi
+ * /products/{id}/editor:
+ *   put:
+ *     tags: [Products]
+ *     summary: Atomically save the complete vendor product editor
+ *     description: Reconciles product fields, ordered image URLs, variants, and inventory in one transaction.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200: { description: Complete updated product }
+ *       400: { description: Invalid product ID or editor payload }
+ *       401: { description: Unauthorized }
+ *       403: { description: Vendor is unapproved or does not own the product }
+ *       404: { description: "Product, category, or variant not found" }
+ *       409: { description: SKU conflict or ordered variant removal }
+ */
+router.put(
+  '/:id/editor',
+  validateParams(productParamSchema),
+  validate(editProductSchema),
+  productController.editProduct
 );
 
 /**

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getVendorInventory } from "../src/lib/product-data";
+import { getProductFormData, getVendorInventory } from "../src/lib/product-data";
 
 vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => ({ value: "access-token" }) }),
@@ -44,5 +44,23 @@ describe("vendor product data", () => {
       sortBy: "basePrice",
       sortOrder: "asc",
     });
+  });
+
+  it("loads category options and the owned edit detail together", async () => {
+    const productId = "11111111-1111-4111-8111-111111111111";
+    const fetch = vi.fn<typeof globalThis.fetch>(async (input) => {
+      const url = new URL((input as Request).url);
+      return url.pathname.endsWith("/categories")
+        ? Response.json({ data: [], message: "ok", success: true })
+        : Response.json({ data: { id: productId, variants: [] }, message: "ok", success: true });
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const result = await getProductFormData(productId);
+
+    expect(result.product?.id).toBe(productId);
+    expect(
+      fetch.mock.calls.map(([input]) => new URL((input as Request).url).pathname).sort(),
+    ).toEqual(["/api/v1/categories", `/api/v1/products/vendor/${productId}`]);
   });
 });

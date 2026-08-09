@@ -219,6 +219,120 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.vendor-product-form {
+  display: grid;
+  gap: var(--space-5);
+  margin: 0 auto;
+  max-width: 72rem;
+}
+
+.vendor-product-form__header,
+.vendor-product-form__actions,
+.vendor-product-form__row {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+}
+
+.vendor-product-form__header h1,
+.vendor-product-form__header p {
+  margin: 0;
+}
+
+.vendor-product-form__header > div:first-child {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.vendor-product-form__grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.vendor-product-form__wide {
+  grid-column: 1 / -1;
+}
+
+.vendor-product-form__textarea {
+  min-height: 8rem;
+  resize: vertical;
+}
+
+.vendor-product-form__checkbox {
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+.vendor-product-form__checkbox span {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.vendor-product-form__checkbox small,
+.vendor-product-form__hint {
+  color: var(--color-text-muted);
+}
+
+.vendor-product-form__rows,
+.vendor-product-form__variants {
+  display: grid;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.vendor-product-form__row .ui-field {
+  flex: 1;
+}
+
+.vendor-product-form__variant {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
+  padding: var(--space-4);
+}
+
+.vendor-product-form__variant legend {
+  font-weight: var(--font-weight-semibold);
+  padding: 0 var(--space-2);
+}
+
+.vendor-product-form__variant .ui-button {
+  align-self: end;
+  margin-bottom: 1px;
+}
+
+.vendor-product-form__error {
+  color: var(--color-danger-text, #b42318);
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .vendor-product-form__variant {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .vendor-product-form__header,
+  .vendor-product-form__row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .vendor-product-form__grid,
+  .vendor-product-form__variant {
+    grid-template-columns: 1fr;
+  }
+}
+
 .vendor-metric__label {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
