@@ -123,6 +123,36 @@ describe("vendor product BFF routes", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it.each([
+    [
+      [
+        { color: "Blue", price: 25, size: "M", sku: "DUPLICATE", stock: 2 },
+        { color: "Red", price: 25, size: "L", sku: "duplicate", stock: 3 },
+      ],
+      "SKU values must be unique within a product",
+    ],
+    [
+      [
+        { color: "Blue", price: 25, size: "M", sku: "BLUE-M-1", stock: 2 },
+        { color: "blue", price: 30, size: "m", sku: "BLUE-M-2", stock: 3 },
+      ],
+      "Size and color combinations must be unique",
+    ],
+  ])("rejects unsafe variant payloads before resolving a session", async (variants, message) => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+
+    const response = await POST(
+      mutationRequest("/api/products", "POST", { ...productValues, variants }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      errors: expect.arrayContaining([expect.objectContaining({ message })]),
+    });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("rejects delete requests without valid CSRF before calling the backend", async () => {
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);
