@@ -117,6 +117,48 @@ export const updateVariantSchema = z
     path: [],
   });
 
+const editableVariantSchema = variantSchema.extend({
+  id: z.string().uuid('Invalid variant ID').optional(),
+});
+
+export const editProductSchema = z
+  .object({
+    categoryId: z.string().uuid('Invalid category ID'),
+    name: z.string().min(2, 'Name must be at least 2 characters'),
+    description: z
+      .string()
+      .min(10, 'Description must be at least 10 characters'),
+    basePrice: z.number().nonnegative('Base price must be non-negative'),
+    images: z.array(productImageUrlSchema).max(5, 'Maximum 5 images allowed'),
+    isActive: z.boolean(),
+    tags: z.array(z.string()),
+    variants: z
+      .array(editableVariantSchema)
+      .min(1, 'At least one variant is required'),
+  })
+  .superRefine((data, context) => {
+    const skus = new Set<string>();
+    const ids = new Set<string>();
+    data.variants.forEach((variant, index) => {
+      if (skus.has(variant.sku)) {
+        context.addIssue({
+          code: 'custom',
+          message: 'SKU values must be unique within a product',
+          path: ['variants', index, 'sku'],
+        });
+      }
+      skus.add(variant.sku);
+      if (variant.id && ids.has(variant.id)) {
+        context.addIssue({
+          code: 'custom',
+          message: 'Variant IDs must be unique within a product',
+          path: ['variants', index, 'id'],
+        });
+      }
+      if (variant.id) ids.add(variant.id);
+    });
+  });
+
 export const vendorInventoryQuerySchema = z.object({
   page: z.preprocess(
     coerceStrictNumber,
@@ -197,6 +239,7 @@ export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export type AddVariantInput = z.infer<typeof addVariantSchema>;
 export type UpdateVariantInput = z.infer<typeof updateVariantSchema>;
+export type EditProductInput = z.infer<typeof editProductSchema>;
 export type GetProductQueryInput = z.infer<typeof getProductQuerySchema>;
 export type SearchProductQueryInput = z.infer<typeof searchProductQuerySchema>;
 export type VendorInventoryQueryInput = z.infer<

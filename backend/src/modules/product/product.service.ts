@@ -1,10 +1,12 @@
 import { prisma } from '../../config/prisma';
+import { randomUUID } from 'node:crypto';
 import { ApiError } from '../../utils/apiError';
 import {
   CreateProductInput,
   UpdateProductInput,
   AddVariantInput,
   UpdateVariantInput,
+  EditProductInput,
   GetProductQueryInput,
   VendorInventoryQueryInput,
 } from './product.validation';
@@ -299,6 +301,23 @@ export class ProductService {
     };
   }
 
+  /** Return an owned product for editing, including inactive listings. */
+  async getVendorProductById(id: string, vendorId: string) {
+    await this.assertVendorApproved(vendorId);
+    const product = await prisma.product.findFirst({
+      where: { id, vendorId },
+      include: {
+        variants: true,
+        media: {
+          orderBy: [{ position: 'asc' }, { id: 'asc' }],
+          select: productMediaPublicSelect,
+        },
+      },
+    });
+    if (!product) throw ApiError.notFound('Product not found');
+    return product;
+  }
+
   /**
    * Get a specific product by ID, including its variants.
    */
@@ -472,6 +491,130 @@ export class ProductService {
       )
     );
     return updated;
+  }
+
+  /** Atomically reconcile all editable product, media, variant, and inventory fields. */
+  async editProduct(id: string, vendorId: string, data: EditProductInput) {
+    let removedPublicIds: string[] = [];
+    try {
+      const edited = await prisma.$transaction(async (tx) => {
+        await this.assertVendorApprovedInTransaction(tx, vendorId);
+        this.assertProductOwner(await this.lockProduct(tx, id), vendorId);
+        if (
+          !(await tx.category.findUnique({ where: { id: data.categoryId } }))
+        ) {
+          throw ApiError.notFound('Category not found');
+        }
+
+        const existingMedia = await tx.productMedia.findMany({
+          where: { productId: id },
+          orderBy: [{ position: 'asc' }, { id: 'asc' }],
+          select: { id: true, url: true, publicId: true, createdAt: true },
+        });
+        const availableByUrl = new Map<string, typeof existingMedia>();
+        for (const item of existingMedia) {
+          const matches = availableByUrl.get(item.url) ?? [];
+          matches.push(item);
+          availableByUrl.set(item.url, matches);
+        }
+        const desiredMedia = data.images.map((url) => ({
+          url,
+          existing: availableByUrl.get(url)?.shift(),
+        }));
+        const retainedMediaIds = new Set(
+          desiredMedia.flatMap((item) =>
+            item.existing ? [item.existing.id] : []
+          )
+        );
+        removedPublicIds = existingMedia.flatMap((item) =>
+          item.publicId && !retainedMediaIds.has(item.id) ? [item.publicId] : []
+        );
+        await tx.productMedia.deleteMany({ where: { productId: id } });
+        for (const [position, item] of desiredMedia.entries()) {
+          await tx.productMedia.create({
+            data: {
+              ...(item.existing && {
+                id: item.existing.id,
+                publicId: item.existing.publicId,
+                createdAt: item.existing.createdAt,
+              }),
+              productId: id,
+              url: item.url,
+              position,
+            },
+          });
+        }
+
+        const existingVariants = await tx.variant.findMany({
+          where: { productId: id },
+          select: { id: true },
+        });
+        const existingIds = new Set(
+          existingVariants.map((variant) => variant.id)
+        );
+        const retainedIds = new Set(
+          data.variants.flatMap((variant) => (variant.id ? [variant.id] : []))
+        );
+        if ([...retainedIds].some((variantId) => !existingIds.has(variantId))) {
+          throw ApiError.notFound('Variant not found for this product');
+        }
+
+        // Free retained SKU values first so swaps and reuse from removed variants work.
+        for (const variantId of retainedIds) {
+          await tx.variant.update({
+            where: { id: variantId },
+            data: { sku: `__product_edit_${randomUUID()}` },
+          });
+        }
+        await tx.variant.deleteMany({
+          where: { productId: id, id: { notIn: [...retainedIds] } },
+        });
+        for (const variant of data.variants) {
+          const { id: variantId, ...values } = variant;
+          if (variantId) {
+            await tx.variant.update({ where: { id: variantId }, data: values });
+          } else {
+            await tx.variant.create({ data: { ...values, productId: id } });
+          }
+        }
+        await tx.product.update({
+          where: { id },
+          data: {
+            categoryId: data.categoryId,
+            name: data.name,
+            description: data.description,
+            basePrice: data.basePrice,
+            images: data.images,
+            isActive: data.isActive,
+            tags: data.tags,
+          },
+        });
+        return tx.product.findUniqueOrThrow({
+          where: { id },
+          include: {
+            variants: true,
+            media: {
+              orderBy: [{ position: 'asc' }, { id: 'asc' }],
+              select: productMediaPublicSelect,
+            },
+          },
+        });
+      });
+      await Promise.all(
+        removedPublicIds.map((publicId) =>
+          cleanupMediaBestEffort(publicId, 'atomic product edit')
+        )
+      );
+      return edited;
+    } catch (error) {
+      if (isPrismaError(error, 'P2002')) throw skuConflict('variants');
+      if (isPrismaError(error, 'P2003')) {
+        throw ApiError.conflict(
+          'Variant cannot be deleted because it has order history'
+        );
+      }
+      throw error;
+    }
   }
 
   async uploadProductMedia(

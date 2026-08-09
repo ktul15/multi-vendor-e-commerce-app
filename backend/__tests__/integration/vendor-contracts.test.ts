@@ -281,6 +281,30 @@ describe('GET /api/v1/products/vendor', () => {
   });
 });
 
+describe('GET /api/v1/products/vendor/:id', () => {
+  it('returns an owned inactive product with its editable variants', async () => {
+    const response = await request(app)
+      .get(`/api/v1/products/vendor/${inactiveProductId}`)
+      .set('Authorization', approvedToken);
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toMatchObject({
+      id: inactiveProductId,
+      vendorId: approvedVendorId,
+      isActive: false,
+      variants: [expect.objectContaining({ sku: 'ARCHIVE-SKU' })],
+    });
+  });
+
+  it('does not expose another vendor product', async () => {
+    const response = await request(app)
+      .get(`/api/v1/products/vendor/${inactiveProductId}`)
+      .set('Authorization', secondVendorToken);
+
+    expect(response.status).toBe(404);
+  });
+});
+
 describe('GET /api/v1/orders/vendor/:id', () => {
   it('returns a direct-load vendor-owned detail shape', async () => {
     const response = await request(app)
@@ -320,6 +344,86 @@ describe('GET /api/v1/orders/vendor/:id', () => {
 });
 
 describe('vendor product mutation contracts', () => {
+  const editorBody = (variants: Array<Record<string, unknown>>) => ({
+    categoryId,
+    name: 'Alpha Active Product',
+    description: 'Active product used by vendor contract tests.',
+    basePrice: 20,
+    images: [],
+    isActive: true,
+    tags: [],
+    variants,
+  });
+
+  it('atomically supports SKU swaps across retained variants', async () => {
+    const swapped = await request(app)
+      .put(`/api/v1/products/${activeProductId}/editor`)
+      .set('Authorization', approvedToken)
+      .send(
+        editorBody([
+          {
+            id: orderedVariantId,
+            sku: 'CONTRACT-SECOND',
+            price: 20,
+            stock: 10,
+          },
+          {
+            id: secondSkuVariantId,
+            sku: 'CONTRACT-ORDERED',
+            price: 25,
+            stock: 3,
+          },
+        ])
+      );
+    expect(swapped.status).toBe(200);
+
+    const restored = await request(app)
+      .put(`/api/v1/products/${activeProductId}/editor`)
+      .set('Authorization', approvedToken)
+      .send(
+        editorBody([
+          {
+            id: orderedVariantId,
+            sku: 'CONTRACT-ORDERED',
+            price: 20,
+            stock: 10,
+          },
+          {
+            id: secondSkuVariantId,
+            sku: 'CONTRACT-SECOND',
+            price: 25,
+            stock: 3,
+          },
+        ])
+      );
+    expect(restored.status).toBe(200);
+  });
+
+  it('rolls back product changes when variant reconciliation fails', async () => {
+    const response = await request(app)
+      .put(`/api/v1/products/${activeProductId}/editor`)
+      .set('Authorization', approvedToken)
+      .send({
+        ...editorBody([
+          {
+            id: secondSkuVariantId,
+            sku: 'CONTRACT-SECOND',
+            price: 25,
+            stock: 3,
+          },
+        ]),
+        name: 'This must roll back',
+      });
+
+    expect(response.status).toBe(409);
+    await expect(
+      prisma.product.findUniqueOrThrow({ where: { id: activeProductId } })
+    ).resolves.toMatchObject({ name: 'Alpha Active Product' });
+    await expect(
+      prisma.variant.findUnique({ where: { id: orderedVariantId } })
+    ).resolves.not.toBeNull();
+  });
+
   it('rejects empty product and variant update payloads', async () => {
     const product = await request(app)
       .put(`/api/v1/products/${activeProductId}`)

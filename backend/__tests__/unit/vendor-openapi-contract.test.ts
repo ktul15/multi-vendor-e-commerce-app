@@ -36,9 +36,11 @@ describe('vendor inventory and order OpenAPI contracts', () => {
 
   it.each([
     ['/products/vendor', 'get', '200', 'ProductsSuccess'],
+    ['/products/vendor/{id}', 'get', '200', 'ProductMutationSuccess'],
     ['/orders/vendor/{id}', 'get', '200', 'VendorOrderDetailSuccess'],
     ['/products', 'post', '201', 'ProductMutationSuccess'],
     ['/products/{id}', 'put', '200', 'ProductMutationSuccess'],
+    ['/products/{id}/editor', 'put', '200', 'ProductMutationSuccess'],
     ['/products/{id}', 'delete', '200', 'NullSuccess'],
     ['/products/{id}/variants', 'post', '201', 'ProductVariantSuccess'],
     ['/products/{id}/variants/{vid}', 'put', '200', 'ProductVariantSuccess'],
@@ -49,9 +51,11 @@ describe('vendor inventory and order OpenAPI contracts', () => {
 
   it.each([
     ['/products/vendor', 'get', ['400', '401', '403']],
+    ['/products/vendor/{id}', 'get', ['400', '401', '403', '404']],
     ['/orders/vendor/{id}', 'get', ['400', '401', '403', '404']],
     ['/products', 'post', ['400', '401', '403', '404', '409']],
     ['/products/{id}', 'put', ['400', '401', '403', '404']],
+    ['/products/{id}/editor', 'put', ['400', '401', '403', '404', '409']],
     ['/products/{id}', 'delete', ['400', '401', '403', '404', '409']],
     ['/products/{id}/variants', 'post', ['400', '401', '403', '404', '409']],
     [

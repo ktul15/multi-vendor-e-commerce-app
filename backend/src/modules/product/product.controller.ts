@@ -60,6 +60,14 @@ export class ProductController {
     );
   });
 
+  getVendorProductById = catchAsync(async (req: AuthRequest, res: Response) => {
+    const product = await productService.getVendorProductById(
+      req.params.id as string,
+      req.user!.userId
+    );
+    ApiResponse.success(res, product, 'Vendor product fetched successfully');
+  });
+
   createProduct = catchAsync(async (req: AuthRequest, res: Response) => {
     const vendorId = req.user!.userId;
     const newProduct = await productService.createProduct(vendorId, req.body);
@@ -75,6 +83,15 @@ export class ProductController {
       req.body
     );
     ApiResponse.success(res, updatedProduct, 'Product updated successfully');
+  });
+
+  editProduct = catchAsync(async (req: AuthRequest, res: Response) => {
+    const product = await productService.editProduct(
+      req.params.id as string,
+      req.user!.userId,
+      req.body
+    );
+    ApiResponse.success(res, product, 'Product updated successfully');
   });
 
   deleteProduct = catchAsync(async (req: AuthRequest, res: Response) => {
