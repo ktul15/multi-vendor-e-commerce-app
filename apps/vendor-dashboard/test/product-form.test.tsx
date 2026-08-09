@@ -150,3 +150,102 @@ describe("product variant inventory editor", () => {
     });
   });
 });
+
+describe("product media save recovery", () => {
+  it("updates the saved product instead of creating a duplicate after an upload failure", async () => {
+    const createdProductId = "44444444-4444-4444-8444-444444444444";
+    const uploadedMedia = {
+      createdAt: "2026-08-09T00:00:00.000Z",
+      id: "55555555-5555-4555-8555-555555555555",
+      position: 0,
+      updatedAt: "2026-08-09T00:00:00.000Z",
+      url: "https://images.test/product.webp",
+    };
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(
+        Response.json(
+          { data: { id: createdProductId, media: [] }, success: true },
+          { status: 201 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        Response.json({ message: "Upload unavailable", success: false }, { status: 503 }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({ data: { id: createdProductId, media: [] }, success: true }),
+      )
+      .mockResolvedValueOnce(Response.json({ data: [uploadedMedia], success: true }));
+    vi.stubGlobal("fetch", fetch);
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:product.webp");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    render(<ProductForm categories={categories} />);
+
+    fireEvent.change(screen.getByLabelText(/Name/), { target: { value: "New product" } });
+    fireEvent.change(screen.getByLabelText(/Description/), {
+      target: { value: "A complete product description." },
+    });
+    fireEvent.click(screen.getByRole("combobox", { name: /Category/ }));
+    fireEvent.click(screen.getByRole("option", { name: "Available" }));
+    fireEvent.change(screen.getByLabelText(/SKU/), { target: { value: "NEW-1" } });
+    fireEvent.change(screen.getByLabelText("Add images"), {
+      target: {
+        files: [new File(["image"], "product.webp", { type: "image/webp" })],
+      },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Create product" }));
+    expect(
+      await screen.findByText("The product was saved, but one or more images failed to upload."),
+    ).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "Create product" }));
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(4));
+
+    expect(fetch.mock.calls.map(([url, request]) => [url, request?.method])).toEqual([
+      ["/api/products", "POST"],
+      [`/api/products/${createdProductId}/media`, "POST"],
+      [`/api/products/${createdProductId}`, "PUT"],
+      [`/api/products/${createdProductId}/media`, "POST"],
+    ]);
+  });
+
+  it("locks media controls during a standalone retry", async () => {
+    let resolveRetry!: (response: Response) => void;
+    const retryResponse = new Promise<Response>((resolve) => {
+      resolveRetry = resolve;
+    });
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(Response.json({ data: { id: product.id, media: [] }, success: true }))
+      .mockResolvedValueOnce(
+        Response.json({ message: "Upload unavailable", success: false }, { status: 503 }),
+      )
+      .mockReturnValueOnce(retryResponse);
+    vi.stubGlobal("fetch", fetch);
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:retry.webp");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    render(
+      <ProductForm
+        categories={categories}
+        product={{ ...product, categoryId: categories[0]!.id }}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Add images"), {
+      target: { files: [new File(["image"], "retry.webp", { type: "image/webp" })] },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    expect(
+      await screen.findByText("The product was saved, but one or more images failed to upload."),
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Retry upload for retry.webp" }));
+
+    await waitFor(() => expect(screen.getByLabelText("Add images")).toBeDisabled());
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
+    fireEvent.submit(document.querySelector("form")!);
+    expect(fetch).toHaveBeenCalledTimes(3);
+    resolveRetry(Response.json({ data: [], success: true }));
+    await waitFor(() => expect(screen.getByLabelText("Add images")).toBeEnabled());
+  });
+});

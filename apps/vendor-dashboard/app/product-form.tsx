@@ -4,13 +4,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, Card, CardContent, CardHeader, CardTitle, Input } from "@repo/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import type { FieldPath } from "react-hook-form";
 import type { Category, EditableProduct } from "../src/lib/product-data";
+import type { ProductMedia } from "../src/lib/product-data";
 import { productEditorSchema, toProductFormValues } from "../src/lib/product-form-schema";
 import type { ProductEditorValues } from "../src/lib/product-form-schema";
 import { CategorySelector, flattenCategoryOptions } from "./category-selector";
+import { ProductMediaManager } from "./product-media-manager";
+import type { PendingProductImage } from "./product-media-manager";
 
 const EMPTY_DISABLED_CATEGORY_IDS: ReadonlySet<string> = new Set();
 
@@ -69,6 +72,13 @@ export function ProductForm({
   const editing = Boolean(product);
   const [submissionError, setSubmissionError] = useState<string>();
   const [navigationAllowed, setNavigationAllowed] = useState(false);
+  const [media, setMedia] = useState<ProductMedia[]>(() =>
+    [...(product?.media ?? [])].sort((left, right) => left.position - right.position),
+  );
+  const [pendingImages, setPendingImages] = useState<PendingProductImage[]>([]);
+  const [savedProductId, setSavedProductId] = useState(product?.id);
+  const [isMediaRetrying, setIsMediaRetrying] = useState(false);
+  const mediaRetryInFlight = useRef(false);
   const {
     control,
     formState: { errors, isDirty, isSubmitting },
@@ -81,8 +91,11 @@ export function ProductForm({
     resolver: zodResolver(productEditorSchema),
   });
   const variants = useFieldArray({ control, name: "variants" });
-  const images = useWatch({ control, name: "images" });
   const variantValues = useWatch({ control, name: "variants" });
+  const initialMediaIds = (product?.media ?? []).map((item) => item.id).join(",");
+  const mediaDirty =
+    pendingImages.length > 0 || media.map((item) => item.id).join(",") !== initialMediaIds;
+  const hasUnsavedChanges = isDirty || mediaDirty;
   const totalAvailability = variantValues.reduce(
     (total, variant) =>
       total + (Number.isInteger(variant.stock) && variant.stock >= 0 ? variant.stock : 0),
@@ -96,12 +109,12 @@ export function ProductForm({
 
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {
-      if (!isDirty || navigationAllowed) return;
+      if (!hasUnsavedChanges || navigationAllowed) return;
       event.preventDefault();
     };
     const confirmLink = (event: MouseEvent) => {
       if (
-        !isDirty ||
+        !hasUnsavedChanges ||
         navigationAllowed ||
         event.defaultPrevented ||
         event.button !== 0 ||
@@ -126,7 +139,7 @@ export function ProductForm({
     };
     const currentUrl = window.location.href;
     const confirmHistory = (event: PopStateEvent) => {
-      if (!isDirty || navigationAllowed) return;
+      if (!hasUnsavedChanges || navigationAllowed) return;
       if (window.confirm("Discard your unsaved product changes?")) {
         setNavigationAllowed(true);
         return;
@@ -142,7 +155,78 @@ export function ProductForm({
       window.removeEventListener("popstate", confirmHistory, true);
       document.removeEventListener("click", confirmLink, true);
     };
-  }, [isDirty, navigationAllowed]);
+  }, [hasUnsavedChanges, navigationAllowed]);
+
+  const changeMedia = (nextMedia: ProductMedia[]) => {
+    setMedia(nextMedia.map((item, position) => ({ ...item, position })));
+    setValue(
+      "images",
+      nextMedia.map((item) => item.url),
+      { shouldDirty: true, shouldValidate: true },
+    );
+  };
+
+  const uploadImage = async (productId: string, item: PendingProductImage) => {
+    setPendingImages((current) =>
+      current.map((candidate) =>
+        candidate.id === item.id
+          ? { ...candidate, error: undefined, status: "uploading" }
+          : candidate,
+      ),
+    );
+    const body = new FormData();
+    body.append(item.mediaId ? "image" : "images", item.file);
+    const token = csrfToken();
+    try {
+      const url = item.mediaId
+        ? `/api/products/${productId}/media/${item.mediaId}`
+        : `/api/products/${productId}/media`;
+      const response = await fetch(url, {
+        body,
+        headers: token ? { "X-CSRF-Token": decodeURIComponent(token) } : {},
+        method: item.mediaId ? "PUT" : "POST",
+      });
+      const payload = (await response.json().catch(() => undefined)) as
+        | Readonly<{ data?: ProductMedia[]; message?: string }>
+        | undefined;
+      if (!response.ok) throw new Error(payload?.message ?? "Image could not be uploaded");
+      if (payload?.data) {
+        changeMedia([...payload.data].sort((left, right) => left.position - right.position));
+      }
+      if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      setPendingImages((current) => current.filter((candidate) => candidate.id !== item.id));
+      return true;
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "Image could not be uploaded";
+      setPendingImages((current) =>
+        current.map((candidate) =>
+          candidate.id === item.id ? { ...candidate, error: message, status: "failed" } : candidate,
+        ),
+      );
+      return false;
+    }
+  };
+
+  const retryImage = async (id: string) => {
+    if (mediaRetryInFlight.current) return;
+    const item = pendingImages.find((candidate) => candidate.id === id);
+    const productId = savedProductId ?? product?.id;
+    if (!item || !productId) {
+      setSubmissionError("Save the product before retrying its image upload.");
+      return;
+    }
+    mediaRetryInFlight.current = true;
+    setIsMediaRetrying(true);
+    setSubmissionError(undefined);
+    try {
+      if (!(await uploadImage(productId, item))) {
+        setSubmissionError("The image upload failed again.");
+      }
+    } finally {
+      mediaRetryInFlight.current = false;
+      setIsMediaRetrying(false);
+    }
+  };
 
   const submit = handleSubmit(async (values) => {
     setSubmissionError(undefined);
@@ -151,17 +235,22 @@ export function ProductForm({
       return;
     }
     const token = csrfToken();
+    const persistedProductId = product?.id ?? savedProductId;
     try {
-      const response = await fetch(product ? `/api/products/${product.id}` : "/api/products", {
-        body: JSON.stringify(toProductFormValues(values)),
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { "X-CSRF-Token": decodeURIComponent(token) } : {}),
+      const response = await fetch(
+        persistedProductId ? `/api/products/${persistedProductId}` : "/api/products",
+        {
+          body: JSON.stringify(toProductFormValues(values)),
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { "X-CSRF-Token": decodeURIComponent(token) } : {}),
+          },
+          method: persistedProductId ? "PUT" : "POST",
         },
-        method: product ? "PUT" : "POST",
-      });
+      );
       const payload = (await response.json().catch(() => undefined)) as
         | Readonly<{
+            data?: Readonly<{ id?: string; media?: ProductMedia[] }>;
             errors?: Array<Readonly<{ field?: string; message?: string; path?: PropertyKey[] }>>;
             message?: string;
           }>
@@ -184,6 +273,22 @@ export function ProductForm({
         }
         throw new Error(payload?.message ?? "Product could not be saved");
       }
+      const productId = product?.id ?? savedProductId ?? payload?.data?.id;
+      if (payload?.data?.media) {
+        changeMedia([...payload.data.media].sort((left, right) => left.position - right.position));
+      }
+      if (productId) setSavedProductId(productId);
+      if (pendingImages.length > 0) {
+        if (!productId) throw new Error("The product was saved, but image uploads could not start");
+        let allUploaded = true;
+        for (const item of pendingImages) {
+          if (!(await uploadImage(productId, item))) allUploaded = false;
+        }
+        if (!allUploaded) {
+          setSubmissionError("The product was saved, but one or more images failed to upload.");
+          return;
+        }
+      }
       setNavigationAllowed(true);
       router.push("/products");
       router.refresh();
@@ -193,7 +298,17 @@ export function ProductForm({
   });
 
   return (
-    <form className="vendor-product-form" noValidate onSubmit={(event) => void submit(event)}>
+    <form
+      className="vendor-product-form"
+      noValidate
+      onSubmit={(event) => {
+        if (mediaRetryInFlight.current) {
+          event.preventDefault();
+          return;
+        }
+        void submit(event);
+      }}
+    >
       <header className="vendor-product-form__header">
         <div>
           <p>Catalog management</p>
@@ -208,7 +323,12 @@ export function ProductForm({
           <Link className="ui-button ui-button--secondary ui-button--md" href="/products">
             Cancel
           </Link>
-          <Button loading={isSubmitting} loadingLabel="Saving product" type="submit">
+          <Button
+            disabled={isMediaRetrying}
+            loading={isSubmitting}
+            loadingLabel="Saving product"
+            type="submit"
+          >
             {editing ? "Save changes" : "Create product"}
           </Button>
         </div>
@@ -291,43 +411,17 @@ export function ProductForm({
           <CardTitle>Images</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="vendor-product-form__hint">
-            Add up to five HTTPS image URLs. Upload management follows in the media workflow.
-          </p>
-          <div className="vendor-product-form__rows">
-            {images.map((_, index) => (
-              <div className="vendor-product-form__row" key={`image-${index}`}>
-                <Input
-                  error={errors.images?.[index]?.message}
-                  label={`Image ${index + 1} URL`}
-                  type="url"
-                  {...register(`images.${index}`)}
-                />
-                <Button
-                  onClick={() =>
-                    setValue(
-                      "images",
-                      images.filter((__, item) => item !== index),
-                      { shouldDirty: true, shouldValidate: true },
-                    )
-                  }
-                  variant="ghost"
-                >
-                  Remove
-                </Button>
-              </div>
-            ))}
-          </div>
           {typeof errors.images?.message === "string" ? (
             <p className="vendor-product-form__error">{errors.images.message}</p>
           ) : null}
-          <Button
-            disabled={images.length >= 5}
-            onClick={() => setValue("images", [...images, ""], { shouldDirty: true })}
-            variant="secondary"
-          >
-            Add image URL
-          </Button>
+          <ProductMediaManager
+            disabled={isSubmitting || isMediaRetrying}
+            media={media}
+            onMediaChange={changeMedia}
+            onPendingChange={setPendingImages}
+            onRetry={(id) => void retryImage(id)}
+            pending={pendingImages}
+          />
         </CardContent>
       </Card>
 
