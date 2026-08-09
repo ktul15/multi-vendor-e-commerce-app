@@ -313,6 +313,7 @@ describe('GET /api/v1/orders/vendor/:id', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.data).toMatchObject({
+      allowedNextStatuses: ['CONFIRMED'],
       id: vendorOrderId,
       vendorId: approvedVendorId,
       order: {
@@ -323,6 +324,24 @@ describe('GET /api/v1/orders/vendor/:id', () => {
     expect(response.body.data.items[0].variant.product.id).toBe(
       activeProductId
     );
+  });
+
+  it('searches the server-side vendor list without leaking other orders', async () => {
+    const match = await request(app)
+      .get('/api/v1/orders/vendor?search=contracts.customer')
+      .set('Authorization', approvedToken);
+    expect(match.status).toBe(200);
+    expect(match.body.data.items).toHaveLength(1);
+    expect(match.body.data.items[0]).toMatchObject({
+      id: vendorOrderId,
+      allowedNextStatuses: ['CONFIRMED'],
+    });
+
+    const miss = await request(app)
+      .get('/api/v1/orders/vendor?search=not-a-customer')
+      .set('Authorization', approvedToken);
+    expect(miss.status).toBe(200);
+    expect(miss.body.data.items).toHaveLength(0);
   });
 
   it('returns stable not-found, forbidden, and approval errors', async () => {
@@ -340,6 +359,28 @@ describe('GET /api/v1/orders/vendor/:id', () => {
       .get(`/api/v1/orders/vendor/${vendorOrderId}`)
       .set('Authorization', pendingToken);
     expect(pending.status).toBe(403);
+  });
+
+  it('allows only one concurrent transition from the same current status', async () => {
+    const updates = await Promise.all([
+      request(app)
+        .put(`/api/v1/orders/vendor/${vendorOrderId}/status`)
+        .set('Authorization', approvedToken)
+        .send({ status: 'CONFIRMED' }),
+      request(app)
+        .put(`/api/v1/orders/vendor/${vendorOrderId}/status`)
+        .set('Authorization', approvedToken)
+        .send({ status: 'CONFIRMED' }),
+    ]);
+
+    expect(updates.map((response) => response.status).sort()).toEqual([
+      200, 409,
+    ]);
+    const succeeded = updates.find((response) => response.status === 200);
+    expect(succeeded?.body.data).toMatchObject({
+      status: 'CONFIRMED',
+      allowedNextStatuses: ['PROCESSING'],
+    });
   });
 });
 

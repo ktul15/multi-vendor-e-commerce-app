@@ -89,6 +89,10 @@ router.put(
  *         schema:
  *           type: string
  *           enum: [PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED, REFUNDED]
+ *       - in: query
+ *         name: search
+ *         schema: { type: string, maxLength: 100 }
+ *         description: Search order number, customer name or email, or tracking number
  *     responses:
  *       200:
  *         description: Paginated vendor orders

@@ -3002,6 +3002,7 @@
           "orderId",
           "vendorId",
           "status",
+          "allowedNextStatuses",
           "subtotal",
           "trackingNumber",
           "trackingCarrier",
@@ -3031,6 +3032,18 @@
               "CANCELLED",
               "REFUNDED"
             ]
+          },
+          "allowedNextStatuses": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "CONFIRMED",
+                "PROCESSING",
+                "SHIPPED",
+                "DELIVERED"
+              ]
+            }
           },
           "subtotal": {
             "type": "string"
@@ -8092,6 +8105,15 @@
                 "REFUNDED"
               ]
             }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "description": "Search order number, customer name or email, or tracking number"
           }
         ],
         "responses": {

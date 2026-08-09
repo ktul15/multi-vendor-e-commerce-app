@@ -18,6 +18,7 @@ const range = {
 };
 
 const order = {
+  allowedNextStatuses: [],
   createdAt: "2026-08-09T08:00:00.000Z",
   id: "vendor-order-1",
   items: [],

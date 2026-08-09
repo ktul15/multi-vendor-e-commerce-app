@@ -17,6 +17,8 @@ var mockCreate: jest.Mock;
 // eslint-disable-next-line no-var
 var mockRetrieve: jest.Mock;
 // eslint-disable-next-line no-var
+var mockUpdate: jest.Mock;
+// eslint-disable-next-line no-var
 var mockConstructEvent: jest.Mock;
 
 const MOCK_CLIENT_SECRET = 'pi_test_XXXXXXXX_secret_YYYYYYYY';
@@ -25,15 +27,17 @@ const MOCK_INTENT_ID = 'pi_test_XXXXXXXX';
 jest.mock('stripe', () => {
     const create = jest.fn();
     const retrieve = jest.fn();
+    const update = jest.fn();
     const constructEvent = jest.fn();
 
     // Assign to outer vars so test bodies can configure and inspect them
     mockCreate = create;
     mockRetrieve = retrieve;
+    mockUpdate = update;
     mockConstructEvent = constructEvent;
 
     return jest.fn().mockImplementation(() => ({
-        paymentIntents: { create, retrieve },
+        paymentIntents: { create, retrieve, update },
         webhooks: { constructEvent },
     }));
 });
@@ -164,12 +168,17 @@ afterAll(async () => {
 beforeEach(() => {
     mockCreate.mockClear();
     mockRetrieve.mockClear();
+    mockUpdate.mockClear();
     mockConstructEvent.mockClear();
     mockCreate.mockResolvedValue({ id: MOCK_INTENT_ID, client_secret: MOCK_CLIENT_SECRET });
     mockRetrieve.mockResolvedValue({
         id: MOCK_INTENT_ID,
         client_secret: MOCK_CLIENT_SECRET,
         status: 'requires_payment_method', // reusable state — intent is still completable
+    });
+    mockUpdate.mockResolvedValue({
+        id: MOCK_INTENT_ID,
+        client_secret: MOCK_CLIENT_SECRET,
     });
 });
 
@@ -213,7 +222,7 @@ describe('Payment API (Issue #32)', () => {
             expect(res.body.success).toBe(true);
             expect(res.body.data.clientSecret).toBe(MOCK_CLIENT_SECRET);
             expect(mockCreate).toHaveBeenCalledWith(
-                expect.objectContaining({ amount: 10000, currency: 'usd' }),
+                expect.objectContaining({ amount: 10000, currency: 'inr' }),
             );
 
             const payment = await prisma.payment.findUnique({ where: { orderId } });
@@ -233,6 +242,12 @@ describe('Payment API (Issue #32)', () => {
             // Should retrieve existing intent, NOT create a new one
             expect(mockCreate).not.toHaveBeenCalled();
             expect(mockRetrieve).toHaveBeenCalledWith(MOCK_INTENT_ID);
+            expect(mockUpdate).toHaveBeenCalledWith(
+                MOCK_INTENT_ID,
+                expect.objectContaining({
+                    description: 'Order ORD-TEST-PAY-0001',
+                }),
+            );
         });
     });
 

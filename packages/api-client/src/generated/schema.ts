@@ -4138,6 +4138,8 @@ export interface paths {
                 readonly query?: {
                     readonly limit?: number;
                     readonly page?: number;
+                    /** @description Search order number, customer name or email, or tracking number */
+                    readonly search?: string;
                     readonly status?: "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "REFUNDED";
                 };
                 readonly header?: never;
@@ -8044,6 +8046,7 @@ export interface components {
             readonly success: true;
         };
         readonly VendorOrderDetail: {
+            readonly allowedNextStatuses: readonly ("CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED")[];
             /** Format: date-time */
             readonly createdAt: string;
             readonly id: string;
