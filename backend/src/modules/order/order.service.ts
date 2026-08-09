@@ -31,6 +31,13 @@ const ALLOWED_TRANSITIONS: Record<string, OrderStatus[]> = {
   SHIPPED: ['DELIVERED'],
 };
 
+const withAllowedNextStatuses = <T extends { status: OrderStatus }>(
+  order: T
+) => ({
+  ...order,
+  allowedNextStatuses: ALLOWED_TRANSITIONS[order.status] ?? [],
+});
+
 /** Human-readable notification titles per status. */
 const STATUS_TITLES: Record<string, string> = {
   CONFIRMED: 'Order Confirmed',
@@ -655,12 +662,28 @@ export class OrderService {
   }
 
   async getVendorOrders(vendorId: string, query: GetVendorOrdersQueryInput) {
-    const { page, limit, status } = query;
+    const { page, limit, status, search } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.VendorOrderWhereInput = {
       vendorId,
       ...(status && { status }),
+      ...(search && {
+        OR: [
+          { order: { orderNumber: { contains: search, mode: 'insensitive' } } },
+          {
+            order: {
+              user: { name: { contains: search, mode: 'insensitive' } },
+            },
+          },
+          {
+            order: {
+              user: { email: { contains: search, mode: 'insensitive' } },
+            },
+          },
+          { trackingNumber: { contains: search, mode: 'insensitive' } },
+        ],
+      }),
     };
 
     const [total, vendorOrders] = await Promise.all([
@@ -704,7 +727,7 @@ export class OrderService {
     ]);
 
     return {
-      items: vendorOrders,
+      items: vendorOrders.map(withAllowedNextStatuses),
       meta: {
         total,
         page,
@@ -756,7 +779,7 @@ export class OrderService {
       throw ApiError.forbidden('You can only view your own vendor orders');
     }
 
-    return vendorOrder;
+    return withAllowedNextStatuses(vendorOrder);
   }
 
   async updateVendorOrderStatusWithTracking(
@@ -793,23 +816,19 @@ export class OrderService {
       );
     }
 
-    const updated = await prisma.vendorOrder.update({
-      where: { id: vendorOrderId },
+    const updateResult = await prisma.vendorOrder.updateMany({
+      where: { id: vendorOrderId, status: vendorOrder.status },
       data: {
         status: newStatus as OrderStatus,
         ...(trackingNumber !== undefined && { trackingNumber }),
         ...(trackingCarrier !== undefined && { trackingCarrier }),
       },
-      include: {
-        items: {
-          include: {
-            variant: {
-              select: { sku: true, size: true, color: true, price: true },
-            },
-          },
-        },
-      },
     });
+    if (updateResult.count === 0) {
+      throw ApiError.conflict('Order status changed. Refresh and try again');
+    }
+
+    const updated = await this.getVendorOrderById(vendorId, vendorOrderId);
 
     // Send push notification + email (fire-and-forget — never block the response)
     const notificationType = STATUS_TO_NOTIFICATION_TYPE[newStatus];

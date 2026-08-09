@@ -803,6 +803,10 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
           'REFUNDED',
         ],
       },
+      allowedNextStatuses: arraySchema({
+        type: 'string',
+        enum: ['CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'],
+      }),
       subtotal: stringSchema,
       trackingNumber: nullableString,
       trackingCarrier: nullableString,
@@ -841,6 +845,7 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
       'orderId',
       'vendorId',
       'status',
+      'allowedNextStatuses',
       'subtotal',
       'trackingNumber',
       'trackingCarrier',

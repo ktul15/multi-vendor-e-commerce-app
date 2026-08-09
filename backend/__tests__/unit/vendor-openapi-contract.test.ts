@@ -15,7 +15,14 @@ describe('vendor inventory and order OpenAPI contracts', () => {
         string,
         {
           required?: string[];
-          properties?: Record<string, { enum?: unknown[]; allOf?: unknown[] }>;
+          properties?: Record<
+            string,
+            {
+              enum?: unknown[];
+              allOf?: unknown[];
+              items?: { enum?: unknown[] };
+            }
+          >;
         }
       >;
     };
@@ -83,8 +90,18 @@ describe('vendor inventory and order OpenAPI contracts', () => {
   it('models the complete nullable vendor-order detail contract', () => {
     const detail = spec.components.schemas.VendorOrderDetail;
     expect(detail?.required).toEqual(
-      expect.arrayContaining(['trackingNumber', 'trackingCarrier'])
+      expect.arrayContaining([
+        'allowedNextStatuses',
+        'trackingNumber',
+        'trackingCarrier',
+      ])
     );
+    expect(detail?.properties?.allowedNextStatuses?.items?.enum).toEqual([
+      'CONFIRMED',
+      'PROCESSING',
+      'SHIPPED',
+      'DELIVERED',
+    ]);
 
     const order = detail?.properties?.order as {
       required?: string[];
