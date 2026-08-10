@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { VendorDashboardShell } from "../dashboard-shell";
 import { requireVendorSession } from "../../src/lib/session";
 import { getVendorAccessProfile } from "../../src/lib/vendor-profile";
-import { canEditStoreProfile } from "../../src/lib/vendor-access";
 
 export const dynamic = "force-dynamic";
 
@@ -16,9 +15,7 @@ export default async function ProtectedLayout({ children }: Readonly<{ children:
             { href: "/store", label: "Store profile" },
             { href: "/settings", label: "Account settings" },
           ]
-        : canEditStoreProfile(profile.status)
-          ? [{ href: "/store", label: "Store profile" }]
-          : [],
+        : [{ href: "/store", label: "Store profile" }],
     email: session.email,
     name: session.name,
   };

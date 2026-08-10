@@ -149,6 +149,191 @@
   padding: var(--space-3) var(--space-4);
 }
 
+.vendor-store-profile {
+  display: grid;
+  gap: var(--space-5);
+  margin: 0 auto;
+  max-width: 64rem;
+}
+
+.vendor-store-profile__header,
+.vendor-store-profile__header-actions,
+.vendor-store-profile__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: space-between;
+}
+
+.vendor-store-profile__header h1,
+.vendor-store-profile__header p,
+.vendor-store-profile__media-field p {
+  margin: 0;
+}
+
+.vendor-store-profile__header > div:first-child {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.vendor-store-profile__eyebrow {
+  color: var(--color-brand-700);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vendor-store-profile__readonly,
+.vendor-store-profile__success,
+.vendor-store-profile__error {
+  border: 1px solid;
+  border-radius: var(--radius-md);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+}
+
+.vendor-store-profile__readonly {
+  background: var(--color-warning-50);
+  border-color: var(--color-warning-700);
+  color: var(--color-warning-700);
+}
+
+.vendor-store-profile__success {
+  background: var(--color-success-50);
+  border-color: var(--color-success-600);
+  color: var(--color-success-600);
+}
+
+.vendor-store-profile__error,
+.vendor-store-profile__field-error {
+  color: var(--color-danger-text);
+}
+
+.vendor-store-profile__error {
+  background: var(--color-danger-50);
+  border-color: var(--color-danger-600);
+}
+
+.vendor-store-profile form,
+.vendor-store-profile__details,
+.vendor-store-profile__media {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.vendor-store-profile__textarea {
+  min-height: 9rem;
+  resize: vertical;
+}
+
+.vendor-store-profile__media-field {
+  align-items: center;
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: minmax(8rem, 12rem) 1fr;
+}
+
+.vendor-store-profile__media-field > div:last-child {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.vendor-store-profile__media-field small,
+.vendor-store-profile__media-field p {
+  color: var(--color-text-muted);
+}
+
+.vendor-store-profile__preview {
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  min-height: 7rem;
+  overflow: hidden;
+  position: relative;
+}
+
+.vendor-store-profile__preview img {
+  object-fit: cover;
+}
+
+.vendor-store-profile__preview span {
+  display: grid;
+  height: 100%;
+  min-height: 7rem;
+  padding: var(--space-3);
+  place-items: center;
+  text-align: center;
+}
+
+.vendor-store-profile__preview--logo {
+  aspect-ratio: 1;
+  justify-self: center;
+  max-width: 10rem;
+  width: 100%;
+}
+
+.vendor-store-profile__preview--banner {
+  aspect-ratio: 3 / 1;
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.vendor-store-profile__media-field:has(.vendor-store-profile__preview--banner) {
+  grid-template-columns: 1fr;
+}
+
+.vendor-store-profile__file-input {
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  width: 1px;
+}
+
+.vendor-store-profile__file-label:focus-within {
+  outline: 3px solid var(--color-focus, #2563eb);
+  outline-offset: 2px;
+}
+
+.vendor-store-profile__field-error {
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+.vendor-store-profile__actions {
+  justify-content: flex-end;
+}
+
+.vendor-store-profile--unavailable {
+  justify-items: start;
+}
+
+.vendor-store-profile__loading > div {
+  animation: ui-pulse 1.5s ease-in-out infinite;
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-md);
+  height: 12rem;
+}
+
+.vendor-store-profile__loading > div:first-child {
+  height: 5rem;
+}
+
+@media (max-width: 42rem) {
+  .vendor-store-profile__media-field {
+    align-items: start;
+    grid-template-columns: 7rem 1fr;
+  }
+
+  .vendor-store-profile__header-actions {
+    width: 100%;
+  }
+}
+
 .vendor-overview {
   display: grid;
   gap: var(--space-6);

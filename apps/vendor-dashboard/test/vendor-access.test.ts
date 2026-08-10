@@ -26,8 +26,11 @@ describe("vendor lifecycle access policy", () => {
     expect(canRenderVendorRoute("PENDING", "/products")).toBe(false);
   });
 
-  it.each(["REJECTED", "SUSPENDED"] as const)("blocks all feature routes for %s", (status) => {
-    expect(canRenderVendorRoute(status, "/store")).toBe(false);
-    expect(canRenderVendorRoute(status, "/orders")).toBe(false);
-  });
+  it.each(["REJECTED", "SUSPENDED"] as const)(
+    "limits %s vendors to the read-only store route",
+    (status) => {
+      expect(canRenderVendorRoute(status, "/store")).toBe(true);
+      expect(canRenderVendorRoute(status, "/orders")).toBe(false);
+    },
+  );
 });
