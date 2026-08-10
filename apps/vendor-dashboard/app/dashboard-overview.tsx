@@ -75,7 +75,7 @@ function SummaryMetrics({ summary }: Readonly<{ summary: VendorSummary }>) {
   );
 }
 
-function RevenueChart({ sales }: Readonly<{ sales: VendorSales }>) {
+export function RevenueChart({ sales }: Readonly<{ sales: VendorSales }>) {
   if (sales.series.length === 0) {
     return (
       <EmptyState description="Completed sales will appear here." title="No sales in this period" />
