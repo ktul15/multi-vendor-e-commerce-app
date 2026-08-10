@@ -3,11 +3,12 @@ import { isVendorStatus } from "./vendor-access";
 import type { VendorAccessProfile } from "./vendor-access";
 
 type VendorProfileEnvelope = components["schemas"]["VendorProfileSuccess"];
+export type VendorProfile = VendorProfileEnvelope["data"];
 
-export async function requestVendorAccessProfile(
+export async function requestVendorProfile(
   accessToken: string,
   apiBaseUrl: string,
-): Promise<VendorAccessProfile> {
+): Promise<VendorProfile> {
   const response = await fetch(new URL(`${apiBaseUrl.replace(/\/$/, "")}/vendor-profile/me`), {
     cache: "no-store",
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -19,5 +20,13 @@ export async function requestVendorAccessProfile(
   if (!payload.success || !isVendorStatus(payload.data.status)) {
     throw new Error("Vendor profile response is invalid");
   }
-  return { status: payload.data.status, storeName: payload.data.storeName };
+  return payload.data;
+}
+
+export async function requestVendorAccessProfile(
+  accessToken: string,
+  apiBaseUrl: string,
+): Promise<VendorAccessProfile> {
+  const profile = await requestVendorProfile(accessToken, apiBaseUrl);
+  return { status: profile.status, storeName: profile.storeName };
 }

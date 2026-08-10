@@ -140,4 +140,20 @@ describe("vendor dashboard logout", () => {
     await user.click(screen.getByRole("button", { name: "Refresh status" }));
     expect(navigation.refresh).toHaveBeenCalledOnce();
   });
+
+  it("lets suspended vendors inspect their store without exposing operational navigation", () => {
+    navigation.pathname = "/store";
+    renderWithProviders(
+      <VendorDashboardShell
+        account={{ actions: [], email: "vendor@example.test", name: "Vendor" }}
+        profile={{ status: "SUSPENDED", storeName: "Maple Market" }}
+      >
+        <p>Read-only store profile</p>
+      </VendorDashboardShell>,
+    );
+
+    expect(screen.getByText("Read-only store profile")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Store" })).toBeVisible();
+    expect(screen.queryByRole("link", { name: "Products" })).not.toBeInTheDocument();
+  });
 });

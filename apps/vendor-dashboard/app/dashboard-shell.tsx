@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { canEditStoreProfile, canRenderVendorRoute } from "../src/lib/vendor-access";
+import { canRenderVendorRoute } from "../src/lib/vendor-access";
 import type { VendorAccessProfile } from "../src/lib/vendor-access";
 import { ApprovedVendorNotice, VendorStatusGate } from "./vendor-status-gate";
 
@@ -67,9 +67,7 @@ export function VendorDashboardShell({
   const navigation =
     profile.status === "APPROVED"
       ? operationalNavigation
-      : canEditStoreProfile(profile.status)
-        ? [{ href: "/store", icon: "◇", label: "Store" }]
-        : [];
+      : [{ href: "/store", icon: "◇", label: "Store" }];
   const canRenderRoute = canRenderVendorRoute(profile.status, currentPath);
 
   return (

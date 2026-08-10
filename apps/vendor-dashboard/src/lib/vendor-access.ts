@@ -21,5 +21,5 @@ export function canUseOperationalFeatures(status: VendorStatus): boolean {
 
 export function canRenderVendorRoute(status: VendorStatus, pathname: string): boolean {
   if (canUseOperationalFeatures(status)) return true;
-  return canEditStoreProfile(status) && (pathname === "/store" || pathname.startsWith("/store/"));
+  return pathname === "/store" || pathname.startsWith("/store/");
 }
