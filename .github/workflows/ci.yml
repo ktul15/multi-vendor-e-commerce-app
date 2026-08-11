@@ -89,6 +89,30 @@ jobs:
     name: Web quality gates
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: testdb
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_USER: testuser
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U testuser -d testdb"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -117,6 +141,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install backend dependencies
+        run: npm --prefix backend ci
+
+      - name: Prepare end-to-end database
+        env:
+          DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb
+        working-directory: backend
+        run: |
+          npm exec prisma generate
+          npm exec prisma migrate deploy
+          npm run db:seed
+
       - name: Check formatting
         run: pnpm run format:check
 
@@ -141,5 +177,23 @@ jobs:
       - name: Install Playwright browser
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Run dashboard smoke tests
+      - name: Run dashboard end-to-end tests
+        env:
+          DASHBOARD_BFF_SECRET: issue-99-ci-bff-secret
+          DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb
+          JWT_ACCESS_SECRET: issue-99-ci-access-secret
+          JWT_REFRESH_SECRET: issue-99-ci-refresh-secret
+          PLAYWRIGHT_START_BACKEND: "1"
+          REDIS_URL: redis://localhost:6379
         run: pnpm run test:e2e
+
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          if-no-files-found: ignore
+          name: playwright-failure-artifacts
+          path: |
+            playwright-report/
+            test-results/playwright/
+          retention-days: 14
