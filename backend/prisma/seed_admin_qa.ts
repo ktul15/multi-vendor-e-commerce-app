@@ -206,6 +206,7 @@ async function seedUsersAndVendors(passwordHash: string) {
       email: 'victor.vendor@example.com',
       store: 'Victor Marketplace',
       status: VendorProfileStatus.APPROVED,
+      stripeStarted: false,
     },
     {
       name: 'Nina Suspended Vendor',
@@ -262,11 +263,16 @@ async function seedUsersAndVendors(passwordHash: string) {
             storeBanner: `https://picsum.photos/seed/qa-vendor-banner-${RUN_ID}-${number}/960/320`,
             description: `QA vendor profile for admin status, pagination, and detail testing ${number}.`,
             status,
-            stripeAccountId: `acct_qa_${RUN_ID}_${number}`,
+            stripeAccountId:
+              persona?.stripeStarted === false
+                ? null
+                : `acct_qa_${RUN_ID}_${number}`,
             stripeOnboardingStatus:
-              status === VendorProfileStatus.APPROVED
-                ? VendorOnboardingStatus.COMPLETE
-                : VendorOnboardingStatus.PENDING,
+              persona?.stripeStarted === false
+                ? VendorOnboardingStatus.NOT_STARTED
+                : status === VendorProfileStatus.APPROVED
+                  ? VendorOnboardingStatus.COMPLETE
+                  : VendorOnboardingStatus.PENDING,
             commissionRate:
               number % 3 === 0 ? null : money(8 + (number % 5) * 1.25),
             bankDetails: {
