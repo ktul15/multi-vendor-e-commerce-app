@@ -2,6 +2,8 @@
 
 Status: Baseline for issue #72
 
+Current audit: issue #100 is recorded in `vendor-dashboard-parity-audit.md` with a completed no-go decision. Admin-foundation reuse remains blocked by #97 and #117, so the sign-off checklist below is intentionally incomplete.
+
 Source application: `vendor_dashboard/` (Flutter)
 
 Target application: `apps/vendor-dashboard/` (Next.js)
