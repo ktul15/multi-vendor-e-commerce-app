@@ -90,7 +90,12 @@ export function VendorOrdersView({
               Showing {first}–{last} of {orders.meta.total} orders
             </p>
             {orders.items.length ? (
-              <div className="vendor-order-table-wrap">
+              <div
+                aria-label="Vendor orders table"
+                className="vendor-order-table-wrap"
+                role="region"
+                tabIndex={0}
+              >
                 <table className="vendor-order-table">
                   <caption className="ui-visually-hidden">Vendor orders</caption>
                   <thead>

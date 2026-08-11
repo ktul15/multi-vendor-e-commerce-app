@@ -20,7 +20,7 @@ The active vendor dashboard demonstrates the Flutter routes, migration fixes, ba
 | ------------------------------------------------------------------ | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Every parity-matrix row is demonstrated or explicitly deferred     | Met for audit             | Row inventories below; Stripe start/refresh are deferred to #97.                                                                                                                                                                 |
 | Backend request and response behavior matches production contracts | Verified                  | `npm run api:check`; vendor BFF route tests; seeded real-backend Playwright run.                                                                                                                                                 |
-| Known regressions have blocking issues                             | Verified                  | #97 owns missing Connect onboarding; #117 owns deterministic E2E seed/cleanup; #101 owns the full accessibility review.                                                                                                          |
+| Known regressions have blocking issues                             | Verified                  | #97 owns missing Connect onboarding; #117 owns deterministic E2E seed/cleanup. The #101 accessibility review is complete with no remaining accessibility no-go finding.                                                          |
 | Desktop and tablet layouts are reviewed                            | Verified for parity scope | `vendor-parity-layout.spec.ts` checks public auth, lifecycle gates, critical/detail routes, and empty/error states at 1440×900 and 768×1024. It detects document overflow, clipped controls, shell overlap, and drawer failures. |
 | Product, order, and payout owners approve the result               | Approved (no-go)          | @ktul15 approved the audit findings on 2026-08-11; #97 and #117 remain mandatory before admin-foundation reuse.                                                                                                                  |
 
@@ -31,7 +31,7 @@ The active vendor dashboard demonstrates the Flutter routes, migration fixes, ba
 | Login              | Verified                           | `vendor-auth-panel.test.tsx`, `vendor-auth-routes.test.ts`, `dashboard-smoke.spec.ts`                                           |
 | Registration       | Verified                           | `vendor-auth-panel.test.tsx`, `vendor-auth-routes.test.ts`, `vendor-workflows.spec.ts`                                          |
 | Session/logout     | Verified                           | `proxy.test.ts`, `dashboard-shell-auth.test.tsx`, `vendor-workflows.spec.ts`                                                    |
-| Responsive shell   | Verified for desktop/tablet parity | `dashboard-shell.test.tsx`, `vendor-parity-layout.spec.ts`; full accessibility review remains #101                              |
+| Responsive shell   | Verified for desktop/tablet parity | `dashboard-shell.test.tsx`, `vendor-parity-layout.spec.ts`, and `vendor-dashboard-accessibility-audit.md`                       |
 | Approval gate      | Verified                           | `vendor-access.test.ts`, `dashboard-shell-auth.test.tsx`, `proxy.test.ts`, `vendor-workflows.spec.ts`                           |
 | Dashboard          | Verified                           | `dashboard-overview.test.tsx`, `dashboard-data.test.ts`, `vendor-parity-layout.spec.ts`                                         |
 | Product list       | Verified                           | `product-inventory.test.tsx`, `product-list-state.test.ts`, `vendor-workflows.spec.ts`                                          |
@@ -71,7 +71,7 @@ Two gaps remain blocking:
 1. Stripe Connect onboarding, return reconciliation, refresh-loop protection, state explanations, and test-mode evidence remain #97.
 2. The Playwright workflows mutate shared seeded records and fixed registration identities. A clean seed passes, but a repeat run without reseeding fails. Deterministic per-run setup and cleanup remain #117.
 
-Layout-stable loading states remain covered at component level by the vendor suite and shared UI tests. The broader automated accessibility, focus-order, contrast, and keyboard review remains explicitly assigned to #101 and must pass before cutover.
+Layout-stable loading states remain covered at component level by the vendor suite and shared UI tests. The broader automated accessibility, focus-order, contrast, keyboard, and responsive review passed under #101; its findings and evidence are recorded in `vendor-dashboard-accessibility-audit.md`.
 
 ## Verification record
 

@@ -151,7 +151,12 @@ function RecentOrders({ orders }: Readonly<{ orders: VendorOrders }>) {
     return <EmptyState description="New customer orders will appear here." title="No orders yet" />;
   }
   return (
-    <div className="vendor-orders-table-wrap">
+    <div
+      aria-label="Recent orders table"
+      className="vendor-orders-table-wrap"
+      role="region"
+      tabIndex={0}
+    >
       <table className="vendor-orders-table">
         <caption className="ui-visually-hidden">Five most recent vendor orders</caption>
         <thead>
