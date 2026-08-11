@@ -64,6 +64,25 @@ describe("shared dashboard components", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
+  it("contains forward and reverse keyboard focus", async () => {
+    const user = userEvent.setup();
+    render(
+      <Dialog onClose={vi.fn()} open title="Keyboard dialog">
+        <button type="button">First action</button>
+        <button type="button">Last action</button>
+      </Dialog>,
+    );
+
+    const close = screen.getByRole("button", { name: "Close dialog" });
+    const last = screen.getByRole("button", { name: "Last action" });
+    close.focus();
+    await user.keyboard("{Shift>}{Tab}{/Shift}");
+    expect(last).toHaveFocus();
+
+    await user.tab();
+    expect(close).toHaveFocus();
+  });
+
   it("synchronizes native and prop-driven dialog closure", () => {
     const onClose = vi.fn();
     const { rerender } = render(

@@ -145,7 +145,12 @@ function TopProductsTable({ products }: Readonly<{ products: TopProducts }>) {
     );
   }
   return (
-    <div className="vendor-orders-table-wrap">
+    <div
+      aria-label="Top products table"
+      className="vendor-orders-table-wrap"
+      role="region"
+      tabIndex={0}
+    >
       <table className="vendor-orders-table">
         <caption className="ui-visually-hidden">Top products by revenue</caption>
         <thead>
@@ -181,7 +186,12 @@ function EarningsTable({ earnings }: Readonly<{ earnings: EarningsLedger }>) {
     );
   }
   return (
-    <div className="vendor-orders-table-wrap">
+    <div
+      aria-label="Earning records table"
+      className="vendor-orders-table-wrap"
+      role="region"
+      tabIndex={0}
+    >
       <table className="vendor-orders-table vendor-earnings-table">
         <caption className="ui-visually-hidden">Recent vendor earning records</caption>
         <thead>
@@ -228,7 +238,12 @@ function PayoutTable({ payouts }: Readonly<{ payouts: PayoutHistory }>) {
     );
   }
   return (
-    <div className="vendor-orders-table-wrap">
+    <div
+      aria-label="Payout history table"
+      className="vendor-orders-table-wrap"
+      role="region"
+      tabIndex={0}
+    >
       <table className="vendor-orders-table">
         <caption className="ui-visually-hidden">Stripe payout history</caption>
         <thead>

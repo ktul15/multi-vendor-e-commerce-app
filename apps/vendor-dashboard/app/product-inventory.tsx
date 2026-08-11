@@ -62,7 +62,12 @@ function InventoryTable({
   state,
 }: Readonly<{ inventory: VendorInventory; state: ProductListState }>) {
   return (
-    <div className="vendor-inventory-table-wrap">
+    <div
+      aria-label="Product inventory table"
+      className="vendor-inventory-table-wrap"
+      role="region"
+      tabIndex={0}
+    >
       <table className="vendor-inventory-table">
         <caption className="ui-visually-hidden">Vendor product inventory</caption>
         <thead>

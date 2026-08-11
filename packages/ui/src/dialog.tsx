@@ -1,7 +1,41 @@
 "use client";
 
 import { useEffect, useId, useRef } from "react";
-import type { ReactNode } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
+
+const focusableSelector = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(",");
+
+function trapDialogFocus(event: ReactKeyboardEvent<HTMLDialogElement>) {
+  if (event.key !== "Tab") return;
+  const controls = [...event.currentTarget.querySelectorAll<HTMLElement>(focusableSelector)].filter(
+    (element) => !element.hidden && element.getAttribute("aria-hidden") !== "true",
+  );
+  const first = controls.at(0);
+  const last = controls.at(-1);
+  if (!first || !last) {
+    event.preventDefault();
+    event.currentTarget.focus();
+    return;
+  }
+
+  if (
+    event.shiftKey &&
+    (document.activeElement === first || document.activeElement === event.currentTarget)
+  ) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
 
 export type DialogProps = Readonly<{
   children: ReactNode;
@@ -55,6 +89,7 @@ export function Dialog({
 
         if (open) onClose();
       }}
+      onKeyDown={trapDialogFocus}
       ref={dialogRef}
     >
       <div className={`ui-dialog__surface ui-dialog__surface--${variant}`}>
