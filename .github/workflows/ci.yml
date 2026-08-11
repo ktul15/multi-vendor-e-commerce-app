@@ -129,6 +129,9 @@ jobs:
       - name: Type-check
         run: pnpm run typecheck
 
+      - name: Run critical vendor regressions
+        run: pnpm --filter @repo/vendor-dashboard run test:critical
+
       - name: Run unit tests
         run: pnpm run test
 

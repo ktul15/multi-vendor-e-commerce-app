@@ -113,6 +113,39 @@ describe("product inventory", () => {
     );
   });
 
+  it.each([
+    [0, "Out of stock"],
+    [10, "Low stock"],
+    [11, "In stock"],
+  ] as const)("formats %i total units as %s", (stock, label) => {
+    const item = inventory.items[0]!;
+    renderWithProviders(
+      <ProductInventory
+        inventory={{
+          items: [
+            {
+              ...item,
+              variants: [
+                {
+                  ...item.variants[0]!,
+                  price: "1299.5",
+                  stock,
+                },
+              ],
+            },
+          ],
+          meta: { limit: 10, page: 1, total: 1, totalPages: 1 },
+        }}
+        state={{ ...state, page: 1 }}
+      />,
+    );
+
+    const table = within(screen.getByRole("table", { name: "Vendor product inventory" }));
+    expect(table.getByText(label)).toBeVisible();
+    expect(table.getByText(`${stock} units total`)).toBeVisible();
+    expect(table.getByText("Variants: ₹1,299.50")).toBeVisible();
+  });
+
   it("renders filtered empty and request failure states", () => {
     const { rerender } = renderWithProviders(
       <ProductInventory
