@@ -5,6 +5,7 @@ import { Button, Card, CardContent, CardHeader, CardTitle, Input } from "@repo/u
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import type { FormEventHandler } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import type { FieldPath } from "react-hook-form";
 import type { Category, EditableProduct } from "../src/lib/product-data";
@@ -14,6 +15,7 @@ import type { ProductEditorValues } from "../src/lib/product-form-schema";
 import { CategorySelector, flattenCategoryOptions } from "./category-selector";
 import { ProductMediaManager } from "./product-media-manager";
 import type { PendingProductImage } from "./product-media-manager";
+import { useVendorDataRefresh } from "./vendor-data-coherence";
 
 const EMPTY_DISABLED_CATEGORY_IDS: ReadonlySet<string> = new Set();
 
@@ -69,6 +71,7 @@ export function ProductForm({
   product?: EditableProduct;
 }>) {
   const router = useRouter();
+  const refreshVendorData = useVendorDataRefresh();
   const editing = Boolean(product);
   const [submissionError, setSubmissionError] = useState<string>();
   const [navigationAllowed, setNavigationAllowed] = useState(false);
@@ -79,6 +82,7 @@ export function ProductForm({
   const [savedProductId, setSavedProductId] = useState(product?.id);
   const [isMediaRetrying, setIsMediaRetrying] = useState(false);
   const mediaRetryInFlight = useRef(false);
+  const submissionInFlight = useRef(false);
   const {
     control,
     formState: { errors, isDirty, isSubmitting },
@@ -221,6 +225,8 @@ export function ProductForm({
     try {
       if (!(await uploadImage(productId, item))) {
         setSubmissionError("The image upload failed again.");
+      } else {
+        await refreshVendorData(["dashboard", "inventory"]);
       }
     } finally {
       mediaRetryInFlight.current = false;
@@ -291,24 +297,27 @@ export function ProductForm({
       }
       setNavigationAllowed(true);
       router.push("/products");
-      router.refresh();
+      await refreshVendorData(["dashboard", "inventory"]);
     } catch (cause) {
       setSubmissionError(cause instanceof Error ? cause.message : "Product could not be saved");
     }
   });
 
+  const guardedSubmit: FormEventHandler<HTMLFormElement> = async (event) => {
+    if (mediaRetryInFlight.current || submissionInFlight.current) {
+      event.preventDefault();
+      return;
+    }
+    submissionInFlight.current = true;
+    try {
+      await submit(event);
+    } finally {
+      submissionInFlight.current = false;
+    }
+  };
+
   return (
-    <form
-      className="vendor-product-form"
-      noValidate
-      onSubmit={(event) => {
-        if (mediaRetryInFlight.current) {
-          event.preventDefault();
-          return;
-        }
-        void submit(event);
-      }}
-    >
+    <form className="vendor-product-form" noValidate onSubmit={guardedSubmit}>
       <header className="vendor-product-form__header">
         <div>
           <p>Catalog management</p>

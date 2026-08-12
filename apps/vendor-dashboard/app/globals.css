@@ -485,6 +485,8 @@
 .vendor-product-media__item {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+  contain-intrinsic-size: auto 24rem;
+  content-visibility: auto;
   display: grid;
   gap: var(--space-3);
   min-width: 0;
@@ -944,7 +946,9 @@
 .vendor-inventory-table-wrap {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
+  contain: inline-size;
   overflow-x: auto;
+  overscroll-behavior-inline: contain;
 }
 
 .vendor-inventory-table {
@@ -1138,7 +1142,9 @@
 .vendor-order-table-wrap {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
+  contain: inline-size;
   overflow-x: auto;
+  overscroll-behavior-inline: contain;
 }
 
 .vendor-order-table {
