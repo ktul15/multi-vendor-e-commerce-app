@@ -3,3 +3,100 @@
   max-width: 72rem;
   padding: 4rem 2rem;
 }
+
+.admin-auth {
+  align-items: center;
+  display: grid;
+  gap: clamp(2rem, 7vw, 7rem);
+  min-height: 100vh;
+  padding: clamp(1.5rem, 5vw, 5rem);
+}
+
+.admin-auth__intro {
+  max-width: 38rem;
+}
+
+.admin-auth__eyebrow {
+  color: var(--color-brand-700);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-auth__intro h1 {
+  font-size: clamp(2.5rem, 7vw, 5rem);
+  letter-spacing: -0.04em;
+  line-height: 0.98;
+  margin: var(--space-4) 0;
+}
+
+.admin-auth__intro > p:last-child,
+.admin-auth__heading p {
+  color: var(--color-text-muted);
+}
+
+.admin-auth__card {
+  margin-inline: auto;
+  max-width: 32rem;
+  width: 100%;
+}
+
+.admin-auth__heading {
+  margin-bottom: var(--space-5);
+}
+
+.admin-auth__heading h2,
+.admin-auth__heading p {
+  margin: 0;
+}
+
+.admin-auth__heading p {
+  margin-top: var(--space-2);
+}
+
+.admin-auth__form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.admin-auth__password {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: end;
+}
+
+.admin-auth__password .ui-field {
+  width: 100%;
+}
+
+.admin-auth__error,
+.admin-logout-error {
+  background: var(--color-danger-50);
+  border: 1px solid var(--color-danger-600);
+  border-radius: var(--radius-md);
+  color: var(--color-danger-text);
+  margin: 0;
+  padding: var(--space-3);
+}
+
+.admin-logout-error {
+  left: 50%;
+  max-width: min(32rem, calc(100vw - 2rem));
+  position: fixed;
+  top: var(--space-4);
+  transform: translateX(-50%);
+  width: 100%;
+  z-index: 20;
+}
+
+.admin-route-placeholder {
+  margin: 0 auto;
+  max-width: 72rem;
+}
+
+@media (min-width: 60rem) {
+  .admin-auth {
+    grid-template-columns: minmax(0, 1fr) minmax(24rem, 32rem);
+  }
+}

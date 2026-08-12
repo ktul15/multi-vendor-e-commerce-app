@@ -1,11 +1,15 @@
-import { AppPlaceholder } from "@repo/ui";
+import { postLoginReturnPath } from "@repo/auth";
+import { AdminLoginPanel } from "./admin-login-panel";
 
-export default function LoginPage() {
-  return (
-    <AppPlaceholder
-      eyebrow="Admin Console"
-      title="Sign in"
-      description="Admin authentication forms will be added with the admin web feature phase."
-    />
+type LoginPageProps = Readonly<{
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}>;
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = await searchParams;
+  const returnTo = postLoginReturnPath(
+    typeof params.returnTo === "string" ? params.returnTo : undefined,
   );
+
+  return <AdminLoginPanel returnTo={returnTo} />;
 }
