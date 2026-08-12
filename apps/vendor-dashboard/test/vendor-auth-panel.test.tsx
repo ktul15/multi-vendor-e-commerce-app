@@ -1,5 +1,5 @@
 import { renderWithProviders } from "@repo/test-utils";
-import { screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { VendorAuthPanel } from "../app/login/vendor-auth-panel";
@@ -88,5 +88,27 @@ describe("vendor authentication forms", () => {
       "/api/auth/register",
       expect.objectContaining({ method: "POST" }),
     );
+  });
+
+  it("prevents duplicate login requests before the pending state renders", async () => {
+    let resolveLogin!: (response: Response) => void;
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(jsonResponse({ success: false }, 401))
+      .mockReturnValueOnce(new Promise<Response>((resolve) => (resolveLogin = resolve)));
+    vi.stubGlobal("fetch", fetch);
+    const user = userEvent.setup();
+    renderWithProviders(<VendorAuthPanel initialMode="login" returnTo="/" />);
+    await screen.findByRole("button", { name: "Sign in" });
+    await user.type(screen.getByRole("textbox", { name: "Email address" }), "owner@example.com");
+    await user.type(screen.getByLabelText(/^Password/), "secret123");
+    const form = screen.getByRole("button", { name: "Sign in" }).closest("form")!;
+
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    resolveLogin(jsonResponse({ success: true }, 200));
+    await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith("/"));
   });
 });

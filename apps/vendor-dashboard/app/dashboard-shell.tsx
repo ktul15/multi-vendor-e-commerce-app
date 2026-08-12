@@ -4,11 +4,12 @@ import { DashboardShell } from "@repo/ui";
 import type { DashboardAccount, DashboardNavItem } from "@repo/ui";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { canRenderVendorRoute } from "../src/lib/vendor-access";
 import type { VendorAccessProfile } from "../src/lib/vendor-access";
 import { ApprovedVendorNotice, VendorStatusGate } from "./vendor-status-gate";
+import { publishVendorDataChange } from "../src/lib/vendor-data-sync";
 
 const operationalNavigation: readonly DashboardNavItem[] = [
   { href: "/", icon: "⌂", label: "Dashboard" },
@@ -35,8 +36,11 @@ export function VendorDashboardShell({
   const currentPath = usePathname();
   const router = useRouter();
   const [logoutError, setLogoutError] = useState<string>();
+  const logoutInFlight = useRef(false);
 
   const logout = async () => {
+    if (logoutInFlight.current) return;
+    logoutInFlight.current = true;
     setLogoutError(undefined);
     const csrfToken = document.cookie
       .split(";")
@@ -50,6 +54,7 @@ export function VendorDashboardShell({
         method: "POST",
       });
       if (!response.ok) throw new Error("Unable to sign out");
+      publishVendorDataChange(["session"]);
       const destination = response.url
         ? `${new URL(response.url).pathname}${new URL(response.url).search}`
         : "/login";
@@ -57,6 +62,8 @@ export function VendorDashboardShell({
       router.refresh();
     } catch {
       setLogoutError("We could not sign you out. Please try again.");
+    } finally {
+      logoutInFlight.current = false;
     }
   };
 

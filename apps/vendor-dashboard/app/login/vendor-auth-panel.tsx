@@ -6,10 +6,12 @@ import { postLoginReturnPath } from "@repo/auth";
 import { applyApiFieldErrors } from "@repo/schemas";
 import { Button, Card, CardContent, Input } from "@repo/ui";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { FormEventHandler } from "react";
 import { useForm } from "react-hook-form";
 import { vendorLoginSchema, vendorRegistrationSchema } from "../../src/lib/auth-forms";
 import type { VendorLoginValues, VendorRegistrationValues } from "../../src/lib/auth-forms";
+import { publishVendorDataChange } from "../../src/lib/vendor-data-sync";
 
 type AuthMode = "login" | "register";
 
@@ -25,6 +27,7 @@ async function postCredentials(path: string, values: unknown): Promise<void> {
 
 function LoginForm({ onSuccess }: Readonly<{ onSuccess: () => void }>) {
   const [formError, setFormError] = useState<string>();
+  const submissionInFlight = useRef(false);
   const form = useForm<VendorLoginValues>({
     defaultValues: { email: "", password: "" },
     resolver: zodResolver(vendorLoginSchema),
@@ -47,8 +50,21 @@ function LoginForm({ onSuccess }: Readonly<{ onSuccess: () => void }>) {
     }
   });
 
+  const guardedSubmit: FormEventHandler<HTMLFormElement> = async (event) => {
+    if (submissionInFlight.current) {
+      event.preventDefault();
+      return;
+    }
+    submissionInFlight.current = true;
+    try {
+      await submit(event);
+    } finally {
+      submissionInFlight.current = false;
+    }
+  };
+
   return (
-    <form className="vendor-auth__form" noValidate onSubmit={submit}>
+    <form className="vendor-auth__form" noValidate onSubmit={guardedSubmit}>
       <Input
         autoComplete="email"
         error={form.formState.errors.email?.message}
@@ -84,6 +100,7 @@ function LoginForm({ onSuccess }: Readonly<{ onSuccess: () => void }>) {
 
 function RegistrationForm({ onSuccess }: Readonly<{ onSuccess: () => void }>) {
   const [formError, setFormError] = useState<string>();
+  const submissionInFlight = useRef(false);
   const form = useForm<VendorRegistrationValues>({
     defaultValues: {
       confirmPassword: "",
@@ -112,8 +129,21 @@ function RegistrationForm({ onSuccess }: Readonly<{ onSuccess: () => void }>) {
     }
   });
 
+  const guardedSubmit: FormEventHandler<HTMLFormElement> = async (event) => {
+    if (submissionInFlight.current) {
+      event.preventDefault();
+      return;
+    }
+    submissionInFlight.current = true;
+    try {
+      await submit(event);
+    } finally {
+      submissionInFlight.current = false;
+    }
+  };
+
   return (
-    <form className="vendor-auth__form" noValidate onSubmit={submit}>
+    <form className="vendor-auth__form" noValidate onSubmit={guardedSubmit}>
       <Input
         autoComplete="name"
         error={form.formState.errors.name?.message}
@@ -194,6 +224,7 @@ export function VendorAuthPanel({
   }, [router, safeDestination]);
 
   const complete = () => {
+    publishVendorDataChange(["dashboard", "inventory", "orders", "profile", "session"]);
     router.replace(safeDestination);
     router.refresh();
   };

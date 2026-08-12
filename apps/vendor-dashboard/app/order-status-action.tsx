@@ -1,9 +1,9 @@
 "use client";
 
 import { Button, Dialog, Input, Select } from "@repo/ui";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { VendorOrder } from "../src/lib/order-data";
+import { useVendorDataRefresh } from "./vendor-data-coherence";
 
 type NextStatus = VendorOrder["allowedNextStatuses"][number];
 
@@ -24,7 +24,8 @@ function csrfToken() {
 }
 
 export function OrderStatusAction({ order }: Readonly<{ order: VendorOrder }>) {
-  const router = useRouter();
+  const refreshVendorData = useVendorDataRefresh();
+  const submissionInFlight = useRef(false);
   const [selected, setSelected] = useState<NextStatus | undefined>(order.allowedNextStatuses[0]);
   const [confirming, setConfirming] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState("");
@@ -47,7 +48,8 @@ export function OrderStatusAction({ order }: Readonly<{ order: VendorOrder }>) {
   };
 
   const updateStatus = async () => {
-    if (!target || !canSubmit || submitting) return;
+    if (!target || !canSubmit || submissionInFlight.current) return;
+    submissionInFlight.current = true;
     setSubmitting(true);
     setError(undefined);
     try {
@@ -77,10 +79,11 @@ export function OrderStatusAction({ order }: Readonly<{ order: VendorOrder }>) {
         throw new Error(message);
       }
       setConfirming(false);
-      router.refresh();
+      await refreshVendorData(["dashboard", "orders"]);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The order status could not be updated.");
     } finally {
+      submissionInFlight.current = false;
       setSubmitting(false);
     }
   };

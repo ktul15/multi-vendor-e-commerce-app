@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { renderWithProviders } from "@repo/test-utils";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProductForm } from "../app/product-form";
 import type { Category, EditableProduct } from "../src/lib/product-data";
@@ -37,7 +38,7 @@ const product: EditableProduct = {
 
 describe("product form navigation protection", () => {
   it("blocks internal links and browser history while changes are unsaved", async () => {
-    render(
+    renderWithProviders(
       <>
         <a href="/orders">Orders</a>
         <ProductForm categories={[]} />
@@ -62,7 +63,7 @@ describe("product form navigation protection", () => {
   it("does not submit an edit with a category that is no longer available", async () => {
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);
-    render(<ProductForm categories={categories} product={product} />);
+    renderWithProviders(<ProductForm categories={categories} product={product} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
@@ -73,7 +74,7 @@ describe("product form navigation protection", () => {
   it("clears and rejects a disabled category already assigned to an edit", async () => {
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);
-    render(
+    renderWithProviders(
       <ProductForm
         categories={categories}
         disabledCategoryIds={new Set([categories[0]!.id])}
@@ -99,7 +100,7 @@ describe("product variant inventory editor", () => {
     );
 
   it("adds variant rows and derives total availability from their stock", async () => {
-    render(<ProductForm categories={categories} />);
+    renderWithProviders(<ProductForm categories={categories} />);
 
     expect(availability(0)).toBeVisible();
     fireEvent.change(screen.getByRole("spinbutton", { name: /^Stock/ }), {
@@ -118,7 +119,7 @@ describe("product variant inventory editor", () => {
   it("loads adjustments for edits and submits final prices with updated stock", async () => {
     const fetch = vi.fn().mockResolvedValue(Response.json({ success: true }));
     vi.stubGlobal("fetch", fetch);
-    render(
+    renderWithProviders(
       <ProductForm
         categories={categories}
         product={{ ...product, categoryId: categories[0]!.id }}
@@ -148,6 +149,29 @@ describe("product variant inventory editor", () => {
         },
       ],
     });
+  });
+
+  it("prevents duplicate saves before the pending state renders", async () => {
+    let resolveSave!: (response: Response) => void;
+    const fetch = vi.fn<typeof globalThis.fetch>(
+      () => new Promise((resolve) => (resolveSave = resolve)),
+    );
+    vi.stubGlobal("fetch", fetch);
+    renderWithProviders(
+      <ProductForm
+        categories={categories}
+        product={{ ...product, categoryId: categories[0]!.id }}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText(/Name/), { target: { value: "Updated product" } });
+    const form = screen.getByRole("button", { name: "Save changes" }).closest("form")!;
+
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledOnce());
+    resolveSave(Response.json({ data: { id: product.id, media: [] }, success: true }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled());
   });
 });
 
@@ -179,7 +203,7 @@ describe("product media save recovery", () => {
     vi.stubGlobal("fetch", fetch);
     vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:product.webp");
     vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
-    render(<ProductForm categories={categories} />);
+    renderWithProviders(<ProductForm categories={categories} />);
 
     fireEvent.change(screen.getByLabelText(/Name/), { target: { value: "New product" } });
     fireEvent.change(screen.getByLabelText(/Description/), {
@@ -225,7 +249,7 @@ describe("product media save recovery", () => {
     vi.stubGlobal("fetch", fetch);
     vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:retry.webp");
     vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
-    render(
+    renderWithProviders(
       <ProductForm
         categories={categories}
         product={{ ...product, categoryId: categories[0]!.id }}

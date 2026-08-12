@@ -5,11 +5,13 @@ import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from "
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import type { FormEventHandler } from "react";
 import { useForm } from "react-hook-form";
 import type { VendorProfile } from "../src/lib/vendor-profile-api";
 import { canEditStoreProfile } from "../src/lib/vendor-access";
 import { storeImageError, storeProfileSchema } from "../src/lib/store-profile-schema";
 import type { StoreProfileValues } from "../src/lib/store-profile-schema";
+import { useVendorDataRefresh } from "./vendor-data-coherence";
 
 type MediaField = "banner" | "logo";
 type SelectedMedia = Readonly<{ file: File; preview: string }>;
@@ -41,6 +43,7 @@ const statusTone = {
 
 export function StoreProfileForm({ initialProfile }: Readonly<{ initialProfile: VendorProfile }>) {
   const router = useRouter();
+  const refreshVendorData = useVendorDataRefresh();
   const [profile, setProfile] = useState(initialProfile);
   const [media, setMedia] = useState<Partial<Record<MediaField, SelectedMedia>>>({});
   const [mediaErrors, setMediaErrors] = useState<Partial<Record<MediaField, string>>>({});
@@ -49,6 +52,7 @@ export function StoreProfileForm({ initialProfile }: Readonly<{ initialProfile: 
   const [refreshing, setRefreshing] = useState(false);
   const [fileInputKey, setFileInputKey] = useState(0);
   const mediaAtUnmount = useRef(media);
+  const submissionInFlight = useRef(false);
   const editable = canEditStoreProfile(profile.status);
   const {
     formState: { errors, isDirty, isSubmitting },
@@ -167,11 +171,24 @@ export function StoreProfileForm({ initialProfile }: Readonly<{ initialProfile: 
         throw new Error(payload?.message ?? "Store profile could not be saved");
       }
       applyProfile({ ...profile, ...payload.data }, "Store profile updated.");
-      router.refresh();
+      await refreshVendorData(["dashboard", "profile"]);
     } catch (cause) {
       setFormError(cause instanceof Error ? cause.message : "Store profile could not be saved");
     }
   });
+
+  const guardedSubmit: FormEventHandler<HTMLFormElement> = async (event) => {
+    if (submissionInFlight.current) {
+      event.preventDefault();
+      return;
+    }
+    submissionInFlight.current = true;
+    try {
+      await submit(event);
+    } finally {
+      submissionInFlight.current = false;
+    }
+  };
 
   const mediaField = (field: MediaField, label: string, currentUrl?: string | null) => {
     const selected = media[field];
@@ -182,7 +199,9 @@ export function StoreProfileForm({ initialProfile }: Readonly<{ initialProfile: 
           {source ? (
             <Image
               alt={`${label} preview`}
+              decoding="async"
               fill
+              loading="lazy"
               sizes={field === "logo" ? "10rem" : "32rem"}
               src={source}
               unoptimized
@@ -254,7 +273,7 @@ export function StoreProfileForm({ initialProfile }: Readonly<{ initialProfile: 
         </p>
       ) : null}
 
-      <form onSubmit={submit}>
+      <form onSubmit={guardedSubmit}>
         <Card>
           <CardHeader>
             <CardTitle>Store details</CardTitle>

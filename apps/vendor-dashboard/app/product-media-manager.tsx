@@ -138,7 +138,10 @@ export function ProductMediaManager({
             <article className="vendor-product-media__item" key={item.id}>
               <Image
                 alt={`Product image ${index + 1}`}
+                decoding="async"
                 height={240}
+                loading="lazy"
+                sizes="(max-width: 48rem) 100vw, (max-width: 80rem) 50vw, 20rem"
                 src={replacement?.previewUrl || item.url}
                 unoptimized
                 width={320}
@@ -220,7 +223,10 @@ export function ProductMediaManager({
               {item.previewUrl ? (
                 <Image
                   alt={`New product image ${position}`}
+                  decoding="async"
                   height={240}
+                  loading="lazy"
+                  sizes="(max-width: 48rem) 100vw, (max-width: 80rem) 50vw, 20rem"
                   src={item.previewUrl}
                   unoptimized
                   width={320}

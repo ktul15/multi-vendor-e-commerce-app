@@ -2,8 +2,8 @@
 
 import { Button, Dialog } from "@repo/ui";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useVendorDataRefresh } from "./vendor-data-coherence";
 
 function csrfToken(): string | undefined {
   return document.cookie
@@ -15,12 +15,15 @@ function csrfToken(): string | undefined {
 }
 
 export function ProductActions({ id, name }: Readonly<{ id: string; name: string }>) {
-  const router = useRouter();
+  const refreshVendorData = useVendorDataRefresh();
+  const deletionInFlight = useRef(false);
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string>();
 
   const deleteProduct = async () => {
+    if (deletionInFlight.current) return;
+    deletionInFlight.current = true;
     setDeleting(true);
     setError(undefined);
     try {
@@ -34,10 +37,11 @@ export function ProductActions({ id, name }: Readonly<{ id: string; name: string
         | undefined;
       if (!response.ok) throw new Error(payload?.message ?? "Product could not be deleted");
       setConfirming(false);
-      router.refresh();
+      await refreshVendorData(["dashboard", "inventory"]);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Product could not be deleted");
     } finally {
+      deletionInFlight.current = false;
       setDeleting(false);
     }
   };

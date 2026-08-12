@@ -122,4 +122,26 @@ describe("store profile form", () => {
     );
     expect(fetch).toHaveBeenCalledWith("/api/vendor-profile", { cache: "no-store" });
   });
+
+  it("prevents duplicate profile updates before the pending state renders", async () => {
+    let resolveSave!: (response: Response) => void;
+    const fetch = vi.fn<typeof globalThis.fetch>(
+      () => new Promise((resolve) => (resolveSave = resolve)),
+    );
+    vi.stubGlobal("fetch", fetch);
+    renderWithProviders(<StoreProfileForm initialProfile={approvedProfile} />);
+    fireEvent.change(screen.getByRole("textbox", { name: "Store name" }), {
+      target: { value: "Updated Market" },
+    });
+    const form = screen.getByRole("button", { name: "Save changes" }).closest("form")!;
+
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledOnce());
+    resolveSave(
+      response({ data: { ...approvedProfile, storeName: "Updated Market" }, success: true }),
+    );
+    expect(await screen.findByText("Store profile updated.")).toBeVisible();
+  });
 });
