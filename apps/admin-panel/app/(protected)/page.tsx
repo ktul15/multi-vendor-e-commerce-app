@@ -4,9 +4,9 @@ export default function AdminPanelPage() {
   return (
     <div>
       <AppPlaceholder
-        eyebrow="Web migration foundation"
-        title="Admin Panel"
-        description="The Next.js admin workspace is ready for feature migration."
+        eyebrow="Marketplace operations"
+        title="Dashboard"
+        description="Platform metrics and recent marketplace activity will appear here."
       />
     </div>
   );
