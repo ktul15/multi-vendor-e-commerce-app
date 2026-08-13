@@ -1,13 +1,13 @@
-import { AppPlaceholder } from "@repo/ui";
+import { DashboardOverview } from "../dashboard-overview";
+import { getAdminDashboardData } from "../../src/lib/dashboard-data";
+import { parseDashboardRange } from "../../src/lib/dashboard-range";
 
-export default function AdminPanelPage() {
-  return (
-    <div>
-      <AppPlaceholder
-        eyebrow="Marketplace operations"
-        title="Dashboard"
-        description="Platform metrics and recent marketplace activity will appear here."
-      />
-    </div>
-  );
+type SearchParams = Promise<Readonly<Record<string, string | readonly string[] | undefined>>>;
+
+export default async function AdminPanelPage({
+  searchParams,
+}: Readonly<{ searchParams: SearchParams }>) {
+  const range = parseDashboardRange(await searchParams);
+  const data = await getAdminDashboardData(range);
+  return <DashboardOverview data={data} range={range} />;
 }
