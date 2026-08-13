@@ -557,10 +557,26 @@ export class AdminService {
   async listAllOrders(
     query: ListOrdersQueryInput
   ): Promise<PaginatedResult<unknown>> {
-    const { page, limit, status, userId, vendorId, startDate, endDate } = query;
+    const {
+      page,
+      limit,
+      search,
+      status,
+      userId,
+      vendorId,
+      startDate,
+      endDate,
+    } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.OrderWhereInput = {
+      ...(search && {
+        OR: [
+          { orderNumber: { contains: search, mode: 'insensitive' } },
+          { user: { name: { contains: search, mode: 'insensitive' } } },
+          { user: { email: { contains: search, mode: 'insensitive' } } },
+        ],
+      }),
       // Merge status and vendorId into a single vendorOrders.some to avoid
       // object spread overwriting the earlier key when both filters are provided.
       ...((status || vendorId) && {

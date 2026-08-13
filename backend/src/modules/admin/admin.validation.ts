@@ -34,7 +34,10 @@ const dateRangeBase = z
 
 export const listUsersQuerySchema = z.object({
   page: z.preprocess(coerceNumber, z.number().int().min(1).default(1)),
-  limit: z.preprocess(coerceNumber, z.number().int().min(1).max(100).default(20)),
+  limit: z.preprocess(
+    coerceNumber,
+    z.number().int().min(1).max(100).default(20)
+  ),
   role: z.enum(['CUSTOMER', 'VENDOR', 'ADMIN']).optional(),
   isBanned: z.preprocess(coerceBoolean, z.boolean().optional()),
   search: z.string().optional(),
@@ -42,14 +45,20 @@ export const listUsersQuerySchema = z.object({
 
 export const listVendorsQuerySchema = z.object({
   page: z.preprocess(coerceNumber, z.number().int().min(1).default(1)),
-  limit: z.preprocess(coerceNumber, z.number().int().min(1).max(100).default(20)),
+  limit: z.preprocess(
+    coerceNumber,
+    z.number().int().min(1).max(100).default(20)
+  ),
   status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED']).optional(),
   search: z.string().optional(),
 });
 
 export const listProductsQuerySchema = z.object({
   page: z.preprocess(coerceNumber, z.number().int().min(1).default(1)),
-  limit: z.preprocess(coerceNumber, z.number().int().min(1).max(100).default(20)),
+  limit: z.preprocess(
+    coerceNumber,
+    z.number().int().min(1).max(100).default(20)
+  ),
   isActive: z.preprocess(coerceBoolean, z.boolean().optional()),
   vendorId: z.string().uuid().optional(),
   categoryId: z.string().uuid().optional(),
@@ -58,7 +67,11 @@ export const listProductsQuerySchema = z.object({
 
 export const listOrdersQuerySchema = dateRangeBase.extend({
   page: z.preprocess(coerceNumber, z.number().int().min(1).default(1)),
-  limit: z.preprocess(coerceNumber, z.number().int().min(1).max(100).default(20)),
+  limit: z.preprocess(
+    coerceNumber,
+    z.number().int().min(1).max(100).default(20)
+  ),
+  search: z.string().trim().max(100).optional(),
   status: z
     .enum([
       'PENDING',
@@ -115,5 +128,7 @@ export type ListProductsQueryInput = z.infer<typeof listProductsQuerySchema>;
 export type ListOrdersQueryInput = z.infer<typeof listOrdersQuerySchema>;
 export type RevenueQueryInput = z.infer<typeof revenueQuerySchema>;
 export type UpdateCommissionInput = z.infer<typeof updateCommissionSchema>;
-export type UpdateVendorCommissionInput = z.infer<typeof updateVendorCommissionSchema>;
+export type UpdateVendorCommissionInput = z.infer<
+  typeof updateVendorCommissionSchema
+>;
 export type OrderIdParamInput = z.infer<typeof orderIdParamSchema>;
