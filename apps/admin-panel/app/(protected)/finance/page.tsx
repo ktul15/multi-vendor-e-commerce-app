@@ -1,10 +1,12 @@
-import { AdminRoutePlaceholder } from "../../admin-route-placeholder";
+import { AdminCommissionView } from "../../admin-commission-view";
+import { getDefaultCommission } from "../../../src/lib/commission-data";
 
-export default function FinancePage() {
-  return (
-    <AdminRoutePlaceholder
-      title="Finance"
-      description="Revenue and payout reporting arrive in issue #113."
-    />
-  );
+export default async function FinancePage() {
+  let commission;
+  try {
+    commission = await getDefaultCommission();
+  } catch {
+    return <AdminCommissionView error="Commission settings could not be loaded. Try again." />;
+  }
+  return <AdminCommissionView commission={commission} />;
 }

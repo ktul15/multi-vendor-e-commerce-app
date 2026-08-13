@@ -335,13 +335,15 @@
 }
 
 .admin-vendors,
-.admin-vendor-detail {
+.admin-vendor-detail,
+.admin-commission {
   display: grid;
   gap: var(--space-5);
 }
 
 .admin-vendors__header,
-.admin-vendor-detail__header > div:first-child {
+.admin-vendor-detail__header > div:first-child,
+.admin-commission__header {
   display: grid;
   gap: var(--space-1);
 }
@@ -349,12 +351,15 @@
 .admin-vendors__header h1,
 .admin-vendors__header p,
 .admin-vendor-detail__header h1,
-.admin-vendor-detail__header p {
+.admin-vendor-detail__header p,
+.admin-commission__header h1,
+.admin-commission__header p {
   margin: 0;
 }
 
 .admin-vendors__header > p:first-child,
-.admin-vendor-detail__header > div:first-child > p {
+.admin-vendor-detail__header > div:first-child > p,
+.admin-commission__header > p:first-child {
   color: var(--color-brand-700);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
@@ -363,7 +368,10 @@
 }
 
 .admin-vendors__header > p:last-child,
-.admin-vendors__result {
+.admin-vendors__result,
+.admin-commission__header > p:last-child,
+.admin-commission__description,
+.admin-commission__note {
   color: var(--color-text-muted);
 }
 
@@ -454,6 +462,55 @@
   padding: var(--space-3) var(--space-4);
 }
 
+.admin-commission__description {
+  font-size: var(--font-size-sm);
+  margin: var(--space-1) 0 0;
+}
+
+.admin-commission__rate {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  justify-content: space-between;
+}
+
+.admin-commission__rate > div:first-child {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.admin-commission__rate span,
+.admin-commission__rate small {
+  color: var(--color-text-muted);
+}
+
+.admin-commission__rate strong {
+  color: var(--color-brand-700);
+  font-size: var(--font-size-2xl);
+}
+
+.admin-commission-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.admin-commission-error {
+  background: var(--color-danger-50);
+  border: 1px solid color-mix(in srgb, var(--color-danger-600) 35%, transparent);
+  border-radius: var(--radius-md);
+  color: var(--color-danger-text);
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3) var(--space-4);
+}
+
+.admin-commission__note {
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
 .admin-vendor-detail__header {
   align-items: end;
   display: flex;
@@ -517,6 +574,11 @@
   .admin-vendor-filters__actions > *,
   .admin-vendor-detail__actions > * {
     flex: 1;
+  }
+  .admin-commission__rate,
+  .admin-commission-actions,
+  .admin-commission-actions > * {
+    width: 100%;
   }
   .admin-vendor-pagination {
     justify-content: space-between;

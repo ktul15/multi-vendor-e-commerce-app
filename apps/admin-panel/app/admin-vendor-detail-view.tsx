@@ -1,11 +1,13 @@
 import { Badge, Card, CardContent, CardHeader, CardTitle, ErrorState } from "@repo/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import type { CommissionSetting } from "../src/lib/commission-data";
 import type { AdminVendorDetail } from "../src/lib/vendor-data";
 import { actionsForVendor } from "../src/lib/vendor-lifecycle";
 import { formatDashboardDate } from "../src/lib/format";
 import { VendorLifecycleAction } from "./vendor-lifecycle-action";
 import { vendorStatusTone } from "./admin-vendors-view";
+import { CommissionRateAction } from "./commission-rate-action";
 
 function Field({ label, value }: Readonly<{ label: string; value: ReactNode }>) {
   return (
@@ -17,9 +19,16 @@ function Field({ label, value }: Readonly<{ label: string; value: ReactNode }>) 
 }
 
 export function AdminVendorDetailView({
+  commissionError,
+  defaultCommission,
   error,
   vendor,
-}: Readonly<{ error?: string; vendor?: AdminVendorDetail }>) {
+}: Readonly<{
+  commissionError?: string;
+  defaultCommission?: CommissionSetting;
+  error?: string;
+  vendor?: AdminVendorDetail;
+}>) {
   if (error || !vendor) {
     return (
       <ErrorState
@@ -62,12 +71,6 @@ export function AdminVendorDetailView({
               value={vendor.stripeOnboardingStatus.replaceAll("_", " ")}
             />
             <Field
-              label="Commission rate"
-              value={
-                vendor.commissionRate === null ? "Platform default" : `${vendor.commissionRate}%`
-              }
-            />
-            <Field
               label="Created"
               value={
                 <time dateTime={vendor.createdAt}>{formatDashboardDate(vendor.createdAt)}</time>
@@ -108,6 +111,44 @@ export function AdminVendorDetailView({
             <h4>Store description</h4>
             <p>{vendor.description || "No description provided."}</p>
           </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <div>
+            <CardTitle>Commission</CardTitle>
+            <p className="admin-commission__description">
+              A vendor override takes precedence over the platform default.
+            </p>
+          </div>
+          <Badge tone={vendor.commissionRate === null ? "neutral" : "info"}>
+            {vendor.commissionRate === null ? "Platform default" : "Vendor override"}
+          </Badge>
+        </CardHeader>
+        <CardContent>
+          {commissionError || !defaultCommission ? (
+            <p className="admin-commission-error" role="alert">
+              {commissionError ?? "Platform default could not be loaded."}
+            </p>
+          ) : (
+            <div className="admin-commission__rate">
+              <div>
+                <span>Effective rate</span>
+                <strong>
+                  {Number(vendor.commissionRate ?? defaultCommission.rate).toFixed(2)}%
+                </strong>
+                <small>
+                  Platform default: {defaultCommission.rate.toFixed(2)}%
+                  {vendor.commissionRate === null ? " (currently inherited)" : ""}
+                </small>
+              </div>
+              <CommissionRateAction
+                currentRate={vendor.commissionRate === null ? null : Number(vendor.commissionRate)}
+                defaultRate={defaultCommission.rate}
+                target={{ id: vendor.id, kind: "vendor", storeName: vendor.storeName }}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
       <Card>
