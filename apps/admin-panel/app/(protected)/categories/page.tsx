@@ -1,10 +1,12 @@
-import { AdminRoutePlaceholder } from "../../admin-route-placeholder";
+import { AdminCategoriesView } from "../../admin-categories-view";
+import { getAdminCategories } from "../../../src/lib/category-data";
 
-export default function CategoriesPage() {
-  return (
-    <AdminRoutePlaceholder
-      title="Categories"
-      description="Category hierarchy and management arrive in issue #110."
-    />
-  );
+export default async function CategoriesPage() {
+  let categories;
+  try {
+    categories = await getAdminCategories();
+  } catch {
+    return <AdminCategoriesView error="Categories could not be loaded. Try again." />;
+  }
+  return <AdminCategoriesView categories={categories} />;
 }
