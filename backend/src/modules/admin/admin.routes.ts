@@ -594,6 +594,10 @@ router.delete(
  *           type: string
  *           enum: [PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED, REFUNDED]
  *       - in: query
+ *         name: search
+ *         schema: { type: string, maxLength: 100 }
+ *         description: Search by order number, customer name, or customer email
+ *       - in: query
  *         name: userId
  *         schema: { type: string, format: uuid }
  *         description: Filter by customer ID

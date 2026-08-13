@@ -500,6 +500,8 @@ export interface paths {
                     readonly endDate?: string;
                     readonly limit?: number;
                     readonly page?: number;
+                    /** @description Search by order number, customer name, or customer email */
+                    readonly search?: string;
                     readonly startDate?: string;
                     readonly status?: "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "REFUNDED";
                     /** @description Filter by customer ID */
