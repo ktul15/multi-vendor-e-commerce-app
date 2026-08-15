@@ -334,6 +334,206 @@
   }
 }
 
+.admin-banner-list,
+.admin-banner-form {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.admin-banner-list__header,
+.admin-banner-form > header {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  justify-content: space-between;
+}
+
+.admin-banner-list__header h1,
+.admin-banner-list__header p,
+.admin-banner-form header h1,
+.admin-banner-form header p {
+  margin: 0;
+}
+
+.admin-banner-list__header > div,
+.admin-banner-form header > div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.admin-banner-list__header > div > p:first-child,
+.admin-banner-form header > div > p:first-of-type {
+  color: var(--color-brand-700);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-banner-list__header > div > p:last-child,
+.admin-banner-form header > div > p:last-child,
+.admin-banner-media small {
+  color: var(--color-text-muted);
+}
+
+.admin-banner-filters {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.admin-banner-table-wrap {
+  overflow-x: auto;
+}
+.admin-banner-table {
+  border-collapse: collapse;
+  min-width: 58rem;
+  width: 100%;
+}
+.admin-banner-table th,
+.admin-banner-table td {
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-3);
+  text-align: left;
+}
+.admin-banner-table thead th {
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+}
+.admin-banner-identity {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+  max-width: 26rem;
+  min-width: 0;
+}
+.admin-banner-identity img {
+  border-radius: var(--radius-md);
+  height: 3.5rem;
+  object-fit: cover;
+  width: 7rem;
+}
+.admin-banner-identity span {
+  display: grid;
+  min-width: 0;
+}
+.admin-banner-identity small {
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-banner-actions,
+.admin-banner-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.admin-banner-pagination {
+  align-items: center;
+  display: flex;
+  gap: var(--space-4);
+  justify-content: flex-end;
+  margin-top: var(--space-4);
+}
+.admin-banner-pagination a {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  text-decoration: none;
+}
+.admin-banner-pagination [aria-disabled="true"] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.admin-banner-preview {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+}
+.admin-banner-preview img {
+  aspect-ratio: 3 / 1;
+  border-radius: var(--radius-md);
+  height: auto;
+  object-fit: cover;
+  width: 100%;
+}
+.admin-banner-preview p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.admin-banner-form__grid {
+  display: grid;
+  gap: var(--space-6);
+  grid-template-columns: minmax(16rem, 1fr) minmax(20rem, 1.35fr);
+}
+.admin-banner-form__fields,
+.admin-banner-media {
+  display: grid;
+  gap: var(--space-4);
+}
+.admin-banner-checkbox {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+}
+.admin-banner-media > img {
+  aspect-ratio: 3 / 1;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  height: auto;
+  object-fit: cover;
+  width: 100%;
+}
+.admin-banner-media__empty {
+  align-items: center;
+  aspect-ratio: 3 / 1;
+  background: var(--color-surface-muted);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  display: flex;
+  justify-content: center;
+  padding: var(--space-4);
+  text-align: center;
+}
+.admin-banner-progress {
+  display: grid;
+  gap: var(--space-1);
+  margin-top: var(--space-5);
+}
+.admin-banner-progress progress {
+  width: 100%;
+}
+.admin-banner-error {
+  background: var(--color-danger-50);
+  border: 1px solid var(--color-danger-600);
+  border-radius: var(--radius-md);
+  color: var(--color-danger-text);
+  padding: var(--space-3);
+}
+.admin-banner-field-error {
+  color: var(--color-danger-text) !important;
+}
+.admin-banner-form__actions {
+  justify-content: flex-end;
+  margin-top: var(--space-6);
+}
+
+@media (max-width: 48rem) {
+  .admin-banner-form__grid {
+    grid-template-columns: 1fr;
+  }
+  .admin-banner-list__header > .ui-button {
+    width: 100%;
+  }
+}
+
 .admin-promo-list,
 .admin-promo-form {
   display: grid;
