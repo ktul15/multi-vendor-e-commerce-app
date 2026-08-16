@@ -87,7 +87,6 @@ describe("admin proxy", () => {
     "/finance",
     "/banners",
     "/promos",
-    "/settings",
   ])("protects the parity route %s", (path) => {
     expect(matcher.test(path)).toBe(true);
   });

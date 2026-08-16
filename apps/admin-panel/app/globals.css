@@ -90,11 +90,6 @@
   z-index: 20;
 }
 
-.admin-route-placeholder {
-  margin: 0 auto;
-  max-width: 72rem;
-}
-
 .admin-overview {
   display: grid;
   gap: var(--space-6);
