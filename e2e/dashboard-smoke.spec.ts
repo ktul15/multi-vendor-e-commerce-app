@@ -5,7 +5,7 @@ test("each dashboard exposes its public login boundary", async ({ page }, testIn
 
   await expect(
     page.getByRole("heading", {
-      level: 1,
+      level: testInfo.project.name.startsWith("vendor") ? 1 : 2,
       name: testInfo.project.name.startsWith("vendor")
         ? "Run your storefront with confidence."
         : "Sign in",
