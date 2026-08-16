@@ -5,13 +5,16 @@ import { CommissionRateAction } from "./commission-rate-action";
 
 export function AdminCommissionView({
   commission,
+  compact = false,
   error,
-}: Readonly<{ commission?: CommissionSetting; error?: string }>) {
+}: Readonly<{ commission?: CommissionSetting; compact?: boolean; error?: string }>) {
   return (
     <div className="admin-commission">
-      <header className="admin-commission__header">
+      <header
+        className={`admin-commission__header${compact ? " admin-commission__header--compact" : ""}`}
+      >
         <p>Marketplace finance</p>
-        <h1>Commission management</h1>
+        {compact ? <h2>Commission management</h2> : <h1>Commission management</h1>}
         <p>Control the default marketplace percentage applied when a vendor has no override.</p>
       </header>
       {error || !commission ? (
@@ -52,9 +55,6 @@ export function AdminCommissionView({
           </CardContent>
         </Card>
       )}
-      <p className="admin-commission__note">
-        Revenue and payout reporting will be added to this area separately.
-      </p>
     </div>
   );
 }

@@ -6,7 +6,12 @@ import { cookies } from "next/headers";
 import type { DashboardRangeState } from "./dashboard-range";
 
 export type AdminSummary = components["schemas"]["AdminDashboardSuccess"]["data"];
-export type AdminRevenue = components["schemas"]["AdminRevenueSuccess"]["data"];
+type AdminRevenueReport = components["schemas"]["AdminRevenueSuccess"]["data"];
+export type AdminRevenue = Readonly<{
+  dateRange: AdminRevenueReport["dateRange"];
+  period: AdminRevenueReport["period"];
+  series: AdminRevenueReport["series"];
+}>;
 export type AdminOrders = components["schemas"]["AdminOrdersSuccess"]["data"];
 
 export type DashboardResult<T> =
@@ -45,7 +50,7 @@ export async function getAdminDashboardData(
     })
     .then(({ data }) => {
       if (!data) throw new Error("Revenue response is empty");
-      return data.data as AdminRevenue;
+      return data.data as unknown as AdminRevenue;
     });
   const ordersRequest: Promise<AdminOrders> = client
     .GET("/admin/orders", { params: { query: { limit: 5, page: 1 } } })

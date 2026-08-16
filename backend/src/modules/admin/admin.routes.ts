@@ -672,7 +672,7 @@ router.get(
  *   get:
  *     tags: [Admin]
  *     summary: Get gross merchandise value report (Admin only)
- *     description: Returns billable order gross merchandise value (GMV) by period. The revenue field is gross order value, not platform commission or vendor net earnings.
+ *     description: Returns date-filtered INR GMV series plus authoritative gross, platform commission, vendor earnings, earning-status, and payout totals. Failed and reversed earnings are excluded from headline totals.
  *     parameters:
  *       - in: query
  *         name: startDate

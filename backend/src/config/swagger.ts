@@ -79,10 +79,45 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
     orderCount: integerSchema,
     revenue: stringSchema,
   }),
+  AdminFinanceTotals: objectSchema({
+    grossRevenue: stringSchema,
+    platformCommission: stringSchema,
+    vendorEarnings: stringSchema,
+    vendorOrderCount: integerSchema,
+  }),
+  AdminEarningsStatusTotal: objectSchema({
+    status: {
+      type: 'string',
+      enum: ['PENDING', 'TRANSFERRED', 'FAILED', 'REVERSED'],
+    },
+    count: integerSchema,
+    grossRevenue: stringSchema,
+    platformCommission: stringSchema,
+    vendorEarnings: stringSchema,
+  }),
+  AdminPayoutStatusTotal: objectSchema({
+    status: { type: 'string', enum: ['PENDING', 'PAID', 'FAILED'] },
+    count: integerSchema,
+    amount: stringSchema,
+  }),
+  AdminRecentPayout: objectSchema({
+    id: stringSchema,
+    amount: stringSchema,
+    currency: { type: 'string', enum: ['INR'] },
+    status: { type: 'string', enum: ['PENDING', 'PAID', 'FAILED'] },
+    arrivalDate: { type: 'string', format: 'date-time', nullable: true },
+    failureReason: nullableString,
+    createdAt: { type: 'string', format: 'date-time' },
+    vendorProfile: objectSchema({ id: stringSchema, storeName: stringSchema }),
+  }),
   AdminRevenueSuccess: successEnvelope(
     objectSchema({
       period: { type: 'string', enum: ['day', 'week', 'month'] },
       series: arraySchema(ref('RevenueBucket')),
+      totals: ref('AdminFinanceTotals'),
+      earningsByStatus: arraySchema(ref('AdminEarningsStatusTotal')),
+      payoutsByStatus: arraySchema(ref('AdminPayoutStatusTotal')),
+      recentPayouts: arraySchema(ref('AdminRecentPayout')),
       dateRange: objectSchema({
         startDate: stringSchema,
         endDate: stringSchema,

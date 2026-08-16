@@ -340,6 +340,149 @@
           }
         }
       },
+      "AdminFinanceTotals": {
+        "type": "object",
+        "required": [
+          "grossRevenue",
+          "platformCommission",
+          "vendorEarnings",
+          "vendorOrderCount"
+        ],
+        "properties": {
+          "grossRevenue": {
+            "type": "string"
+          },
+          "platformCommission": {
+            "type": "string"
+          },
+          "vendorEarnings": {
+            "type": "string"
+          },
+          "vendorOrderCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "AdminEarningsStatusTotal": {
+        "type": "object",
+        "required": [
+          "status",
+          "count",
+          "grossRevenue",
+          "platformCommission",
+          "vendorEarnings"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "TRANSFERRED",
+              "FAILED",
+              "REVERSED"
+            ]
+          },
+          "count": {
+            "type": "integer"
+          },
+          "grossRevenue": {
+            "type": "string"
+          },
+          "platformCommission": {
+            "type": "string"
+          },
+          "vendorEarnings": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminPayoutStatusTotal": {
+        "type": "object",
+        "required": [
+          "status",
+          "count",
+          "amount"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PAID",
+              "FAILED"
+            ]
+          },
+          "count": {
+            "type": "integer"
+          },
+          "amount": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminRecentPayout": {
+        "type": "object",
+        "required": [
+          "id",
+          "amount",
+          "currency",
+          "status",
+          "arrivalDate",
+          "failureReason",
+          "createdAt",
+          "vendorProfile"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "INR"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PAID",
+              "FAILED"
+            ]
+          },
+          "arrivalDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "failureReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "vendorProfile": {
+            "type": "object",
+            "required": [
+              "id",
+              "storeName"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "storeName": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
       "AdminRevenueSuccess": {
         "type": "object",
         "required": [
@@ -362,6 +505,10 @@
             "required": [
               "period",
               "series",
+              "totals",
+              "earningsByStatus",
+              "payoutsByStatus",
+              "recentPayouts",
               "dateRange"
             ],
             "properties": {
@@ -377,6 +524,27 @@
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/RevenueBucket"
+                }
+              },
+              "totals": {
+                "$ref": "#/components/schemas/AdminFinanceTotals"
+              },
+              "earningsByStatus": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AdminEarningsStatusTotal"
+                }
+              },
+              "payoutsByStatus": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AdminPayoutStatusTotal"
+                }
+              },
+              "recentPayouts": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AdminRecentPayout"
                 }
               },
               "dateRange": {
@@ -5910,7 +6078,7 @@
           "Admin"
         ],
         "summary": "Get gross merchandise value report (Admin only)",
-        "description": "Returns billable order gross merchandise value (GMV) by period. The revenue field is gross order value, not platform commission or vendor net earnings.",
+        "description": "Returns date-filtered INR GMV series plus authoritative gross, platform commission, vendor earnings, earning-status, and payout totals. Failed and reversed earnings are excluded from headline totals.",
         "parameters": [
           {
             "in": "query",
