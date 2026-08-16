@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run --passWithNoTests",
+    "test:critical": "vitest run test/api-behavior-msw.test.tsx test/proxy.test.ts test/admin-auth-routes.test.ts test/admin-user-status-route.test.ts test/admin-vendor-lifecycle-route.test.ts test/admin-product-moderation-route.test.ts test/admin-category-routes.test.ts test/admin-commission-routes.test.ts test/admin-banner-routes.test.ts test/admin-promo-routes.test.ts test/admin-users.test.tsx test/admin-vendors.test.tsx test/admin-products.test.tsx test/admin-categories.test.tsx test/admin-commission.test.tsx test/admin-banners.test.tsx test/admin-promos.test.tsx test/admin-finance.test.tsx test/dashboard-overview.test.tsx",
     "clean": "rm -rf .next .turbo"
   },
   "dependencies": {

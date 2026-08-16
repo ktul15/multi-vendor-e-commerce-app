@@ -168,6 +168,9 @@ jobs:
       - name: Run critical vendor regressions
         run: pnpm --filter @repo/vendor-dashboard run test:critical
 
+      - name: Run critical admin regressions
+        run: pnpm --filter @repo/admin-panel run test:critical
+
       - name: Run unit tests
         run: pnpm run test
 
