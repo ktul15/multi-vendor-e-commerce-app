@@ -17,7 +17,6 @@ const navigation: readonly DashboardNavItem[] = [
   { href: "/finance", icon: "₹", label: "Finance" },
   { href: "/banners", icon: "▣", label: "Banners" },
   { href: "/promos", icon: "%", label: "Promo codes" },
-  { href: "/settings", icon: "⚙", label: "Settings" },
 ];
 
 export function AdminDashboardShell({

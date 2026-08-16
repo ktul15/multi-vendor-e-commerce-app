@@ -49,7 +49,7 @@ function shell() {
 }
 
 describe("admin dashboard shell", () => {
-  it("links every parity destination and exposes the responsive drawer", async () => {
+  it("links every approved destination and excludes unsupported settings", async () => {
     const user = userEvent.setup();
     shell();
     const navigationRegion = screen.getByRole("navigation", { name: "Admin Console navigation" });
@@ -61,7 +61,6 @@ describe("admin dashboard shell", () => {
       Orders: "/orders",
       Products: "/products",
       "Promo codes": "/promos",
-      Settings: "/settings",
       Users: "/users",
       Vendors: "/vendors",
     };
@@ -71,6 +70,7 @@ describe("admin dashboard shell", () => {
         href,
       );
     }
+    expect(within(navigationRegion).queryByRole("link", { name: "Settings" })).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Open navigation" }));
     expect(screen.getByRole("dialog", { name: "Navigation" })).toBeVisible();
