@@ -520,6 +520,166 @@
 .admin-banner-field-error {
   color: var(--color-danger-text) !important;
 }
+
+.admin-finance {
+  display: grid;
+  gap: var(--space-6);
+}
+.admin-finance__header {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  justify-content: space-between;
+}
+.admin-finance__header > div {
+  display: grid;
+  gap: var(--space-1);
+}
+.admin-finance__header h1,
+.admin-finance__header p {
+  margin: 0;
+}
+.admin-finance__header > div > p:first-child {
+  color: var(--color-brand-700);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.admin-finance__header > div > p:last-child {
+  color: var(--color-text-muted);
+}
+.admin-finance__header nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.admin-finance__header nav a {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  text-decoration: none;
+}
+.admin-finance__header nav a[aria-current="page"] {
+  background: var(--color-brand-600);
+  border-color: var(--color-brand-600);
+  color: white;
+}
+.admin-finance__filters {
+  align-items: end;
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(3, minmax(10rem, 1fr)) auto;
+}
+.admin-finance__filters label {
+  display: grid;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  gap: var(--space-2);
+}
+.admin-finance__filters input {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+}
+.admin-finance__notice {
+  background: var(--color-warning-50);
+  border: 1px solid var(--color-warning-700);
+  border-radius: var(--radius-md);
+  color: var(--color-warning-700);
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3);
+}
+.admin-finance__notice--error {
+  background: var(--color-danger-50);
+  border-color: var(--color-danger-600);
+  color: var(--color-danger-text);
+}
+.admin-finance__metrics {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.admin-finance__metrics p,
+.admin-finance__metrics strong,
+.admin-finance__metrics small {
+  display: block;
+  margin: 0;
+}
+.admin-finance__metrics p,
+.admin-finance__metrics small {
+  color: var(--color-text-muted);
+}
+.admin-finance__metrics strong {
+  font-size: var(--font-size-xl);
+  margin-block: var(--space-2);
+  overflow-wrap: anywhere;
+}
+.admin-finance__table-wrap {
+  overflow-x: auto;
+}
+.admin-finance__table {
+  border-collapse: collapse;
+  min-width: 52rem;
+  width: 100%;
+}
+.admin-finance__table th,
+.admin-finance__table td {
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-3);
+  text-align: left;
+}
+.admin-finance__table thead th {
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+}
+.admin-finance__payouts,
+.admin-finance__payout-metrics {
+  display: grid;
+  gap: var(--space-4);
+}
+.admin-finance__payout-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.admin-finance__payout-metrics > div {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+.admin-finance__payout-metrics strong {
+  font-size: var(--font-size-lg);
+}
+.admin-finance__payout-metrics small {
+  color: var(--color-text-muted);
+}
+.admin-commission__header--compact h2 {
+  margin: 0;
+}
+@media (max-width: 70rem) {
+  .admin-finance__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .admin-finance__filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 42rem) {
+  .admin-finance__metrics,
+  .admin-finance__filters,
+  .admin-finance__payout-metrics {
+    grid-template-columns: 1fr;
+  }
+  .admin-finance__header nav,
+  .admin-finance__header nav a {
+    width: 100%;
+  }
+}
 .admin-banner-form__actions {
   justify-content: flex-end;
   margin-top: var(--space-6);

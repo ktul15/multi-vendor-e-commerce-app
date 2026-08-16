@@ -1,12 +1,20 @@
-import { AdminCommissionView } from "../../admin-commission-view";
-import { getDefaultCommission } from "../../../src/lib/commission-data";
+import { AdminFinanceView } from "../../admin-finance-view";
+import { getAdminFinanceData } from "../../../src/lib/finance-data";
+import { parseFinanceState } from "../../../src/lib/finance-state";
+import type { FinanceSearchParams } from "../../../src/lib/finance-state";
 
-export default async function FinancePage() {
-  let commission;
+export default async function FinancePage({
+  searchParams,
+}: Readonly<{ searchParams: Promise<FinanceSearchParams> }>) {
+  const state = parseFinanceState(await searchParams);
+  if (state.validationError) return <AdminFinanceView state={state} />;
+  let data;
   try {
-    commission = await getDefaultCommission();
+    data = await getAdminFinanceData(state);
   } catch {
-    return <AdminCommissionView error="Commission settings could not be loaded. Try again." />;
+    return (
+      <AdminFinanceView error="Finance services could not be loaded. Try again." state={state} />
+    );
   }
-  return <AdminCommissionView commission={commission} />;
+  return <AdminFinanceView data={data} state={state} />;
 }

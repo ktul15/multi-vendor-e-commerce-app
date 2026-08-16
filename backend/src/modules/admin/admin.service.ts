@@ -742,7 +742,10 @@ export class AdminService {
       : new Date(resolvedEnd.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     // DATE_TRUNC period is validated as a closed enum upstream — safe to inline.
-    const rows = await prisma.$queryRaw<RevenueRow[]>`
+    const range = { gte: resolvedStart, lt: resolvedEnd };
+    const [rows, totals, earningsByStatus, payoutsByStatus, recentPayouts] =
+      await Promise.all([
+        prisma.$queryRaw<RevenueRow[]>`
       SELECT
         DATE_TRUNC(${Prisma.raw(`'${period}'`)}, ve."createdAt") AS "periodStart",
         COUNT(DISTINCT ve."vendorOrderId")::int                   AS "orderCount",
@@ -750,11 +753,59 @@ export class AdminService {
       FROM vendor_earnings ve
       WHERE
         ve.status NOT IN ('FAILED', 'REVERSED')
+        AND ve.currency = 'INR'
         AND ve."createdAt" >= ${resolvedStart}
         AND ve."createdAt" <  ${resolvedEnd}
       GROUP BY 1
       ORDER BY 1 ASC
-    `;
+    `,
+        prisma.vendorEarning.aggregate({
+          where: {
+            createdAt: range,
+            currency: 'INR',
+            status: { in: BILLABLE_EARNING_STATUSES },
+          },
+          _count: { _all: true },
+          _sum: {
+            grossAmount: true,
+            commissionAmount: true,
+            netAmount: true,
+          },
+        }),
+        prisma.vendorEarning.groupBy({
+          by: ['status'],
+          where: { createdAt: range, currency: 'INR' },
+          _count: { _all: true },
+          _sum: {
+            grossAmount: true,
+            commissionAmount: true,
+            netAmount: true,
+          },
+          orderBy: { status: 'asc' },
+        }),
+        prisma.vendorPayout.groupBy({
+          by: ['status'],
+          where: { createdAt: range, currency: 'INR' },
+          _count: { _all: true },
+          _sum: { amount: true },
+          orderBy: { status: 'asc' },
+        }),
+        prisma.vendorPayout.findMany({
+          where: { createdAt: range, currency: 'INR' },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: 10,
+          select: {
+            id: true,
+            amount: true,
+            currency: true,
+            status: true,
+            arrivalDate: true,
+            failureReason: true,
+            createdAt: true,
+            vendorProfile: { select: { id: true, storeName: true } },
+          },
+        }),
+      ]);
 
     const series = rows.map((row) => ({
       periodStart: row.periodStart.toISOString().slice(0, 10),
@@ -765,6 +816,40 @@ export class AdminService {
     return {
       period,
       series,
+      totals: {
+        grossRevenue: parseFloat(
+          totals._sum.grossAmount?.toString() ?? '0'
+        ).toFixed(2),
+        platformCommission: parseFloat(
+          totals._sum.commissionAmount?.toString() ?? '0'
+        ).toFixed(2),
+        vendorEarnings: parseFloat(
+          totals._sum.netAmount?.toString() ?? '0'
+        ).toFixed(2),
+        vendorOrderCount: totals._count._all,
+      },
+      earningsByStatus: earningsByStatus.map((entry) => ({
+        status: entry.status,
+        count: entry._count._all,
+        grossRevenue: parseFloat(
+          entry._sum.grossAmount?.toString() ?? '0'
+        ).toFixed(2),
+        platformCommission: parseFloat(
+          entry._sum.commissionAmount?.toString() ?? '0'
+        ).toFixed(2),
+        vendorEarnings: parseFloat(
+          entry._sum.netAmount?.toString() ?? '0'
+        ).toFixed(2),
+      })),
+      payoutsByStatus: payoutsByStatus.map((entry) => ({
+        status: entry.status,
+        count: entry._count._all,
+        amount: parseFloat(entry._sum.amount?.toString() ?? '0').toFixed(2),
+      })),
+      recentPayouts: recentPayouts.map((payout) => ({
+        ...payout,
+        amount: payout.amount.toFixed(2),
+      })),
       dateRange: {
         startDate: resolvedStart.toISOString(),
         endDate: resolvedEnd.toISOString(),

@@ -1026,7 +1026,7 @@ export interface paths {
         };
         /**
          * Get gross merchandise value report (Admin only)
-         * @description Returns billable order gross merchandise value (GMV) by period. The revenue field is gross order value, not platform commission or vendor net earnings.
+         * @description Returns date-filtered INR GMV series plus authoritative gross, platform commission, vendor earnings, earning-status, and payout totals. Failed and reversed earnings are excluded from headline totals.
          */
         readonly get: {
             readonly parameters: {
@@ -7213,6 +7213,20 @@ export interface components {
             /** @enum {boolean} */
             readonly success: true;
         };
+        readonly AdminEarningsStatusTotal: {
+            readonly count: number;
+            readonly grossRevenue: string;
+            readonly platformCommission: string;
+            /** @enum {string} */
+            readonly status: "PENDING" | "TRANSFERRED" | "FAILED" | "REVERSED";
+            readonly vendorEarnings: string;
+        };
+        readonly AdminFinanceTotals: {
+            readonly grossRevenue: string;
+            readonly platformCommission: string;
+            readonly vendorEarnings: string;
+            readonly vendorOrderCount: number;
+        };
         readonly AdminFulfillmentStatus: {
             /** @enum {string} */
             readonly kind: "NONE" | "SINGLE" | "MIXED";
@@ -7337,6 +7351,12 @@ export interface components {
             };
             readonly vendorId: string;
         };
+        readonly AdminPayoutStatusTotal: {
+            readonly amount: string;
+            readonly count: number;
+            /** @enum {string} */
+            readonly status: "PENDING" | "PAID" | "FAILED";
+        };
         readonly AdminProductDetail: {
             readonly avgRating: string;
             readonly basePrice: string;
@@ -7421,15 +7441,36 @@ export interface components {
                 readonly storeName: string;
             } | null;
         };
+        readonly AdminRecentPayout: {
+            readonly amount: string;
+            /** Format: date-time */
+            readonly arrivalDate: string | null;
+            /** Format: date-time */
+            readonly createdAt: string;
+            /** @enum {string} */
+            readonly currency: "INR";
+            readonly failureReason: string | null;
+            readonly id: string;
+            /** @enum {string} */
+            readonly status: "PENDING" | "PAID" | "FAILED";
+            readonly vendorProfile: {
+                readonly id: string;
+                readonly storeName: string;
+            };
+        };
         readonly AdminRevenueSuccess: {
             readonly data: {
                 readonly dateRange: {
                     readonly endDate: string;
                     readonly startDate: string;
                 };
+                readonly earningsByStatus: readonly components["schemas"]["AdminEarningsStatusTotal"][];
+                readonly payoutsByStatus: readonly components["schemas"]["AdminPayoutStatusTotal"][];
                 /** @enum {string} */
                 readonly period: "day" | "week" | "month";
+                readonly recentPayouts: readonly components["schemas"]["AdminRecentPayout"][];
                 readonly series: readonly components["schemas"]["RevenueBucket"][];
+                readonly totals: components["schemas"]["AdminFinanceTotals"];
             };
             readonly message: string;
             /** @enum {boolean} */
