@@ -1,7 +1,19 @@
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
 
-const approvedVendor = {
+const accessVendor = {
+  email: "qa.vendor.realworld.6@example.com",
+  name: "QA Vendor Owner REALWORLD 06",
+  password: "password123",
+} as const;
+
+const productVendor = {
+  email: "qa.vendor.realworld.18@example.com",
+  name: "QA Vendor Owner REALWORLD 18",
+  password: "password123",
+} as const;
+
+const stripeVendor = {
   email: "victor.vendor@example.com",
   name: "Victor Approved Vendor",
   password: "password123",
@@ -14,12 +26,12 @@ const orderVendors = [
     password: "password123",
   },
   {
-    email: "qa.vendor.REALWORLD.10@example.com",
+    email: "qa.vendor.realworld.10@example.com",
     name: "QA Vendor Owner REALWORLD 10",
     password: "password123",
   },
   {
-    email: "qa.vendor.REALWORLD.14@example.com",
+    email: "qa.vendor.realworld.14@example.com",
     name: "QA Vendor Owner REALWORLD 14",
     password: "password123",
   },
@@ -27,7 +39,7 @@ const orderVendors = [
 
 async function login(
   page: Page,
-  account: Readonly<{ email: string; name: string; password: string }> = approvedVendor,
+  account: Readonly<{ email: string; name: string; password: string }>,
 ) {
   await page.goto("/login");
   await page.getByRole("textbox", { name: "Email address" }).fill(account.email);
@@ -89,16 +101,16 @@ test.describe("vendor workflows", () => {
     await expect(page.getByText("Issue 99 Pending Store", { exact: true })).toBeVisible();
     await signOut(page, "Issue 99 Pending Vendor");
 
-    await login(page);
+    await login(page, accessVendor);
     await expect(page.getByRole("heading", { level: 1, name: "Dashboard" })).toBeVisible();
-    await signOut(page, approvedVendor.name);
+    await signOut(page, accessVendor.name);
   });
 
   test("product create, edit, variants, inventory, and delete", async ({ page }, testInfo) => {
     const attempt = `${testInfo.parallelIndex}-${testInfo.retry}-${testInfo.workerIndex}`;
     const originalName = `Issue 99 Playwright Product ${attempt}`;
     const updatedName = `${originalName} Updated`;
-    await login(page);
+    await login(page, productVendor);
     await page.goto("/products/new");
 
     await page.getByRole("textbox", { name: "Name" }).fill(originalName);
@@ -174,7 +186,7 @@ test.describe("vendor workflows", () => {
   });
 
   test("store profile, earnings, and Stripe Connect status", async ({ page }) => {
-    await login(page);
+    await login(page, stripeVendor);
     await page.goto("/store");
     await expect(page.getByRole("textbox", { name: "Store name" })).toHaveValue(
       "Victor Marketplace",

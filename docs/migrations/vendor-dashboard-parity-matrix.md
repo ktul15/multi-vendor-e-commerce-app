@@ -2,7 +2,7 @@
 
 Status: Baseline for issue #72
 
-Current audit: issue #100 is recorded in `vendor-dashboard-parity-audit.md` with a completed no-go decision. Admin-foundation reuse remains blocked by #97 and #117, so the sign-off checklist below is intentionally incomplete.
+Current audit: issue #100 is recorded in `vendor-dashboard-parity-audit.md` with a completed no-go decision. Admin-foundation reuse remains blocked by #97; #117 has delivered deterministic E2E setup and cleanup, so the sign-off checklist below remains incomplete only for the outstanding feature blocker.
 
 Source application: `vendor_dashboard/` (Flutter)
 

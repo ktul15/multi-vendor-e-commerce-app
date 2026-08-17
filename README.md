@@ -100,7 +100,10 @@ cp .env.example .env   # fill in DATABASE_URL, REDIS_URL, JWT secrets, etc.
 
 # Database
 npm run db:migrate     # run migrations
-npm run db:seed        # seed initial data
+
+# Deterministic dashboard E2E data (deletes all rows in a dedicated test DB)
+WEB_E2E_RESET_CONFIRMATION=DELETE_E2E_DATA npm run db:e2e:seed
+WEB_E2E_RESET_CONFIRMATION=DELETE_E2E_DATA npm run db:e2e:cleanup
 
 # Development
 npm run dev            # hot reload with ts-node-dev
@@ -112,6 +115,8 @@ npm run test:coverage  # with coverage report
 # Docker
 docker-compose up      # spins up api + postgres + redis
 ```
+
+See [the web E2E data workflow](docs/migrations/web-e2e-data-workflow.md) for database-name safeguards, fixtures, and CI usage.
 
 #### Required environment variables
 

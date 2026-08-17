@@ -110,7 +110,7 @@ Exit approvers: migration, backend, web engineering, and security owners.
 
 ### Stage 1 — Staging implementation and parity
 
-Vendor entry requires its #86–#99 feature/test work. Admin entry requires #103–#116. Both require #117 deterministic data.
+Vendor entry requires its #86–#99 feature/test work. Admin entry requires #103–#116. Both use the deterministic data workflow delivered by #117.
 
 Entry approvers: migration, relevant product, QA, backend, and web engineering owners.
 

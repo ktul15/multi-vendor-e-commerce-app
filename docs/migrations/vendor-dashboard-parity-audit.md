@@ -12,7 +12,7 @@ This audit applies the contract in `vendor-dashboard-parity-matrix.md`. “Verif
 
 ## Decision
 
-The active vendor dashboard demonstrates the Flutter routes, migration fixes, backend contracts, and supported desktop/tablet layout for authentication, lifecycle gating, dashboard, inventory, orders, earnings data, payout history, and store profile management. It is not ready for formal parity sign-off because Stripe Connect onboarding and return/refresh handling are absent from the active branch (#97). The real-backend Playwright suite also requires a manual database reseed before repeat runs (#117). The product, order, and payout owner approved this no-go result; that approval accepts the audit findings and does not waive either blocker.
+The active vendor dashboard demonstrates the Flutter routes, migration fixes, backend contracts, and supported desktop/tablet layout for authentication, lifecycle gating, dashboard, inventory, orders, earnings data, payout history, and store profile management. It is not ready for formal parity sign-off because Stripe Connect onboarding and return/refresh handling are absent from the active branch (#97). The deterministic seed and cleanup workflow from #117 now supports repeatable real-backend Playwright runs. The product, order, and payout owner approved this no-go result; that approval accepts the audit findings and does not waive the remaining Stripe blocker.
 
 ## Acceptance criteria
 
@@ -20,9 +20,9 @@ The active vendor dashboard demonstrates the Flutter routes, migration fixes, ba
 | ------------------------------------------------------------------ | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Every parity-matrix row is demonstrated or explicitly deferred     | Met for audit             | Row inventories below; Stripe start/refresh are deferred to #97.                                                                                                                                                                 |
 | Backend request and response behavior matches production contracts | Verified                  | `npm run api:check`; vendor BFF route tests; seeded real-backend Playwright run.                                                                                                                                                 |
-| Known regressions have blocking issues                             | Verified                  | #97 owns missing Connect onboarding; #117 owns deterministic E2E seed/cleanup. The #101 accessibility review is complete with no remaining accessibility no-go finding.                                                          |
+| Known regressions have blocking issues                             | Verified                  | #97 owns missing Connect onboarding. #117 delivered deterministic E2E seed/cleanup, and the #101 accessibility review is complete with no remaining accessibility no-go finding.                                                   |
 | Desktop and tablet layouts are reviewed                            | Verified for parity scope | `vendor-parity-layout.spec.ts` checks public auth, lifecycle gates, critical/detail routes, and empty/error states at 1440×900 and 768×1024. It detects document overflow, clipped controls, shell overlap, and drawer failures. |
-| Product, order, and payout owners approve the result               | Approved (no-go)          | @ktul15 approved the audit findings on 2026-08-11; #97 and #117 remain mandatory before admin-foundation reuse.                                                                                                                  |
+| Product, order, and payout owners approve the result               | Approved (no-go)          | @ktul15 approved the audit findings on 2026-08-11; #97 remains mandatory before admin-foundation reuse, while #117 now provides repeatable E2E data.                                                                              |
 
 ## Route and screen inventory
 
@@ -69,7 +69,7 @@ Authentication validation, lifecycle states (`PENDING`, `REJECTED`, `SUSPENDED`,
 Two gaps remain blocking:
 
 1. Stripe Connect onboarding, return reconciliation, refresh-loop protection, state explanations, and test-mode evidence remain #97.
-2. The Playwright workflows mutate shared seeded records and fixed registration identities. A clean seed passes, but a repeat run without reseeding fails. Deterministic per-run setup and cleanup remain #117.
+2. The Playwright workflows mutate seeded records and fixed registration identities. #117 now provides guarded, deterministic setup before a run and foreign-key-safe cleanup afterward.
 
 Layout-stable loading states remain covered at component level by the vendor suite and shared UI tests. The broader automated accessibility, focus-order, contrast, keyboard, and responsive review passed under #101; its findings and evidence are recorded in `vendor-dashboard-accessibility-audit.md`.
 
@@ -83,14 +83,14 @@ Layout-stable loading states remain covered at component level by the vendor sui
 | `pnpm --filter @repo/vendor-dashboard typecheck`         | Passed                                                                                                                |
 | `pnpm --filter @repo/vendor-dashboard build`             | Passed                                                                                                                |
 | `npm run api:check`                                      | OpenAPI and generated client checks passed                                                                            |
-| Seeded `playwright test --project vendor-chromium`       | 10 tests passed after a clean QA seed, including 4 desktop/tablet layout tests; repeatability remains blocked by #117 |
+| Canonical `pnpm run test:e2e` vendor project             | 15 tests passed after an isolated PostgreSQL/Redis reset, including 4 desktop/tablet layout tests; #117 resets again before the admin project |
 
 ## Approval record
 
 | Owner   | Status                    | Conditions                                                 |
 | ------- | ------------------------- | ---------------------------------------------------------- |
-| Product | Approved no-go by @ktul15 | Re-review after #97 and #117.                              |
-| Orders  | Approved no-go by @ktul15 | Rerun deterministic order progression evidence after #117. |
+| Product | Approved no-go by @ktul15 | Re-review after #97; deterministic test data is available. |
+| Orders  | Approved no-go by @ktul15 | Use the #117 reset workflow for repeatable order evidence.  |
 | Payouts | Approved no-go by @ktul15 | Complete and verify Stripe onboarding under #97.           |
 
 This completed audit is a no-go decision, not cutover or admin-foundation approval.

@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 const ci = Boolean(process.env.CI);
 const startBackend = process.env.PLAYWRIGHT_START_BACKEND === "1";
+const reuseExistingServers = !ci && process.env.PLAYWRIGHT_REUSE_EXISTING_SERVERS !== "0";
 
 const dashboardServers = [
   {
@@ -10,7 +11,7 @@ const dashboardServers = [
       API_BASE_URL: "http://127.0.0.1:5000/api/v1",
       NEXT_PUBLIC_APP_URL: "http://localhost:3001",
     },
-    reuseExistingServer: !ci,
+    reuseExistingServer: reuseExistingServers,
     timeout: 120_000,
     url: "http://localhost:3001/login",
   },
@@ -20,7 +21,7 @@ const dashboardServers = [
       API_BASE_URL: "http://127.0.0.1:5000/api/v1",
       NEXT_PUBLIC_APP_URL: "http://localhost:3002",
     },
-    reuseExistingServer: !ci,
+    reuseExistingServer: reuseExistingServers,
     timeout: 120_000,
     url: "http://localhost:3002/login",
   },
@@ -38,7 +39,7 @@ const webServer = startBackend
           NODE_ENV: "test",
           REDIS_URL: process.env.REDIS_URL ?? "redis://127.0.0.1:6379",
         },
-        reuseExistingServer: !ci,
+        reuseExistingServer: reuseExistingServers,
         timeout: 120_000,
         url: "http://127.0.0.1:5000/api/health",
       },

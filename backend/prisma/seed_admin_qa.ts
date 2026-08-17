@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { randomUUID } from 'crypto';
+import { createHash } from 'crypto';
 import pg from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import {
@@ -19,9 +19,64 @@ import { hashPassword } from '../src/utils/password';
 
 // Stable identifiers make the documented QA accounts easy to find and reuse.
 const RUN_ID = 'REALWORLD';
+const EMAIL_RUN_ID = RUN_ID.toLowerCase();
 const PASSWORD = 'password123';
 const ADMIN_PASSWORD = 'admin123';
 const PLATFORM_COMMISSION_RATE = '12.50';
+const RESET_CONFIRMATION = 'DELETE_E2E_DATA';
+
+type WorkflowCommand = 'cleanup' | 'seed';
+
+function stableId(label: string): string {
+  const hex = createHash('sha256')
+    .update(`web-e2e:${RUN_ID}:${label}`)
+    .digest('hex')
+    .slice(0, 32)
+    .split('');
+  hex[12] = '5';
+  hex[16] = ((Number.parseInt(hex[16]!, 16) & 0x3) | 0x8).toString(16);
+  const value = hex.join('');
+  return `${value.slice(0, 8)}-${value.slice(8, 12)}-${value.slice(12, 16)}-${value.slice(16, 20)}-${value.slice(20)}`;
+}
+
+function parseCommand(value: string | undefined): WorkflowCommand {
+  const command = value ?? 'seed';
+  if (command !== 'seed' && command !== 'cleanup') {
+    throw new Error(`Unknown web E2E data command: ${command}`);
+  }
+  return command;
+}
+
+function assertSafeDatabaseReset(): string {
+  if (process.env['NODE_ENV'] === 'production') {
+    throw new Error('Web E2E data commands are disabled in production.');
+  }
+  if (process.env['WEB_E2E_RESET_CONFIRMATION'] !== RESET_CONFIRMATION) {
+    throw new Error(
+      `Set WEB_E2E_RESET_CONFIRMATION=${RESET_CONFIRMATION} to confirm the dedicated test database reset.`
+    );
+  }
+
+  const connectionString = process.env['DATABASE_URL'];
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is required for web E2E data commands.');
+  }
+
+  const databaseUrl = new URL(connectionString);
+  if (!['postgres:', 'postgresql:'].includes(databaseUrl.protocol)) {
+    throw new Error('Web E2E data commands require a PostgreSQL DATABASE_URL.');
+  }
+  const databaseName = decodeURIComponent(databaseUrl.pathname.slice(1));
+  const isDedicatedTestDatabase =
+    databaseName === 'testdb' ||
+    /(?:^|[_-])(?:e2e|test)(?:$|[_-])/i.test(databaseName);
+  if (!isDedicatedTestDatabase) {
+    throw new Error(
+      `Refusing to reset database "${databaseName}"; use a dedicated database whose name contains "test" or "e2e".`
+    );
+  }
+  return databaseName;
+}
 
 const pool = new pg.Pool({
   connectionString: process.env['DATABASE_URL'],
@@ -71,7 +126,9 @@ function daysFromNow(days: number): Date {
 }
 
 async function clearExistingData() {
-  console.log('🧹 Clearing existing data while preserving ADMIN users...');
+  console.log(
+    '🧹 Clearing all application data from the dedicated E2E database...'
+  );
 
   await db.promoUsage.deleteMany();
   await db.vendorEarning.deleteMany();
@@ -93,7 +150,7 @@ async function clearExistingData() {
   await db.address.deleteMany();
   await db.vendorProfile.deleteMany();
   await db.platformSetting.deleteMany();
-  await db.user.deleteMany({ where: { role: { not: Role.ADMIN } } });
+  await db.user.deleteMany();
 }
 
 async function ensureAdmin() {
@@ -108,6 +165,7 @@ async function ensureAdmin() {
       isBanned: false,
     },
     create: {
+      id: stableId('user:alice.admin@example.com'),
       name: 'Alice Admin',
       email: 'alice.admin@example.com',
       password,
@@ -148,7 +206,8 @@ async function seedUsersAndVendors(passwordHash: string) {
             ? `QA Customer <script>alert("xss")</script> ${RUN_ID}`
             : `QA Customer ${RUN_ID} ${number.toString().padStart(2, '0')}`),
       email:
-        personas[index]?.email ?? `qa.customer.${RUN_ID}.${number}@example.com`,
+        personas[index]?.email ??
+        `qa.customer.${EMAIL_RUN_ID}.${number}@example.com`,
       isBanned: number === 5 || number === 12,
       isVerified: number !== 6,
     };
@@ -157,6 +216,7 @@ async function seedUsersAndVendors(passwordHash: string) {
   for (const spec of customerSpecs) {
     const user = await db.user.create({
       data: {
+        id: stableId(`user:${spec.email}`),
         ...spec,
         password: passwordHash,
         role: Role.CUSTOMER,
@@ -164,6 +224,7 @@ async function seedUsersAndVendors(passwordHash: string) {
     });
     const address = await db.address.create({
       data: {
+        id: stableId(`address:${spec.email}:primary`),
         userId: user.id,
         fullName: spec.name,
         phone: `+1555000${customers.length.toString().padStart(4, '0')}`,
@@ -180,6 +241,7 @@ async function seedUsersAndVendors(passwordHash: string) {
     if (spec.email === 'ben.customer@example.com') {
       await db.address.create({
         data: {
+          id: stableId(`address:${spec.email}:secondary`),
           userId: user.id,
           fullName: 'Ben Returning Shopper',
           phone: '+15550009999',
@@ -248,16 +310,21 @@ async function seedUsersAndVendors(passwordHash: string) {
           : `QA Vendor Store ${RUN_ID} ${number.toString().padStart(2, '0')}`);
     const user = await db.user.create({
       data: {
+        id: stableId(
+          `user:${persona?.email ?? `qa.vendor.${EMAIL_RUN_ID}.${number}@example.com`}`
+        ),
         name:
           persona?.name ??
           `QA Vendor Owner ${RUN_ID} ${number.toString().padStart(2, '0')}`,
-        email: persona?.email ?? `qa.vendor.${RUN_ID}.${number}@example.com`,
+        email:
+          persona?.email ?? `qa.vendor.${EMAIL_RUN_ID}.${number}@example.com`,
         password: passwordHash,
         role: Role.VENDOR,
         isVerified: true,
         isBanned: number === 7,
         vendorProfile: {
           create: {
+            id: stableId(`vendor-profile:${number}`),
             storeName,
             storeLogo: `https://picsum.photos/seed/qa-vendor-logo-${RUN_ID}-${number}/240/240`,
             storeBanner: `https://picsum.photos/seed/qa-vendor-banner-${RUN_ID}-${number}/960/320`,
@@ -304,6 +371,7 @@ async function seedUsersAndVendors(passwordHash: string) {
 async function seedCategories() {
   const electronics = await db.category.create({
     data: {
+      id: stableId('category:electronics'),
       name: `QA_CAT_${RUN_ID}_Electronics`,
       slug: `qa-cat-${RUN_ID}-electronics`,
       image: `https://picsum.photos/seed/qa-cat-${RUN_ID}-electronics/800/500`,
@@ -311,6 +379,7 @@ async function seedCategories() {
   });
   const fashion = await db.category.create({
     data: {
+      id: stableId('category:fashion'),
       name: `QA_CAT_${RUN_ID}_Fashion`,
       slug: `qa-cat-${RUN_ID}-fashion`,
       image: `https://picsum.photos/seed/qa-cat-${RUN_ID}-fashion/800/500`,
@@ -318,6 +387,7 @@ async function seedCategories() {
   });
   const home = await db.category.create({
     data: {
+      id: stableId('category:home'),
       name: `QA_CAT_${RUN_ID}_Home & Living`,
       slug: `qa-cat-${RUN_ID}-home-living`,
       image: `https://picsum.photos/seed/qa-cat-${RUN_ID}-home/800/500`,
@@ -325,6 +395,7 @@ async function seedCategories() {
   });
   const special = await db.category.create({
     data: {
+      id: stableId('category:special'),
       name: `QA_CAT_${RUN_ID}_<script>Safety</script> Long Category Name For Layout Testing`,
       slug: `qa-cat-${RUN_ID}-script-safety-layout`,
       image: `https://picsum.photos/seed/qa-cat-${RUN_ID}-safe/800/500`,
@@ -333,6 +404,7 @@ async function seedCategories() {
 
   const phones = await db.category.create({
     data: {
+      id: stableId('category:phones'),
       name: `QA_CAT_${RUN_ID}_Phones`,
       slug: `qa-cat-${RUN_ID}-phones`,
       image: `https://picsum.photos/seed/qa-cat-${RUN_ID}-phones/800/500`,
@@ -341,6 +413,7 @@ async function seedCategories() {
   });
   const laptops = await db.category.create({
     data: {
+      id: stableId('category:laptops'),
       name: `QA_CAT_${RUN_ID}_Laptops`,
       slug: `qa-cat-${RUN_ID}-laptops`,
       image: `https://picsum.photos/seed/qa-cat-${RUN_ID}-laptops/800/500`,
@@ -349,6 +422,7 @@ async function seedCategories() {
   });
   const mens = await db.category.create({
     data: {
+      id: stableId('category:menswear'),
       name: `QA_CAT_${RUN_ID}_Menswear`,
       slug: `qa-cat-${RUN_ID}-menswear`,
       image: `https://picsum.photos/seed/qa-cat-${RUN_ID}-menswear/800/500`,
@@ -357,6 +431,7 @@ async function seedCategories() {
   });
   const shoes = await db.category.create({
     data: {
+      id: stableId('category:shoes'),
       name: `QA_CAT_${RUN_ID}_Shoes`,
       slug: `qa-cat-${RUN_ID}-shoes`,
       image: `https://picsum.photos/seed/qa-cat-${RUN_ID}-shoes/800/500`,
@@ -365,6 +440,7 @@ async function seedCategories() {
   });
   const womens = await db.category.create({
     data: {
+      id: stableId('category:womenswear'),
       name: `QA_CAT_${RUN_ID}_Womenswear`,
       slug: `qa-cat-${RUN_ID}-womenswear`,
       image: `https://picsum.photos/seed/qa-cat-${RUN_ID}-womenswear/800/500`,
@@ -373,6 +449,7 @@ async function seedCategories() {
   });
   const kitchen = await db.category.create({
     data: {
+      id: stableId('category:kitchen'),
       name: `QA_CAT_${RUN_ID}_Kitchen`,
       slug: `qa-cat-${RUN_ID}-kitchen`,
       image: `https://picsum.photos/seed/qa-cat-${RUN_ID}-kitchen/800/500`,
@@ -381,6 +458,7 @@ async function seedCategories() {
   });
   const decor = await db.category.create({
     data: {
+      id: stableId('category:decor'),
       name: `QA_CAT_${RUN_ID}_Home Decor`,
       slug: `qa-cat-${RUN_ID}-home-decor`,
       image: `https://picsum.photos/seed/qa-cat-${RUN_ID}-decor/800/500`,
@@ -438,6 +516,7 @@ async function seedProducts(
     const price = 19.99 + number * 7.35;
     const product = await db.product.create({
       data: {
+        id: stableId(`product:${number}`),
         vendorId: vendor.id,
         categoryId: categoryIds[index % categoryIds.length],
         name:
@@ -467,20 +546,22 @@ async function seedProducts(
         variants: {
           create: [
             {
+              id: stableId(`variant:${number}:primary`),
               size: number % 2 === 0 ? 'M' : null,
               color: number % 3 === 0 ? 'Black' : 'Blue',
               price: money(price),
               stock: number % 5 === 0 ? 0 : 25 + number,
-              sku: `QA-${RUN_ID}-${randomUUID().slice(0, 8)}`,
+              sku: `QA-${RUN_ID}-${number.toString().padStart(2, '0')}-A`,
             },
             ...(number === 1
               ? [
                   {
+                    id: stableId(`variant:${number}:secondary`),
                     size: 'L',
                     color: 'Red',
                     price: money(price + 5),
                     stock: 0,
-                    sku: `QA-${RUN_ID}-${randomUUID().slice(0, 8)}`,
+                    sku: `QA-${RUN_ID}-${number.toString().padStart(2, '0')}-B`,
                   },
                 ]
               : []),
@@ -513,6 +594,7 @@ async function seedPromos() {
     const isPercentage = number % 2 === 1;
     const promo = await db.promoCode.create({
       data: {
+        id: stableId(`promo:${number}`),
         code:
           number === 1
             ? 'SAVE10'
@@ -586,6 +668,7 @@ async function seedOrders(
 
     const order = await db.order.create({
       data: {
+        id: stableId(`order:${number}`),
         orderNumber: `QA-${RUN_ID}-${number.toString().padStart(5, '0')}`,
         userId: customer.id,
         addressId: customer.addressId,
@@ -612,6 +695,7 @@ async function seedOrders(
         vendorOrders: {
           create: [
             {
+              id: stableId(`vendor-order:${number}`),
               vendorId: product.vendorId,
               status,
               subtotal: money(subtotal),
@@ -628,6 +712,7 @@ async function seedOrders(
               items: {
                 create: [
                   {
+                    id: stableId(`order-item:${number}`),
                     variantId: product.variantId,
                     quantity,
                     unitPrice: money(product.price),
@@ -640,6 +725,7 @@ async function seedOrders(
         },
         payment: {
           create: {
+            id: stableId(`payment:${number}`),
             amount: money(total),
             currency: Currency.INR,
             method:
@@ -667,6 +753,7 @@ async function seedOrders(
     if (promo) {
       await db.promoUsage.create({
         data: {
+          id: stableId(`promo-usage:${number}`),
           userId: customer.id,
           promoCodeId: promo.id,
           orderId: order.id,
@@ -682,6 +769,7 @@ async function seedOrders(
     ) {
       await db.vendorEarning.create({
         data: {
+          id: stableId(`vendor-earning:${number}`),
           vendorProfileId: product.vendorProfileId,
           vendorOrderId: order.vendorOrders[0]!.id,
           orderId: order.id,
@@ -713,6 +801,7 @@ async function seedReviewsWishlistsAndCarts(
   for (let index = 0; index < 8; index += 1) {
     await db.review.create({
       data: {
+        id: stableId(`review:${index + 1}`),
         userId: customers[index + 1]!.id,
         productId: products[index]!.id,
         rating: (index % 5) + 1,
@@ -727,6 +816,7 @@ async function seedReviewsWishlistsAndCarts(
   for (let index = 0; index < 6; index += 1) {
     await db.wishlistItem.create({
       data: {
+        id: stableId(`wishlist-item:${index + 1}`),
         userId: customers[index + 1]!.id,
         productId: products[index + 6]!.id,
       },
@@ -735,11 +825,20 @@ async function seedReviewsWishlistsAndCarts(
 
   const cart = await db.cart.create({
     data: {
+      id: stableId('cart:ben.customer@example.com'),
       userId: customers[1]!.id,
       items: {
         create: [
-          { variantId: products[19]!.variantId, quantity: 2 },
-          { variantId: products[20]!.variantId, quantity: 1 },
+          {
+            id: stableId('cart-item:ben:1'),
+            variantId: products[19]!.variantId,
+            quantity: 2,
+          },
+          {
+            id: stableId('cart-item:ben:2'),
+            variantId: products[20]!.variantId,
+            quantity: 1,
+          },
         ],
       },
     },
@@ -755,6 +854,7 @@ async function seedNotifications(customers: SeedCustomer[]) {
   await db.notification.createMany({
     data: [
       {
+        id: stableId('notification:ben:order-shipped'),
         userId: ben.id,
         type: 'ORDER_SHIPPED',
         title: 'Your order is on the way',
@@ -763,6 +863,7 @@ async function seedNotifications(customers: SeedCustomer[]) {
         isRead: false,
       },
       {
+        id: stableId('notification:ben:promo'),
         userId: ben.id,
         type: 'PROMO',
         title: 'Welcome-back discount',
@@ -780,6 +881,7 @@ async function seedBanners() {
     const number = index + 1;
     await db.banner.create({
       data: {
+        id: stableId(`banner:${number}`),
         title:
           number === 3
             ? `QA_BANNER_${RUN_ID}_<script>Layout</script>`
@@ -808,6 +910,7 @@ async function seedVendorPayouts(vendors: SeedVendor[]) {
   for (let index = 0; index < 8; index += 1) {
     await db.vendorPayout.create({
       data: {
+        id: stableId(`vendor-payout:${index + 1}`),
         vendorProfileId: vendors[index]!.profileId,
         stripePayoutId: `po_qa_${RUN_ID}_${index + 1}`,
         amount: money(75 + index * 25.5),
@@ -828,13 +931,22 @@ async function seedVendorPayouts(vendors: SeedVendor[]) {
 }
 
 async function main() {
-  console.log('🌱 Seeding admin QA database...');
+  const command = parseCommand(process.argv[2]);
+  const databaseName = assertSafeDatabaseReset();
+  console.log(
+    command === 'seed'
+      ? `🌱 Seeding dedicated web E2E database "${databaseName}"...`
+      : `🧹 Cleaning dedicated web E2E database "${databaseName}"...`
+  );
 
   await prisma.$transaction(
     async (tx) => {
       db = tx;
 
       await clearExistingData();
+      if (command === 'cleanup') {
+        return;
+      }
       await ensureAdmin();
       await seedPlatformSettings();
 
@@ -855,7 +967,12 @@ async function main() {
   db = prisma;
 
   console.log('');
-  console.log('✅ Admin QA seed complete.');
+  if (command === 'cleanup') {
+    console.log('✅ Web E2E database cleanup complete.');
+    return;
+  }
+
+  console.log('✅ Web E2E seed complete.');
   console.log(
     `   Test account password for QA customer/vendor users: ${PASSWORD}`
   );
@@ -871,7 +988,7 @@ async function main() {
 
 main()
   .catch((error) => {
-    console.error('❌ Admin QA seed failed:', error);
+    console.error('❌ Web E2E data workflow failed:', error);
     process.exit(1);
   })
   .finally(async () => {

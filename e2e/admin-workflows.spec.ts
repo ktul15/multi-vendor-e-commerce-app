@@ -10,17 +10,17 @@ const admin = {
 
 const moderationTargets = [
   {
-    customer: "qa.customer.REALWORLD.9@example.com",
+    customer: "qa.customer.realworld.9@example.com",
     product: "QA Product REALWORLD 21",
     vendor: "QA Vendor Store REALWORLD 09",
   },
   {
-    customer: "qa.customer.REALWORLD.10@example.com",
+    customer: "qa.customer.realworld.10@example.com",
     product: "QA Product REALWORLD 22",
     vendor: "QA Vendor Store REALWORLD 13",
   },
   {
-    customer: "qa.customer.REALWORLD.11@example.com",
+    customer: "qa.customer.realworld.11@example.com",
     product: "QA Product REALWORLD 23",
     vendor: "QA Vendor Store REALWORLD 17",
   },

@@ -151,7 +151,6 @@ jobs:
         run: |
           npm exec prisma generate
           npm exec prisma migrate deploy
-          npm run db:seed
 
       - name: Check formatting
         run: pnpm run format:check
@@ -187,7 +186,8 @@ jobs:
           JWT_ACCESS_SECRET: issue-99-ci-access-secret
           JWT_REFRESH_SECRET: issue-99-ci-refresh-secret
           PLAYWRIGHT_START_BACKEND: "1"
-          REDIS_URL: redis://localhost:6379
+          REDIS_URL: redis://localhost:6379/15
+          WEB_E2E_RESET_CONFIRMATION: DELETE_E2E_DATA
         run: pnpm run test:e2e
 
       - name: Upload Playwright failure artifacts
@@ -200,3 +200,19 @@ jobs:
             playwright-report/
             test-results/playwright/
           retention-days: 14
+
+      - name: Clean up end-to-end database
+        if: always()
+        env:
+          DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb
+          WEB_E2E_RESET_CONFIRMATION: DELETE_E2E_DATA
+        working-directory: backend
+        run: npm run db:e2e:cleanup
+
+      - name: Clean up end-to-end cache
+        if: always()
+        env:
+          REDIS_URL: redis://localhost:6379/15
+          WEB_E2E_RESET_CONFIRMATION: DELETE_E2E_DATA
+        working-directory: backend
+        run: npm run cache:e2e:cleanup

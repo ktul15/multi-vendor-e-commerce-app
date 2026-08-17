@@ -12,7 +12,7 @@ Audit date: 2026-08-11
 
 The vendor dashboard's public authentication, lifecycle gates, dashboard, inventory, product creation, orders, earnings, and store-profile routes were audited at the supported desktop and tablet widths. The audit combines automated WCAG 2.0, 2.1, and 2.2 A/AA rules with keyboard-only workflow checks and the responsive overflow suite from issue #100.
 
-No accessibility or responsive-layout blocker remains in this scope. Stripe Connect completion (#97) and deterministic end-to-end data setup (#117) remain separate cutover dependencies and do not change this audit result.
+No accessibility or responsive-layout blocker remains in this scope. Stripe Connect completion (#97) remains a separate cutover dependency; #117 delivered deterministic end-to-end data setup and does not change this audit result.
 
 ## Acceptance criteria
 
