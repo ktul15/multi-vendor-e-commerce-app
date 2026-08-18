@@ -20,6 +20,11 @@ test("vendor login handles API errors and preserves a safe return URL", async ({
   page,
 }, testInfo) => {
   test.skip(!testInfo.project.name.startsWith("vendor"), "Vendor-only flow");
+  const telemetryEvents: unknown[] = [];
+  await page.route("**/api/telemetry", async (route) => {
+    telemetryEvents.push(route.request().postDataJSON());
+    await route.fulfill({ status: 202 });
+  });
   await page.route("**/api/auth/session", (route) =>
     route.fulfill({ body: JSON.stringify({ success: false }), status: 401 }),
   );
@@ -45,6 +50,21 @@ test("vendor login handles API errors and preserves a safe return URL", async ({
   await page.getByLabel(/^Password/).fill("secret123");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByText("Invalid email or password", { exact: true })).toBeVisible();
+  const loginEvents = () =>
+    telemetryEvents.filter(
+      (event): event is Record<string, unknown> =>
+        typeof event === "object" &&
+        event !== null &&
+        (event as Record<string, unknown>).operation === "POST /api/auth/login",
+    );
+  await expect.poll(() => loginEvents().length).toBe(1);
+  expect(loginEvents()[0]).toMatchObject({
+    category: "auth",
+    operation: "POST /api/auth/login",
+    route: "/login",
+    status: 401,
+  });
+  expect(JSON.stringify(loginEvents()[0])).not.toMatch(/wrong@example\.com|secret123/);
 
   await page.getByRole("textbox", { name: "Email address" }).fill("vendor@example.com");
   await page.getByRole("button", { name: "Sign in" }).click();

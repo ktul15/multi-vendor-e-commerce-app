@@ -19,6 +19,7 @@
     "@repo/api-client": "workspace:*",
     "@repo/auth": "workspace:*",
     "@repo/config": "workspace:*",
+    "@repo/observability": "workspace:*",
     "@repo/query": "workspace:*",
     "@repo/schemas": "workspace:*",
     "@repo/ui": "workspace:*",

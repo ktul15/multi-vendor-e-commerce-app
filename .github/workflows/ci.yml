@@ -176,6 +176,9 @@ jobs:
       - name: Build production applications
         run: pnpm run build
 
+      - name: Verify production source maps are private
+        run: pnpm run source-maps:check
+
       - name: Install Playwright browser
         run: pnpm exec playwright install --with-deps chromium
 
