@@ -59,6 +59,9 @@ importers:
       '@repo/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@repo/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@repo/query':
         specifier: workspace:*
         version: link:../../packages/query
@@ -129,6 +132,9 @@ importers:
       '@repo/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@repo/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@repo/query':
         specifier: workspace:*
         version: link:../../packages/query
@@ -212,6 +218,12 @@ importers:
       zod:
         specifier: 4.4.3
         version: 4.4.3
+
+  packages/observability:
+    devDependencies:
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.13.3)(jsdom@30.0.1)(msw@2.15.0(@types/node@24.13.3)(typescript@6.0.3))(vite@8.2.0(@types/node@24.13.3))
 
   packages/query:
     dependencies:
