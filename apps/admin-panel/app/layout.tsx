@@ -5,7 +5,7 @@ import "@repo/ui/styles.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Admin Panel",
+  title: { default: "Admin Panel", template: "%s | Admin Panel" },
   description: "Operate and moderate the multi-vendor marketplace.",
 };
 

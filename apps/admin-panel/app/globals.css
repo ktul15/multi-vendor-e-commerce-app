@@ -1014,8 +1014,8 @@
   gap: var(--space-1);
 }
 
-.admin-commission__rate span,
-.admin-commission__rate small {
+.admin-commission__rate > div:first-child span,
+.admin-commission__rate > div:first-child small {
   color: var(--color-text-muted);
 }
 

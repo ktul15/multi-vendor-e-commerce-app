@@ -1,7 +1,10 @@
 import { ErrorState } from "@repo/ui";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ProductForm } from "../../../product-form";
 import { getProductFormData } from "../../../../src/lib/product-data";
+
+export const metadata: Metadata = { title: "Add product" };
 
 export default async function NewProductPage() {
   const data = await getProductFormData().catch(() => undefined);

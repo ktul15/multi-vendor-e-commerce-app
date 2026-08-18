@@ -5,7 +5,7 @@ import "@repo/ui/styles.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Vendor Dashboard",
+  title: { default: "Vendor Dashboard", template: "%s | Vendor Dashboard" },
   description: "Manage products, orders, earnings, and store settings.",
 };
 

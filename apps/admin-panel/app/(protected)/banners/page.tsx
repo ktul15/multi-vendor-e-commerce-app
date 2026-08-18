@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AdminBannersView } from "../../admin-banners-view";
 import { getAdminBanners } from "../../../src/lib/banner-data";
 import { bannerListHref, parseBannerListState } from "../../../src/lib/banner-list-state";
 import type { BannerListSearchParams } from "../../../src/lib/banner-list-state";
+
+export const metadata: Metadata = { title: "Banners" };
 
 export default async function BannersPage({
   searchParams,

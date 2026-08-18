@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { EarningsOverview } from "../../earnings-overview";
 import { getVendorEarningsData } from "../../../src/lib/earnings-data";
 import { parseDashboardRange } from "../../../src/lib/dashboard-range";
 import { redirect } from "next/navigation";
+
+export const metadata: Metadata = { title: "Earnings" };
 
 type SearchParams = Promise<Readonly<Record<string, string | readonly string[] | undefined>>>;
 

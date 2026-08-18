@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { AdminFinanceView } from "../../admin-finance-view";
 import { getAdminFinanceData } from "../../../src/lib/finance-data";
 import { parseFinanceState } from "../../../src/lib/finance-state";
 import type { FinanceSearchParams } from "../../../src/lib/finance-state";
+
+export const metadata: Metadata = { title: "Revenue and payouts" };
 
 export default async function FinancePage({
   searchParams,

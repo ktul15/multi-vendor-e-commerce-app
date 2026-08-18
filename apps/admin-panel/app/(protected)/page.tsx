@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { DashboardOverview } from "../dashboard-overview";
 import { getAdminDashboardData } from "../../src/lib/dashboard-data";
 import { parseDashboardRange } from "../../src/lib/dashboard-range";
 
 type SearchParams = Promise<Readonly<Record<string, string | readonly string[] | undefined>>>;
+
+export const metadata: Metadata = { title: "Overview" };
 
 export default async function AdminPanelPage({
   searchParams,
