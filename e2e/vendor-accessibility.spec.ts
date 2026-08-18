@@ -1,6 +1,6 @@
-import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
-import type { Locator, Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expectNoAccessibilityViolations, tabTo } from "./accessibility-helpers";
 
 const password = "password123";
 const approvedVendor = { email: "victor.vendor@example.com", password } as const;
@@ -10,12 +10,12 @@ const lifecycleVendors = [
   ["nina.vendor@example.com", "Your store access is paused"],
 ] as const;
 const criticalRoutes = [
-  ["/", "Dashboard"],
-  ["/products", "Products"],
-  ["/products/new", "Add product"],
-  ["/orders", "Orders"],
-  ["/earnings", "Earnings"],
-  ["/store", "Store profile"],
+  ["/", "Dashboard", "Dashboard | Vendor Dashboard"],
+  ["/products", "Products", "Products | Vendor Dashboard"],
+  ["/products/new", "Add product", "Add product | Vendor Dashboard"],
+  ["/orders", "Orders", "Orders | Vendor Dashboard"],
+  ["/earnings", "Earnings", "Earnings | Vendor Dashboard"],
+  ["/store", "Store profile", "Store profile | Vendor Dashboard"],
 ] as const;
 
 async function login(
@@ -30,28 +30,6 @@ async function login(
   await expect(page).toHaveURL(expectedPath);
 }
 
-async function expectNoAccessibilityViolations(page: Page, context: string) {
-  await expect(page).toHaveTitle(/\S+/);
-  const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-    .analyze();
-  const summary = results.violations.map((violation) => ({
-    help: violation.help,
-    id: violation.id,
-    impact: violation.impact,
-    nodes: violation.nodes.map((node) => ({ failure: node.failureSummary, target: node.target })),
-  }));
-  expect(results.violations, `${context}: ${JSON.stringify(summary, null, 2)}`).toEqual([]);
-}
-
-async function tabTo(page: Page, target: Locator, maximumTabs = 30) {
-  for (let count = 0; count < maximumTabs; count += 1) {
-    await page.keyboard.press("Tab");
-    if (await target.evaluate((element) => element === document.activeElement)) return;
-  }
-  throw new Error(`Unable to reach ${await target.getAttribute("aria-label")} by keyboard`);
-}
-
 test.describe("vendor accessibility", () => {
   test.beforeEach(async ({}, testInfo) => {
     test.skip(!testInfo.project.name.startsWith("vendor"), "Vendor-only suite");
@@ -60,6 +38,7 @@ test.describe("vendor accessibility", () => {
   test("public authentication pages pass automated WCAG checks", async ({ page }) => {
     await page.goto("/login");
     await expect(page.getByRole("button", { name: "Sign in" })).toBeEnabled();
+    await expect(page).toHaveTitle("Vendor access | Vendor Dashboard");
     await expectNoAccessibilityViolations(page, "vendor login");
 
     await page.goto("/login?mode=register");
@@ -69,9 +48,10 @@ test.describe("vendor accessibility", () => {
 
   test("approved vendor critical pages pass automated WCAG checks", async ({ page }) => {
     await login(page);
-    for (const [route, heading] of criticalRoutes) {
+    for (const [route, heading, title] of criticalRoutes) {
       await page.goto(route);
       await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible();
+      await expect(page).toHaveTitle(title);
       await expectNoAccessibilityViolations(page, route);
     }
   });
@@ -81,6 +61,7 @@ test.describe("vendor accessibility", () => {
       await page.context().clearCookies();
       await login(page, { email, password }, /\/access$/);
       await expect(page.getByRole("heading", { name: heading })).toBeVisible();
+      await expect(page).toHaveTitle("Account status | Vendor Dashboard");
       await expectNoAccessibilityViolations(page, email);
     }
   });

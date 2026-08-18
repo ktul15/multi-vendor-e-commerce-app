@@ -1,5 +1,8 @@
 import { postLoginReturnPath } from "@repo/auth";
+import type { Metadata } from "next";
 import { AdminLoginPanel } from "./admin-login-panel";
+
+export const metadata: Metadata = { title: "Sign in" };
 
 type LoginPageProps = Readonly<{
   searchParams: Promise<Record<string, string | string[] | undefined>>;

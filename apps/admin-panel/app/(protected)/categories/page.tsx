@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import { AdminCategoriesView } from "../../admin-categories-view";
 import { getAdminCategories } from "../../../src/lib/category-data";
+
+export const metadata: Metadata = { title: "Categories" };
 
 export default async function CategoriesPage() {
   let categories;

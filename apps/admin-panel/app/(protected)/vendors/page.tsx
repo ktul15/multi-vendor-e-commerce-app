@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AdminVendorsView } from "../../admin-vendors-view";
 import { getAdminVendors } from "../../../src/lib/vendor-data";
 import { parseVendorListState, vendorListHref } from "../../../src/lib/vendor-list-state";
 import type { VendorListSearchParams } from "../../../src/lib/vendor-list-state";
+
+export const metadata: Metadata = { title: "Vendors" };
 
 export default async function VendorsPage({
   searchParams,

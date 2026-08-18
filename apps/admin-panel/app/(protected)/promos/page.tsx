@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AdminPromosView } from "../../admin-promos-view";
 import { getAdminPromos } from "../../../src/lib/promo-data";
 import { parsePromoListState, promoListHref } from "../../../src/lib/promo-list-state";
 import type { PromoListSearchParams } from "../../../src/lib/promo-list-state";
+
+export const metadata: Metadata = { title: "Promo codes" };
 
 export default async function PromosPage({
   searchParams,

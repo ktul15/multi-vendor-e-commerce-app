@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AdminOrdersView } from "../../admin-orders-view";
 import { getAdminOrders } from "../../../src/lib/order-data";
 import { orderListHref, parseOrderListState } from "../../../src/lib/order-list-state";
 import type { OrderListSearchParams } from "../../../src/lib/order-list-state";
+
+export const metadata: Metadata = { title: "Orders" };
 
 export default async function OrdersPage({
   searchParams,

@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AdminUsersView } from "../../admin-users-view";
 import { getAdminUsers } from "../../../src/lib/user-data";
 import { parseUserListState, userListHref } from "../../../src/lib/user-list-state";
 import type { UserListSearchParams } from "../../../src/lib/user-list-state";
+
+export const metadata: Metadata = { title: "Users" };
 
 export default async function UsersPage({
   searchParams,

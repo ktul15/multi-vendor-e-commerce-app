@@ -1,5 +1,8 @@
 import { postLoginReturnPath } from "@repo/auth";
+import type { Metadata } from "next";
 import { VendorAuthPanel } from "./vendor-auth-panel";
+
+export const metadata: Metadata = { title: "Vendor access" };
 
 type LoginPageProps = Readonly<{
   searchParams: Promise<Record<string, string | string[] | undefined>>;

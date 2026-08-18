@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ProductInventory } from "../../product-inventory";
 import { getVendorInventory } from "../../../src/lib/product-data";
 import { parseProductListState, productListHref } from "../../../src/lib/product-list-state";
 import type { ProductListSearchParams } from "../../../src/lib/product-list-state";
+
+export const metadata: Metadata = { title: "Products" };
 
 export default async function ProductsPage({
   searchParams,
