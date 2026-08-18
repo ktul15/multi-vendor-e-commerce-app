@@ -13,6 +13,7 @@ import {
 import { Prisma, VendorProfileStatus } from '../../generated/prisma/client';
 import { uploadImage, UploadResult } from '../../utils/cloudinaryUpload';
 import { cleanupMediaBestEffort } from '../../utils/mediaCleanup';
+import { validateUploadedImageContents } from '../../middleware/upload';
 
 const MAX_PRODUCT_MEDIA = 5;
 const PRODUCT_MEDIA_FOLDER = 'products';
@@ -82,33 +83,6 @@ export class ProductService {
     }
     if (url.protocol !== 'https:' || !upload.publicId.trim()) {
       throw ApiError.internal('Media provider returned invalid image metadata');
-    }
-  }
-
-  private validateFileContents(file: Express.Multer.File): void {
-    const bytes = file.buffer;
-    const isJpeg =
-      bytes.length >= 3 &&
-      bytes[0] === 0xff &&
-      bytes[1] === 0xd8 &&
-      bytes[2] === 0xff;
-    const isPng =
-      bytes.length >= 8 &&
-      bytes
-        .subarray(0, 8)
-        .equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
-    const isWebp =
-      bytes.length >= 12 &&
-      bytes.subarray(0, 4).toString('ascii') === 'RIFF' &&
-      bytes.subarray(8, 12).toString('ascii') === 'WEBP';
-    const matchesMime =
-      (file.mimetype === 'image/jpeg' && isJpeg) ||
-      (file.mimetype === 'image/png' && isPng) ||
-      (file.mimetype === 'image/webp' && isWebp);
-    if (!matchesMime) {
-      throw ApiError.badRequest(
-        'Image content does not match its declared JPEG, PNG, or WebP type'
-      );
     }
   }
 
@@ -626,7 +600,7 @@ export class ProductService {
     if (files.length === 0) {
       throw ApiError.badRequest('At least one image is required');
     }
-    files.forEach((file) => this.validateFileContents(file));
+    files.forEach(validateUploadedImageContents);
     const product = await prisma.product.findUnique({
       where: { id: productId },
       select: { vendorId: true },
@@ -692,7 +666,7 @@ export class ProductService {
     file: Express.Multer.File
   ) {
     await this.assertVendorApproved(vendorId);
-    this.validateFileContents(file);
+    validateUploadedImageContents(file);
     const product = await prisma.product.findUnique({
       where: { id: productId },
       select: { vendorId: true },

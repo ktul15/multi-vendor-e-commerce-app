@@ -4,6 +4,16 @@ dotenv.config();
 
 const nodeEnv = process.env.NODE_ENV || 'development';
 
+const signingSecret = (name: string, developmentFallback: string): string => {
+  const configured = process.env[name]?.trim();
+  if (nodeEnv === 'production' && (!configured || configured.length < 32)) {
+    throw new Error(
+      `${name} must contain at least 32 characters in production`
+    );
+  }
+  return configured || developmentFallback;
+};
+
 const dashboardBffSecret = (): string => {
   const configured = process.env.DASHBOARD_BFF_SECRET?.trim();
   if (nodeEnv === 'production' && (!configured || configured.length < 32)) {
@@ -47,6 +57,56 @@ const exactOrigin = (name: string, developmentFallback: string): string => {
   return url.origin;
 };
 
+const storefrontUrl = exactOrigin('STOREFRONT_URL', 'http://localhost:3000');
+const vendorDashboardUrl = exactOrigin(
+  'VENDOR_DASHBOARD_URL',
+  'http://localhost:3001'
+);
+const adminDashboardUrl = exactOrigin(
+  'ADMIN_DASHBOARD_URL',
+  'http://localhost:3002'
+);
+
+const vendorDashboardRedirect = (
+  name: string,
+  developmentFallback: string
+): string => {
+  const value = process.env[name]?.trim() || developmentFallback;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(`${name} must be a valid absolute URL`);
+  }
+  if (
+    !['http:', 'https:'].includes(url.protocol) ||
+    url.username ||
+    url.password ||
+    url.hash ||
+    url.origin !== vendorDashboardUrl
+  ) {
+    throw new Error(`${name} must be an HTTP(S) URL on VENDOR_DASHBOARD_URL`);
+  }
+  if (nodeEnv === 'production' && url.protocol !== 'https:') {
+    throw new Error(`${name} must use HTTPS in production`);
+  }
+  return url.toString();
+};
+
+const jwtAccessSecret = signingSecret(
+  'JWT_ACCESS_SECRET',
+  'default-access-secret'
+);
+const jwtRefreshSecret = signingSecret(
+  'JWT_REFRESH_SECRET',
+  'default-refresh-secret'
+);
+if (nodeEnv === 'production' && jwtAccessSecret === jwtRefreshSecret) {
+  throw new Error(
+    'JWT access and refresh secrets must be different in production'
+  );
+}
+
 export const env = {
   // Server
   NODE_ENV: nodeEnv,
@@ -59,9 +119,8 @@ export const env = {
   REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379',
 
   // JWT
-  JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET || 'default-access-secret',
-  JWT_REFRESH_SECRET:
-    process.env.JWT_REFRESH_SECRET || 'default-refresh-secret',
+  JWT_ACCESS_SECRET: jwtAccessSecret,
+  JWT_REFRESH_SECRET: jwtRefreshSecret,
   JWT_ACCESS_EXPIRY: process.env.JWT_ACCESS_EXPIRY || '15m',
   JWT_REFRESH_EXPIRY: process.env.JWT_REFRESH_EXPIRY || '7d',
   DASHBOARD_BFF_SECRET: dashboardBffSecret(),
@@ -74,12 +133,14 @@ export const env = {
 
   // Stripe Connect
   PLATFORM_COMMISSION_RATE: process.env.PLATFORM_COMMISSION_RATE || '10.00',
-  STRIPE_CONNECT_RETURN_URL:
-    process.env.STRIPE_CONNECT_RETURN_URL ||
-    'http://localhost:3001/stripe/return',
-  STRIPE_CONNECT_REFRESH_URL:
-    process.env.STRIPE_CONNECT_REFRESH_URL ||
-    'http://localhost:3001/stripe/refresh',
+  STRIPE_CONNECT_RETURN_URL: vendorDashboardRedirect(
+    'STRIPE_CONNECT_RETURN_URL',
+    'http://localhost:3001/stripe/return'
+  ),
+  STRIPE_CONNECT_REFRESH_URL: vendorDashboardRedirect(
+    'STRIPE_CONNECT_REFRESH_URL',
+    'http://localhost:3001/stripe/refresh'
+  ),
 
   // Cloudinary
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME?.trim() || '',
@@ -98,15 +159,9 @@ export const env = {
   SMTP_FROM: process.env.SMTP_FROM || process.env.SMTP_USER || '',
 
   // CORS
-  STOREFRONT_URL: exactOrigin('STOREFRONT_URL', 'http://localhost:3000'),
-  VENDOR_DASHBOARD_URL: exactOrigin(
-    'VENDOR_DASHBOARD_URL',
-    'http://localhost:3001'
-  ),
-  ADMIN_DASHBOARD_URL: exactOrigin(
-    'ADMIN_DASHBOARD_URL',
-    'http://localhost:3002'
-  ),
+  STOREFRONT_URL: storefrontUrl,
+  VENDOR_DASHBOARD_URL: vendorDashboardUrl,
+  ADMIN_DASHBOARD_URL: adminDashboardUrl,
 
   // Helpers
   isDev: nodeEnv === 'development',
