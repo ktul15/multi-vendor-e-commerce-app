@@ -24,6 +24,20 @@ const image = (name: string) => ({
   url: `https://cdn.example.com/${name}.png`,
   publicId: name,
 });
+const jpeg = (marker: string) =>
+  Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.from(marker)]);
+const png = (marker: string) =>
+  Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    Buffer.from(marker),
+  ]);
+const webp = (marker: string) =>
+  Buffer.concat([
+    Buffer.from('RIFF'),
+    Buffer.alloc(4),
+    Buffer.from('WEBP'),
+    Buffer.from(marker),
+  ]);
 
 beforeAll(async () => {
   await cleanDatabase();
@@ -96,7 +110,7 @@ describe('banner multipart contract', () => {
       .post('/api/v1/banners')
       .set('Authorization', auth(adminToken))
       .field('title', 'Created Banner')
-      .attach('image', Buffer.from('created'), {
+      .attach('image', webp('created'), {
         filename: 'created.webp',
         contentType: 'image/webp',
       });
@@ -121,7 +135,7 @@ describe('banner multipart contract', () => {
       .post('/api/v1/banners')
       .set('Authorization', auth(adminToken))
       .field('title', 'Create Rollback Banner')
-      .attach('image', Buffer.from('create-rollback'), {
+      .attach('image', png('create-rollback'), {
         filename: 'create-rollback.png',
         contentType: 'image/png',
       });
@@ -158,7 +172,7 @@ describe('banner multipart contract', () => {
     const fileOnly = await request(app)
       .put(`/api/v1/banners/${banner.id}`)
       .set('Authorization', auth(adminToken))
-      .attach('image', Buffer.from('file-only'), {
+      .attach('image', webp('file-only'), {
         filename: 'file-only.webp',
         contentType: 'image/webp',
       });
@@ -171,7 +185,7 @@ describe('banner multipart contract', () => {
       .put(`/api/v1/banners/${banner.id}`)
       .set('Authorization', auth(adminToken))
       .field('title', 'Mixed Updated Banner')
-      .attach('image', Buffer.from('mixed'), {
+      .attach('image', png('mixed'), {
         filename: 'mixed.png',
         contentType: 'image/png',
       });
@@ -218,7 +232,7 @@ describe('banner multipart contract', () => {
       .field('title', 'Malformed Create Banner')
       .field('position', 'not-a-number')
       .field('isActive', 'not-a-boolean')
-      .attach('image', Buffer.from('malformed-create'), {
+      .attach('image', png('malformed-create'), {
         filename: 'malformed-create.png',
         contentType: 'image/png',
       });
@@ -253,11 +267,11 @@ describe('banner multipart contract', () => {
     const excess = await request(app)
       .put(`/api/v1/banners/${banner.id}`)
       .set('Authorization', auth(adminToken))
-      .attach('image', Buffer.from('first'), {
+      .attach('image', jpeg('first'), {
         filename: 'first.jpg',
         contentType: 'image/jpeg',
       })
-      .attach('image', Buffer.from('second'), {
+      .attach('image', jpeg('second'), {
         filename: 'second.jpg',
         contentType: 'image/jpeg',
       });
@@ -277,7 +291,7 @@ describe('banner multipart contract', () => {
     const response = await request(app)
       .put(`/api/v1/banners/${banner.id}`)
       .set('Authorization', auth(adminToken))
-      .attach('image', Buffer.from('rollback'), {
+      .attach('image', png('rollback'), {
         filename: 'rollback.png',
         contentType: 'image/png',
       });
@@ -300,7 +314,7 @@ describe('banner multipart contract', () => {
     const updated = await request(app)
       .put(`/api/v1/banners/${banner.id}`)
       .set('Authorization', auth(adminToken))
-      .attach('image', Buffer.from('committed'), {
+      .attach('image', png('committed'), {
         filename: 'committed.png',
         contentType: 'image/png',
       });
@@ -325,14 +339,14 @@ describe('banner multipart contract', () => {
       request(app)
         .put(`/api/v1/banners/${banner.id}`)
         .set('Authorization', auth(adminToken))
-        .attach('image', Buffer.from('a'), {
+        .attach('image', png('a'), {
           filename: 'a.png',
           contentType: 'image/png',
         }),
       request(app)
         .put(`/api/v1/banners/${banner.id}`)
         .set('Authorization', auth(adminToken))
-        .attach('image', Buffer.from('b'), {
+        .attach('image', png('b'), {
           filename: 'b.png',
           contentType: 'image/png',
         }),
@@ -387,7 +401,7 @@ describe('vendor-profile multipart contract', () => {
     const fileOnly = await request(app)
       .put('/api/v1/vendor-profile/me')
       .set('Authorization', auth(vendorToken))
-      .attach('logo', Buffer.from('logo'), {
+      .attach('logo', webp('logo'), {
         filename: 'logo.webp',
         contentType: 'image/webp',
       });
@@ -399,7 +413,7 @@ describe('vendor-profile multipart contract', () => {
       .put('/api/v1/vendor-profile/me')
       .set('Authorization', auth(vendorToken))
       .field('storeName', 'Mixed Upload Contract Store')
-      .attach('banner', Buffer.from('banner'), {
+      .attach('banner', png('banner'), {
         filename: 'banner.png',
         contentType: 'image/png',
       });
@@ -438,11 +452,11 @@ describe('vendor-profile multipart contract', () => {
     const excess = await request(app)
       .put('/api/v1/vendor-profile/me')
       .set('Authorization', auth(vendorToken))
-      .attach('logo', Buffer.from('first'), {
+      .attach('logo', png('first'), {
         filename: 'first.png',
         contentType: 'image/png',
       })
-      .attach('logo', Buffer.from('second'), {
+      .attach('logo', png('second'), {
         filename: 'second.png',
         contentType: 'image/png',
       });
@@ -461,11 +475,11 @@ describe('vendor-profile multipart contract', () => {
     const response = await request(app)
       .put('/api/v1/vendor-profile/me')
       .set('Authorization', auth(vendorToken))
-      .attach('logo', Buffer.from('logo'), {
+      .attach('logo', png('logo'), {
         filename: 'logo.png',
         contentType: 'image/png',
       })
-      .attach('banner', Buffer.from('banner'), {
+      .attach('banner', png('banner'), {
         filename: 'banner.png',
         contentType: 'image/png',
       });
@@ -493,7 +507,7 @@ describe('vendor-profile multipart contract', () => {
     const response = await request(app)
       .put('/api/v1/vendor-profile/me')
       .set('Authorization', auth(vendorToken))
-      .attach('banner', Buffer.from('new-banner'), {
+      .attach('banner', png('new-banner'), {
         filename: 'new-banner.png',
         contentType: 'image/png',
       });
@@ -525,14 +539,14 @@ describe('vendor-profile multipart contract', () => {
       request(app)
         .put('/api/v1/vendor-profile/me')
         .set('Authorization', auth(vendorToken))
-        .attach('logo', Buffer.from('a'), {
+        .attach('logo', jpeg('a'), {
           filename: 'a.jpg',
           contentType: 'image/jpeg',
         }),
       request(app)
         .put('/api/v1/vendor-profile/me')
         .set('Authorization', auth(vendorToken))
-        .attach('logo', Buffer.from('b'), {
+        .attach('logo', jpeg('b'), {
           filename: 'b.jpg',
           contentType: 'image/jpeg',
         }),

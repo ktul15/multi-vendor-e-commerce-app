@@ -19,6 +19,11 @@ const mockedUpload = uploadImage as jest.MockedFunction<typeof uploadImage>;
 const mockedDelete = deleteImage as jest.MockedFunction<typeof deleteImage>;
 let adminToken: string;
 let vendorId: string;
+const png = (marker: string) =>
+  Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    Buffer.from(marker),
+  ]);
 
 beforeAll(async () => {
   await cleanDatabase();
@@ -198,7 +203,7 @@ describe('category media lifecycle contract', () => {
       .post('/api/v1/categories')
       .set('Authorization', adminToken)
       .field('name', 'Media Category')
-      .attach('image', Buffer.from('old-image'), {
+      .attach('image', png('old-image'), {
         filename: 'old.png',
         contentType: 'image/png',
       });
@@ -207,7 +212,7 @@ describe('category media lifecycle contract', () => {
     const updated = await request(app)
       .put(`/api/v1/categories/${created.body.data.id}`)
       .set('Authorization', adminToken)
-      .attach('image', Buffer.from('new-image'), {
+      .attach('image', png('new-image'), {
         filename: 'new.png',
         contentType: 'image/png',
       });
@@ -247,7 +252,7 @@ describe('category media lifecycle contract', () => {
     const response = await request(app)
       .put(`/api/v1/categories/${category.id}`)
       .set('Authorization', adminToken)
-      .attach('image', Buffer.from('rollback-image'), {
+      .attach('image', png('rollback-image'), {
         filename: 'rollback.png',
         contentType: 'image/png',
       });
@@ -278,7 +283,7 @@ describe('category media lifecycle contract', () => {
       .post('/api/v1/categories')
       .set('Authorization', adminToken)
       .field('name', 'Create Rollback Cleanup')
-      .attach('image', Buffer.from('create-rollback'), {
+      .attach('image', png('create-rollback'), {
         filename: 'create-rollback.png',
         contentType: 'image/png',
       });
@@ -311,7 +316,7 @@ describe('category media lifecycle contract', () => {
     const response = await request(app)
       .put(`/api/v1/categories/${category.id}`)
       .set('Authorization', adminToken)
-      .attach('image', Buffer.from('committed-image'), {
+      .attach('image', png('committed-image'), {
         filename: 'committed.png',
         contentType: 'image/png',
       });
@@ -385,15 +390,13 @@ describe('category media lifecycle contract', () => {
     const originalUpdateMany = prisma.category.updateMany.bind(prisma.category);
     const updateMany = jest
       .spyOn(prisma.category, 'updateMany')
-      .mockImplementationOnce(
-        (async (args) => {
-          await prisma.category.update({
-            where: { id: category.id },
-            data: { image: 'https://example.com/concurrent-replacement.png' },
-          });
-          return originalUpdateMany(args);
-        }) as typeof prisma.category.updateMany
-      );
+      .mockImplementationOnce((async (args) => {
+        await prisma.category.update({
+          where: { id: category.id },
+          data: { image: 'https://example.com/concurrent-replacement.png' },
+        });
+        return originalUpdateMany(args);
+      }) as typeof prisma.category.updateMany);
 
     try {
       const summary = await reconcileCategoryMedia(true);
@@ -437,14 +440,14 @@ describe('category media lifecycle contract', () => {
       request(app)
         .put(`/api/v1/categories/${category.id}`)
         .set('Authorization', adminToken)
-        .attach('image', Buffer.from('concurrent-a'), {
+        .attach('image', png('concurrent-a'), {
           filename: 'concurrent-a.png',
           contentType: 'image/png',
         }),
       request(app)
         .put(`/api/v1/categories/${category.id}`)
         .set('Authorization', adminToken)
-        .attach('image', Buffer.from('concurrent-b'), {
+        .attach('image', png('concurrent-b'), {
           filename: 'concurrent-b.png',
           contentType: 'image/png',
         }),
@@ -482,7 +485,7 @@ describe('category media lifecycle contract', () => {
       request(app)
         .put(`/api/v1/categories/${category.id}`)
         .set('Authorization', adminToken)
-        .attach('image', Buffer.from('update-delete-new'), {
+        .attach('image', png('update-delete-new'), {
           filename: 'update-delete-new.png',
           contentType: 'image/png',
         }),

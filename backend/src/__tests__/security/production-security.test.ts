@@ -15,6 +15,14 @@ describe('Production security headers', () => {
     process.env.ADMIN_DASHBOARD_URL = 'https://admin.example.com';
     process.env.DASHBOARD_BFF_SECRET =
       'production-security-test-secret-32-characters';
+    process.env.JWT_ACCESS_SECRET =
+      'production-access-signing-secret-32-characters';
+    process.env.JWT_REFRESH_SECRET =
+      'production-refresh-signing-secret-32-characters';
+    process.env.STRIPE_CONNECT_RETURN_URL =
+      'https://vendor.example.com/stripe/return';
+    process.env.STRIPE_CONNECT_REFRESH_URL =
+      'https://vendor.example.com/stripe/refresh';
     jest.resetModules();
     const { default: productionApp } = await import('../../app');
 
