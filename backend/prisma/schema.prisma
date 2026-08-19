@@ -611,3 +611,26 @@ model PlatformSetting {
 
   @@map("platform_settings")
 }
+
+// Scoped replay ledger for mutation requests that require retry safety.
+// Records are intentionally independent of domain rows so all API instances
+// coordinate through the same unique (scope, key) claim.
+model IdempotencyRecord {
+  id             String    @id @default(uuid())
+  scope          String
+  key            String
+  operation      String
+  requestHash    String
+  state          String    @default("IN_PROGRESS")
+  responseStatus Int?
+  responseBody   Json?
+  reconciliation Json?
+  createdAt      DateTime  @default(now())
+  leaseExpiresAt DateTime
+  completedAt    DateTime?
+  expiresAt      DateTime
+
+  @@unique([scope, key])
+  @@index([state, expiresAt])
+  @@map("idempotency_records")
+}

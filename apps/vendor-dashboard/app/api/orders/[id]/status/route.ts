@@ -49,18 +49,28 @@ export async function PUT(
     return response;
   };
   const token = session.rotatedTokens?.accessToken ?? requestCredentials(request).accessToken;
+  const idempotencyKey = request.headers.get("Idempotency-Key");
   const apiBase = process.env.API_BASE_URL?.replace(/\/$/, "");
   if (!token || !apiBase) return finalize(failure("Order service unavailable", 503));
   try {
     const response = await fetch(`${apiBase}/orders/vendor/${id}/status`, {
       body: JSON.stringify(parsed.data),
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+      },
       method: "PUT",
       redirect: "error",
       signal: AbortSignal.timeout(5_000),
     });
     const payload = await response.json().catch(() => ({}));
-    return finalize(NextResponse.json(payload, { status: response.status }));
+    const result = NextResponse.json(payload, { status: response.status });
+    for (const header of ["Idempotency-Status", "Idempotency-Replayed", "Retry-After"]) {
+      const value = response.headers.get(header);
+      if (value) result.headers.set(header, value);
+    }
+    return finalize(result);
   } catch {
     return finalize(failure("Order service unavailable", 503));
   }

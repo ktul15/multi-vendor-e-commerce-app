@@ -18,6 +18,7 @@ import {
   updateVendorOrderStatusWithTrackingSchema,
 } from './order.validation';
 import { OrderController } from './order.controller';
+import { mutationIdempotency } from '../../middleware/idempotency';
 
 const router = Router();
 const orderController = new OrderController();
@@ -158,12 +159,19 @@ router.get(
  *   put:
  *     tags: [Orders]
  *     summary: Update vendor order status with optional tracking (Vendor only)
+ *     description: A retry after an ambiguous outcome is safe only when the same Idempotency-Key and request body are reused. Reconcile with GET /orders/vendor/{id} when the response code requests it.
+ *     x-idempotency: key-required-for-retry
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema: { type: string, format: uuid }
  *         description: Vendor order ID
+ *       - in: header
+ *         name: Idempotency-Key
+ *         required: false
+ *         schema: { type: string, minLength: 16, maxLength: 200 }
+ *         description: Stable key for safe replay of this exact mutation.
  *     requestBody:
  *       required: true
  *       content:
@@ -184,12 +192,41 @@ router.get(
  *     responses:
  *       200:
  *         description: Vendor order status updated
+ *         headers:
+ *           Idempotency-Status:
+ *             schema: { type: string, enum: [created, replayed] }
+ *           Idempotency-Replayed:
+ *             schema: { type: string, enum: ['true'] }
  *       401:
  *         description: Unauthorized
  *       403:
  *         description: Forbidden — VENDOR + approved status required
  *       404:
  *         description: Vendor order not found
+ *       409:
+ *         description: Key conflict, request still in progress, or ambiguous outcome requiring authoritative reconciliation
+ *         headers:
+ *           Idempotency-Status:
+ *             schema: { type: string, enum: [created, conflict, in-progress, ambiguous] }
+ *           Retry-After:
+ *             schema: { type: string }
+ *         content:
+ *           application/json:
+ *             schema:
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/IdempotencyError'
+ *                 - $ref: '#/components/schemas/ApiError'
+ *       503:
+ *         description: Mutation outcome is ambiguous and requires authoritative reconciliation
+ *         headers:
+ *           Idempotency-Status:
+ *             schema: { type: string, enum: [ambiguous] }
+ *         content:
+ *           application/json:
+ *             schema:
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/IdempotencyError'
+ *                 - $ref: '#/components/schemas/ApiError'
  */
 router.put(
   '/vendor/:id/status',
@@ -198,6 +235,12 @@ router.put(
   requireApprovedVendor,
   validateParams(vendorOrderIdParamSchema),
   validate(updateVendorOrderStatusWithTrackingSchema),
+  mutationIdempotency({
+    reconciliation: (request) => ({
+      method: 'GET',
+      path: `/api/v1/orders/vendor/${request.params.id as string}`,
+    }),
+  }),
   orderController.updateVendorOrderStatusWithTracking
 );
 

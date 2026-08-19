@@ -31,6 +31,23 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
     limit: integerSchema,
     totalPages: integerSchema,
   }),
+  IdempotencyError: objectSchema({
+    success: { type: 'boolean', enum: [false] },
+    message: stringSchema,
+    code: {
+      type: 'string',
+      enum: [
+        'IDEMPOTENCY_KEY_REUSED',
+        'IDEMPOTENCY_REQUEST_IN_PROGRESS',
+        'IDEMPOTENCY_OUTCOME_AMBIGUOUS',
+        'IDEMPOTENCY_PERSISTENCE_FAILED',
+      ],
+    },
+    reconciliation: objectSchema({
+      method: { type: 'string', enum: ['GET'] },
+      path: stringSchema,
+    }),
+  }),
   UserProfile: objectSchema({
     id: stringSchema,
     name: stringSchema,

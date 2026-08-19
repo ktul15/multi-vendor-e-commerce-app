@@ -13,6 +13,7 @@ import type { VendorProfile } from "../src/lib/vendor-profile-api";
 import { server } from "./msw";
 
 const navigation = vi.hoisted(() => ({ refresh: vi.fn(), replace: vi.fn() }));
+const browserStorage = new Map<string, string>();
 vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
 vi.mock("next/link", () => ({
   default: ({ children, ...props }: ComponentProps<"a">) => <a {...props}>{children}</a>,
@@ -62,6 +63,15 @@ const order: VendorOrder = {
 };
 
 beforeAll(() => {
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    value: {
+      clear: () => browserStorage.clear(),
+      getItem: (key: string) => browserStorage.get(key) ?? null,
+      removeItem: (key: string) => browserStorage.delete(key),
+      setItem: (key: string, value: string) => browserStorage.set(key, value),
+    },
+  });
   HTMLDialogElement.prototype.showModal = function showModal() {
     this.setAttribute("open", "");
   };
@@ -74,6 +84,7 @@ beforeAll(() => {
 beforeEach(() => {
   navigation.refresh.mockReset();
   navigation.replace.mockReset();
+  window.localStorage.clear();
   document.cookie = "vendor_csrf_token=csrf-token; path=/";
 });
 
@@ -142,6 +153,7 @@ describe("vendor browser API behavior with MSW", () => {
         "http://localhost:3000/api/orders/11111111-1111-4111-8111-111111111111/status",
         async ({ request }) => {
           expect(request.headers.get("X-CSRF-Token")).toBe("csrf-token");
+          expect(request.headers.get("Idempotency-Key")).toMatch(/^[0-9a-f-]{36}$/);
           await expect(request.json()).resolves.toEqual({
             status: "SHIPPED",
             trackingCarrier: "BlueDart",
@@ -164,6 +176,52 @@ describe("vendor browser API behavior with MSW", () => {
     await user.click(within(dialog).getByRole("button", { name: "Mark shipped" }));
 
     await waitFor(() => expect(navigation.refresh).toHaveBeenCalledOnce());
+  });
+
+  it("reuses the mutation key after an ambiguous order outcome", async () => {
+    const keys: Array<string | null> = [];
+    let attempts = 0;
+    server.use(
+      http.put(
+        "http://localhost:3000/api/orders/11111111-1111-4111-8111-111111111111/status",
+        ({ request }) => {
+          keys.push(request.headers.get("Idempotency-Key"));
+          attempts += 1;
+          return attempts === 1
+            ? HttpResponse.json(
+                { message: "The outcome is ambiguous. Reload before retrying.", success: false },
+                { status: 503 },
+              )
+            : HttpResponse.json({ success: true });
+        },
+      ),
+    );
+    const user = userEvent.setup();
+    const firstRender = renderWithProviders(<VendorOrderDetailView order={order} />);
+    await user.click(screen.getByRole("button", { name: "Mark shipped" }));
+    const dialog = screen.getByRole("dialog");
+    await user.type(within(dialog).getByRole("textbox", { name: "Tracking carrier" }), "BlueDart");
+    await user.type(within(dialog).getByRole("textbox", { name: "Tracking number" }), "TRACK-42");
+
+    await user.click(within(dialog).getByRole("button", { name: "Mark shipped" }));
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("ambiguous");
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    firstRender.unmount();
+
+    renderWithProviders(<VendorOrderDetailView order={order} />);
+    await user.click(screen.getByRole("button", { name: "Mark shipped" }));
+    const restoredDialog = screen.getByRole("dialog");
+    expect(within(restoredDialog).getByRole("textbox", { name: "Tracking carrier" })).toHaveValue(
+      "BlueDart",
+    );
+    expect(within(restoredDialog).getByRole("textbox", { name: "Tracking number" })).toHaveValue(
+      "TRACK-42",
+    );
+    await user.click(within(restoredDialog).getByRole("button", { name: "Mark shipped" }));
+
+    await waitFor(() => expect(keys).toHaveLength(2));
+    expect(keys[0]).toBeTruthy();
+    expect(keys[1]).toBe(keys[0]);
   });
 
   it("sends store changes as multipart and renders the persisted response", async () => {
