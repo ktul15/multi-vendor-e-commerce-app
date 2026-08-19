@@ -106,7 +106,7 @@ describe("vendor orders", () => {
     expect(screen.getByText("Leave at reception")).toBeVisible();
   });
 
-  it("confirms once, disables concurrent submission, and surfaces a conflict", async () => {
+  it("confirms once, disables concurrent submission, and reconciles a conflict", async () => {
     let resolveResponse!: (response: Response) => void;
     const fetch = vi.fn(
       () =>
@@ -130,7 +130,7 @@ describe("vendor orders", () => {
       ),
     );
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("Refresh and try again");
-    expect(navigation.refresh).not.toHaveBeenCalled();
+    expect(navigation.refresh).toHaveBeenCalledOnce();
   });
 
   it("discards a stale selected transition when refreshed order data changes", async () => {

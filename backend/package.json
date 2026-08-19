@@ -23,6 +23,7 @@
     "db:studio": "npx prisma studio",
     "prisma:generate": "npx prisma generate",
     "category-media:reconcile": "tsx src/scripts/reconcile-category-media.ts",
+    "idempotency:cleanup": "tsx src/scripts/cleanup-idempotency-records.ts",
     "openapi:generate": "tsx src/scripts/openapi.ts",
     "openapi:check": "tsx src/scripts/openapi.ts --check"
   },

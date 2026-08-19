@@ -4269,11 +4269,17 @@ export interface paths {
             readonly cookie?: never;
         };
         readonly get?: never;
-        /** Update vendor order status with optional tracking (Vendor only) */
+        /**
+         * Update vendor order status with optional tracking (Vendor only)
+         * @description A retry after an ambiguous outcome is safe only when the same Idempotency-Key and request body are reused. Reconcile with GET /orders/vendor/{id} when the response code requests it.
+         */
         readonly put: {
             readonly parameters: {
                 readonly query?: never;
-                readonly header?: never;
+                readonly header?: {
+                    /** @description Stable key for safe replay of this exact mutation. */
+                    readonly "Idempotency-Key"?: string;
+                };
                 readonly path: {
                     /** @description Vendor order ID */
                     readonly id: string;
@@ -4296,6 +4302,8 @@ export interface paths {
                 /** @description Vendor order status updated */
                 readonly 200: {
                     headers: {
+                        readonly "Idempotency-Replayed"?: "true";
+                        readonly "Idempotency-Status"?: "created" | "replayed";
                         readonly [name: string]: unknown;
                     };
                     content?: never;
@@ -4320,6 +4328,27 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Key conflict, request still in progress, or ambiguous outcome requiring authoritative reconciliation */
+                readonly 409: {
+                    headers: {
+                        readonly "Idempotency-Status"?: "created" | "conflict" | "in-progress" | "ambiguous";
+                        readonly "Retry-After"?: string;
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["IdempotencyError"] | components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Mutation outcome is ambiguous and requires authoritative reconciliation */
+                readonly 503: {
+                    headers: {
+                        readonly "Idempotency-Status"?: "ambiguous";
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["IdempotencyError"] | components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -7770,6 +7799,18 @@ export interface components {
             readonly message: string;
             /** @enum {boolean} */
             readonly success: true;
+        };
+        readonly IdempotencyError: {
+            /** @enum {string} */
+            readonly code: "IDEMPOTENCY_KEY_REUSED" | "IDEMPOTENCY_REQUEST_IN_PROGRESS" | "IDEMPOTENCY_OUTCOME_AMBIGUOUS" | "IDEMPOTENCY_PERSISTENCE_FAILED";
+            readonly message: string;
+            readonly reconciliation: {
+                /** @enum {string} */
+                readonly method: "GET";
+                readonly path: string;
+            };
+            /** @enum {boolean} */
+            readonly success: false;
         };
         readonly LoginSuccess: {
             readonly data: {

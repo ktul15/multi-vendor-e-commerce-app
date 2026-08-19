@@ -19,6 +19,7 @@ function request(body: unknown, csrf = true) {
       Cookie:
         "vendor_access_token=access; vendor_refresh_token=refresh; vendor_session_id=session-1; vendor_csrf_token=csrf-token",
       "Content-Type": "application/json",
+      "Idempotency-Key": "11111111-2222-4333-8444-555555555555",
       Origin: "https://vendor.test",
       "Sec-Fetch-Site": "same-origin",
       ...(csrf ? { "X-CSRF-Token": "csrf-token" } : {}),
@@ -54,17 +55,22 @@ describe("vendor order status BFF", () => {
       .mockResolvedValueOnce(
         Response.json(
           { message: "Order status changed. Refresh and try again", success: false },
-          { status: 409 },
+          { headers: { "Idempotency-Status": "ambiguous", "Retry-After": "2" }, status: 409 },
         ),
       );
     vi.stubGlobal("fetch", fetch);
 
     const response = await PUT(request({ status: "CONFIRMED" }), params);
     expect(response.status).toBe(409);
+    expect(response.headers.get("Idempotency-Status")).toBe("ambiguous");
+    expect(response.headers.get("Retry-After")).toBe("2");
     expect(fetch.mock.calls[1]?.[0]).toBe(
       `https://api.test/api/v1/orders/vendor/${orderId}/status`,
     );
     expect(fetch.mock.calls[1]?.[1]).toMatchObject({ method: "PUT" });
+    expect(new Headers(fetch.mock.calls[1]?.[1]?.headers).get("Idempotency-Key")).toBe(
+      "11111111-2222-4333-8444-555555555555",
+    );
     await expect(response.json()).resolves.toMatchObject({
       message: expect.stringContaining("Refresh"),
     });
