@@ -23,6 +23,22 @@ services:
       timeout: 5s
       retries: 5
 
+  migrate:
+    build:
+      context: .
+      target: migration
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-appuser}:${POSTGRES_PASSWORD:-apppassword}@postgres:5432/${POSTGRES_DB:-multivendor_ecommerce}
+      MIGRATION_ACTOR: docker-compose
+      MIGRATION_CHANGE_TICKET: local-compose
+      MIGRATION_ENVIRONMENT: staging
+      MIGRATION_RELEASE_SHA: "0000000000000000000000000000000000000000"
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   backend:
     build: .
     ports:
@@ -35,6 +51,8 @@ services:
       REDIS_URL: redis://redis:6379
     restart: on-failure
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
