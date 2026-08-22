@@ -1,0 +1,118 @@
+name: Database migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Protected GitHub environment containing DATABASE_URL
+        required: true
+        type: choice
+        options: [staging, production]
+      release_sha:
+        description: Immutable release commit to migrate for
+        required: true
+        type: string
+      change_ticket:
+        description: Approved issue/change record
+        required: true
+        type: string
+      backup_id:
+        description: Production backup/snapshot identifier
+        required: false
+        type: string
+      pitr_verified_at:
+        description: Production PITR verification time (ISO-8601, within 24h)
+        required: false
+        type: string
+      restore_drill_id:
+        description: Isolated restore drill evidence identifier
+        required: false
+        type: string
+      restore_drill_verified_at:
+        description: Restore drill time (ISO-8601, within 90d)
+        required: false
+        type: string
+      staging_evidence:
+        description: Signed attestation from the successful staging evidence artifact
+        required: false
+        type: string
+      contract_approved:
+        description: Approve contract phase after all retirement windows
+        required: true
+        default: false
+        type: boolean
+      flutter_retirement_verified_at:
+        description: Flutter retirement approval time (contract only)
+        required: false
+        type: string
+      rollback_window_expires_at:
+        description: Rollback compatibility window expiry (contract only)
+        required: false
+        type: string
+      retention_window_expires_at:
+        description: Required retention window expiry (contract only)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: database-migration-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Migrate ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout immutable release
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.release_sha }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install migration tooling
+        run: npm ci
+
+      - name: Run locked audited migration
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          MIGRATION_ACTOR: ${{ github.actor }}
+          MIGRATION_BACKUP_ID: ${{ inputs.backup_id }}
+          MIGRATION_CHANGE_TICKET: ${{ inputs.change_ticket }}
+          MIGRATION_CONTRACT_APPROVED: ${{ inputs.contract_approved }}
+          MIGRATION_ENVIRONMENT: ${{ inputs.environment }}
+          MIGRATION_EVIDENCE_PATH: migration-evidence.json
+          MIGRATION_EVIDENCE_SIGNING_KEY: ${{ secrets.MIGRATION_EVIDENCE_SIGNING_KEY }}
+          MIGRATION_EVIDENCE_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          MIGRATION_PITR_VERIFIED_AT: ${{ inputs.pitr_verified_at }}
+          MIGRATION_RELEASE_SHA: ${{ inputs.release_sha }}
+          MIGRATION_RESTORE_DRILL_ID: ${{ inputs.restore_drill_id }}
+          MIGRATION_RESTORE_DRILL_VERIFIED_AT: ${{ inputs.restore_drill_verified_at }}
+          MIGRATION_STAGING_EVIDENCE: ${{ inputs.staging_evidence }}
+          FLUTTER_RETIREMENT_VERIFIED_AT: ${{ inputs.flutter_retirement_verified_at }}
+          RETENTION_WINDOW_EXPIRES_AT: ${{ inputs.retention_window_expires_at }}
+          ROLLBACK_WINDOW_EXPIRES_AT: ${{ inputs.rollback_window_expires_at }}
+        run: npm run migrations:deploy
+
+      - name: Upload migration evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          if-no-files-found: warn
+          name: database-migration-${{ inputs.environment }}-${{ github.run_id }}
+          path: backend/migration-evidence.json
+          retention-days: 365

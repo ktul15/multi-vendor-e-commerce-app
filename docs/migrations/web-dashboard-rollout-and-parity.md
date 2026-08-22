@@ -233,6 +233,8 @@ Kill-switch retirement occurs no earlier than 90 days after Flutter retirement, 
 
 ### Production database migration gates
 
+The executable controls, evidence fields, and operator sequence are defined in [`../operations/database-migration-rollout.md`](../operations/database-migration-rollout.md); this rollout document supplies the dashboard retirement and compatibility approvals consumed by that runbook.
+
 - Database migration is a separately authorized deployment step owned by the backend/API owner and observed by operations; application startup must not be the uncontrolled production migration coordinator.
 - Before the first production migration, operations verifies automated backups/PITR coverage, retention, recovery point/objective, and a successful restore drill in an isolated environment using a recent representative backup.
 - Only one migration runner executes against an environment. It records migration ID, release, start/end, result, and lock/concurrency evidence before application instances roll.

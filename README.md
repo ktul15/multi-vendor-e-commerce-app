@@ -116,6 +116,8 @@ npm run test:coverage  # with coverage report
 docker-compose up      # spins up api + postgres + redis
 ```
 
+Production containers never apply schema changes during startup. Use the protected, audited [database migration rollout](docs/operations/database-migration-rollout.md) for staging and production changes.
+
 See [the web E2E data workflow](docs/migrations/web-e2e-data-workflow.md) for database-name safeguards, fixtures, and CI usage.
 
 #### Required environment variables

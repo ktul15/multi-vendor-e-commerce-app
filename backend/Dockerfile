@@ -24,9 +24,12 @@ RUN npx prisma generate
 # Compile TypeScript → dist/
 RUN npm run build
 
-# Compile prisma.config.ts to CJS so the production stage can run it without
-# a TypeScript runtime (ts-node/tsx are devDependencies, absent in production).
-RUN npx tsc prisma.config.ts --module commonjs --esModuleInterop --skipLibCheck --target ES2022 --outDir .
+# ============================================================
+# Optional migration job — one-shot tooling, never the app entrypoint
+# ============================================================
+FROM builder AS migration
+
+ENTRYPOINT ["npm", "run", "migrations:deploy"]
 
 # ============================================================
 # Stage 2: production — lean runtime image
@@ -37,15 +40,12 @@ WORKDIR /app
 
 COPY package*.json ./
 
-# Install production dependencies only.
-# `prisma` is in dependencies so the CLI is available for migrate deploy.
+# Install production dependencies only. Schema deployment is performed by the
+# separately authorized migration job, not by application containers.
 RUN npm ci --omit=dev
 
 # Copy compiled output and Prisma artifacts from builder
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/prisma.config.js ./prisma.config.js
-
 # Copy the generated Prisma client (query engine binary + JS modules).
 # Lives in src/generated/prisma/ per schema output path — must exist at runtime.
 COPY --from=builder /app/src/generated/prisma ./src/generated/prisma
