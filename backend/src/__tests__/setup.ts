@@ -15,6 +15,8 @@ export async function cleanDatabase() {
     //   vendorPayout → vendorProfile (Restrict) — vendorPayout before vendorProfile
 
     await prisma.idempotencyRecord.deleteMany();
+    await prisma.paymentWebhookEvent.deleteMany();
+    await prisma.paymentRefund.deleteMany();
     await prisma.vendorPayout.deleteMany();
     await prisma.vendorEarning.deleteMany();
     await prisma.orderItem.deleteMany();

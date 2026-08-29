@@ -153,7 +153,9 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
         type: 'string',
         enum: ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'],
       },
-      stripeOnboardingStatus: {
+      paymentProvider: { type: 'string', enum: ['STRIPE', 'RAZORPAY'] },
+      settlementCountry: stringSchema,
+      paymentOnboardingStatus: {
         type: 'string',
         enum: ['NOT_STARTED', 'PENDING', 'COMPLETE', 'RESTRICTED'],
       },
@@ -169,7 +171,9 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
       'storeBanner',
       'description',
       'status',
-      'stripeOnboardingStatus',
+      'paymentProvider',
+      'settlementCountry',
+      'paymentOnboardingStatus',
       'commissionRate',
       'createdAt',
       'updatedAt',
@@ -273,7 +277,9 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
       type: 'string',
       enum: ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'],
     },
-    stripeOnboardingStatus: {
+    paymentProvider: { type: 'string', enum: ['STRIPE', 'RAZORPAY'] },
+    settlementCountry: stringSchema,
+    paymentOnboardingStatus: {
       type: 'string',
       enum: ['NOT_STARTED', 'PENDING', 'COMPLETE', 'RESTRICTED'],
     },
@@ -290,8 +296,10 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
       type: 'string',
       enum: ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'],
     },
+    paymentProvider: { type: 'string', enum: ['STRIPE', 'RAZORPAY'] },
+    settlementCountry: stringSchema,
     commissionRate: nullableString,
-    stripeOnboardingStatus: {
+    paymentOnboardingStatus: {
       type: 'string',
       enum: ['NOT_STARTED', 'PENDING', 'COMPLETE', 'RESTRICTED'],
     },
@@ -1031,7 +1039,7 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
         type: 'string',
         enum: ['PENDING', 'TRANSFERRED', 'FAILED', 'REVERSED'],
       },
-      stripeTransferId: nullableString,
+      providerTransferId: nullableString,
       transferredAt: { type: 'string', format: 'date-time', nullable: true },
       createdAt: { type: 'string', format: 'date-time' },
       updatedAt: { type: 'string', format: 'date-time' },
@@ -1048,7 +1056,7 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
       'netAmount',
       'currency',
       'status',
-      'stripeTransferId',
+      'providerTransferId',
       'transferredAt',
       'createdAt',
       'updatedAt',
@@ -1065,7 +1073,8 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
     {
       id: stringSchema,
       vendorProfileId: stringSchema,
-      stripePayoutId: stringSchema,
+      provider: { type: 'string', enum: ['STRIPE', 'RAZORPAY'] },
+      providerPayoutId: stringSchema,
       amount: stringSchema,
       currency: {
         type: 'string',
@@ -1080,7 +1089,8 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
     [
       'id',
       'vendorProfileId',
-      'stripePayoutId',
+      'provider',
+      'providerPayoutId',
       'amount',
       'currency',
       'status',
@@ -1326,7 +1336,7 @@ const dashboardContractAdditionalErrors: Record<
     '403': 'Forbidden — ADMIN role required',
   },
   'get /vendor-payouts/connect/onboard/refresh': {
-    '400': 'Stripe onboarding has not been started',
+    '400': 'Payment provider onboarding has not been started',
   },
   'get /vendor-payouts/earnings': {
     '400': 'Invalid pagination, status, or date filter',

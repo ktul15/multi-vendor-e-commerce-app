@@ -64,7 +64,7 @@ describe('banner and vendor-profile upload OpenAPI contracts', () => {
     for (const field of [
       'storeLogoPublicId',
       'storeBannerPublicId',
-      'stripeAccountId',
+      'providerAccountId',
       'commissionRate',
       'bankDetails',
     ]) {

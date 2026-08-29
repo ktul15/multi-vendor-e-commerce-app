@@ -87,72 +87,95 @@ void main() {
       });
     });
 
-    group('createPaymentIntent', () {
-      test('returns clientSecret string on success', () async {
+    group('createPaymentCheckout', () {
+      test('returns a Stripe checkout on success', () async {
         when(
-          () => mockClient.post(
-            '/payments/create-intent',
-            data: any(named: 'data'),
-          ),
+          () => mockClient.post('/payments/checkout', data: any(named: 'data')),
         ).thenAnswer(
           (_) async => {
             'success': true,
-            'data': {'clientSecret': 'pi_test_secret_123'},
+            'data': {
+              'provider': 'STRIPE',
+              'clientSecret': 'pi_test_secret_123',
+            },
           },
         );
 
-        final result = await repo.createPaymentIntent(orderId: 'order-1');
+        final result = await repo.createPaymentCheckout(orderId: 'order-1');
 
-        expect(result, 'pi_test_secret_123');
+        expect(result.provider.name, 'stripe');
+        expect(result.clientSecret, 'pi_test_secret_123');
       });
 
       test('uses the server-defined INR currency', () async {
         when(
-          () => mockClient.post(
-            '/payments/create-intent',
-            data: any(named: 'data'),
-          ),
+          () => mockClient.post('/payments/checkout', data: any(named: 'data')),
         ).thenAnswer(
           (_) async => {
             'success': true,
-            'data': {'clientSecret': 'pi_secret'},
+            'data': {'provider': 'STRIPE', 'clientSecret': 'pi_secret'},
           },
         );
 
-        await repo.createPaymentIntent(orderId: 'order-1');
+        await repo.createPaymentCheckout(orderId: 'order-1');
 
         verify(
           () => mockClient.post(
-            '/payments/create-intent',
+            '/payments/checkout',
             data: {'orderId': 'order-1'},
           ),
         ).called(1);
       });
 
+      test(
+        'parses Razorpay checkout fields without accepting a client provider',
+        () async {
+          when(
+            () =>
+                mockClient.post('/payments/checkout', data: any(named: 'data')),
+          ).thenAnswer(
+            (_) async => {
+              'data': {
+                'provider': 'RAZORPAY',
+                'providerOrderId': 'order_test_1',
+                'keyId': 'rzp_test_1',
+                'amount': 1250,
+                'currency': 'INR',
+              },
+            },
+          );
+
+          final result = await repo.createPaymentCheckout(orderId: 'order-1');
+
+          expect(result.provider.name, 'razorpay');
+          expect(result.providerOrderId, 'order_test_1');
+          verify(
+            () => mockClient.post(
+              '/payments/checkout',
+              data: {'orderId': 'order-1'},
+            ),
+          ).called(1);
+        },
+      );
+
       test('throws ApiException when clientSecret is missing', () async {
         when(
-          () => mockClient.post(
-            '/payments/create-intent',
-            data: any(named: 'data'),
-          ),
+          () => mockClient.post('/payments/checkout', data: any(named: 'data')),
         ).thenAnswer((_) async => {'success': true, 'data': {}});
 
         await expectLater(
-          () => repo.createPaymentIntent(orderId: 'order-1'),
+          () => repo.createPaymentCheckout(orderId: 'order-1'),
           throwsA(isA<ApiException>()),
         );
       });
 
       test('throws ApiException on null response', () async {
         when(
-          () => mockClient.post(
-            '/payments/create-intent',
-            data: any(named: 'data'),
-          ),
+          () => mockClient.post('/payments/checkout', data: any(named: 'data')),
         ).thenAnswer((_) async => null);
 
         await expectLater(
-          () => repo.createPaymentIntent(orderId: 'order-1'),
+          () => repo.createPaymentCheckout(orderId: 'order-1'),
           throwsA(isA<ApiException>()),
         );
       });

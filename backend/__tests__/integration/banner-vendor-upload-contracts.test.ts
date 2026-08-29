@@ -379,8 +379,8 @@ describe('vendor-profile multipart contract', () => {
     for (const internalField of [
       'storeLogoPublicId',
       'storeBannerPublicId',
-      'stripeAccountId',
-      'stripeOnboardingStatus',
+      'providerAccountId',
+      'paymentOnboardingStatus',
       'commissionRate',
       'bankDetails',
     ]) {

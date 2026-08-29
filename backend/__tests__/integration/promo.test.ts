@@ -36,7 +36,6 @@ beforeAll(async () => {
       isVerified: true,
     },
   });
-
   const customer = await prisma.user.upsert({
     where: { email: 'customer.promo@ecommerce.com' },
     update: { password, role: 'CUSTOMER' },
@@ -50,7 +49,7 @@ beforeAll(async () => {
   });
   customerId = customer.id;
 
-  await prisma.user.upsert({
+  const vendor = await prisma.user.upsert({
     where: { email: 'vendor.promo@ecommerce.com' },
     update: { password, role: 'VENDOR' },
     create: {
@@ -59,6 +58,17 @@ beforeAll(async () => {
       password,
       role: 'VENDOR',
       isVerified: true,
+    },
+  });
+  await prisma.vendorProfile.upsert({
+    where: { userId: vendor.id },
+    update: { paymentProvider: 'RAZORPAY', settlementCountry: 'IN' },
+    create: {
+      userId: vendor.id,
+      storeName: 'Promo Integration Store',
+      status: 'APPROVED',
+      paymentProvider: 'RAZORPAY',
+      settlementCountry: 'IN',
     },
   });
 

@@ -623,7 +623,9 @@
           "storeBanner",
           "description",
           "status",
-          "stripeOnboardingStatus",
+          "paymentProvider",
+          "settlementCountry",
+          "paymentOnboardingStatus",
           "commissionRate",
           "createdAt",
           "updatedAt"
@@ -659,7 +661,17 @@
               "SUSPENDED"
             ]
           },
-          "stripeOnboardingStatus": {
+          "paymentProvider": {
+            "type": "string",
+            "enum": [
+              "STRIPE",
+              "RAZORPAY"
+            ]
+          },
+          "settlementCountry": {
+            "type": "string"
+          },
+          "paymentOnboardingStatus": {
             "type": "string",
             "enum": [
               "NOT_STARTED",
@@ -958,7 +970,9 @@
           "storeBanner",
           "description",
           "status",
-          "stripeOnboardingStatus",
+          "paymentProvider",
+          "settlementCountry",
+          "paymentOnboardingStatus",
           "commissionRate",
           "createdAt",
           "updatedAt",
@@ -995,7 +1009,17 @@
               "SUSPENDED"
             ]
           },
-          "stripeOnboardingStatus": {
+          "paymentProvider": {
+            "type": "string",
+            "enum": [
+              "STRIPE",
+              "RAZORPAY"
+            ]
+          },
+          "settlementCountry": {
+            "type": "string"
+          },
+          "paymentOnboardingStatus": {
             "type": "string",
             "enum": [
               "NOT_STARTED",
@@ -1049,8 +1073,10 @@
           "id",
           "storeName",
           "status",
+          "paymentProvider",
+          "settlementCountry",
           "commissionRate",
-          "stripeOnboardingStatus",
+          "paymentOnboardingStatus",
           "createdAt",
           "user"
         ],
@@ -1070,11 +1096,21 @@
               "SUSPENDED"
             ]
           },
+          "paymentProvider": {
+            "type": "string",
+            "enum": [
+              "STRIPE",
+              "RAZORPAY"
+            ]
+          },
+          "settlementCountry": {
+            "type": "string"
+          },
           "commissionRate": {
             "type": "string",
             "nullable": true
           },
-          "stripeOnboardingStatus": {
+          "paymentOnboardingStatus": {
             "type": "string",
             "enum": [
               "NOT_STARTED",
@@ -3821,7 +3857,7 @@
           "netAmount",
           "currency",
           "status",
-          "stripeTransferId",
+          "providerTransferId",
           "transferredAt",
           "createdAt",
           "updatedAt",
@@ -3872,7 +3908,7 @@
               "REVERSED"
             ]
           },
-          "stripeTransferId": {
+          "providerTransferId": {
             "type": "string",
             "nullable": true
           },
@@ -3944,7 +3980,8 @@
         "required": [
           "id",
           "vendorProfileId",
-          "stripePayoutId",
+          "provider",
+          "providerPayoutId",
           "amount",
           "currency",
           "status",
@@ -3960,7 +3997,14 @@
           "vendorProfileId": {
             "type": "string"
           },
-          "stripePayoutId": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "STRIPE",
+              "RAZORPAY"
+            ]
+          },
+          "providerPayoutId": {
             "type": "string"
           },
           "amount": {
@@ -8800,13 +8844,13 @@
         }
       }
     },
-    "/payments/create-intent": {
+    "/payments/checkout": {
       "post": {
         "tags": [
           "Payments"
         ],
-        "summary": "Create a Stripe PaymentIntent (Customer only)",
-        "description": "Creates a Stripe PaymentIntent for an order. The returned `clientSecret` is passed to Stripe's client-side SDK to complete payment.",
+        "summary": "Create a trusted provider checkout (Customer only)",
+        "description": "Selects Stripe or Razorpay from the persisted order and vendor configuration. Clients cannot choose the provider.",
         "security": [
           {
             "BearerAuth": []
@@ -8841,16 +8885,18 @@
         },
         "responses": {
           "201": {
-            "description": "PaymentIntent created",
+            "description": "Stripe PaymentIntent or Razorpay Order checkout created",
             "content": {
               "application/json": {
                 "example": {
                   "success": true,
                   "message": "Payment intent created",
                   "data": {
-                    "clientSecret": "pi_3OxY...secret_...",
+                    "provider": "RAZORPAY",
+                    "providerOrderId": "order_test_123",
+                    "keyId": "rzp_test_123",
                     "amount": 9999,
-                    "currency": "usd"
+                    "currency": "INR"
                   }
                 }
               }
@@ -8867,6 +8913,118 @@
           },
           "404": {
             "description": "Order not found"
+          }
+        }
+      }
+    },
+    "/payments/razorpay/confirm": {
+      "post": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Verify Razorpay Standard Checkout signature",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "orderId",
+                  "providerOrderId",
+                  "providerPaymentId",
+                  "signature"
+                ],
+                "properties": {
+                  "orderId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "providerOrderId": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "example": "order_test_123"
+                  },
+                  "providerPaymentId": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "example": "pay_test_123"
+                  },
+                  "signature": {
+                    "type": "string",
+                    "pattern": "^[a-fA-F0-9]{64}$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signature verified"
+          },
+          "400": {
+            "description": "Invalid signature"
+          }
+        }
+      }
+    },
+    "/payments/{paymentId}/refunds": {
+      "post": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Create a full or partial provider refund (Admin only)",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paymentId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "description": "Omit amount for a full remaining refund. Reason is optional.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "number",
+                    "format": "double",
+                    "minimum": 0.01,
+                    "multipleOf": 0.01,
+                    "example": 49.99
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "example": "Customer requested cancellation"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Refund initiated and audited"
           }
         }
       }
@@ -8896,6 +9054,30 @@
           },
           "400": {
             "description": "Invalid Stripe signature"
+          },
+          "503": {
+            "description": "Local payment or refund is not visible yet; Stripe should retry the event"
+          }
+        }
+      }
+    },
+    "/payments/webhooks/razorpay": {
+      "post": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Razorpay payment and Route webhook",
+        "description": "Verifies the raw-body signature and deduplicates X-Razorpay-Event-Id.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Event received or already processed"
+          },
+          "400": {
+            "description": "Invalid signature or headers"
+          },
+          "503": {
+            "description": "Local payment or refund is not visible yet; Razorpay should retry the event"
           }
         }
       }
@@ -11233,20 +11415,13 @@
         "tags": [
           "Vendor Payouts"
         ],
-        "summary": "Start Stripe Connect onboarding (approved Vendors only)",
-        "description": "Generates a single-use Stripe-hosted onboarding URL using backend-configured return and refresh URLs; clients cannot supply either redirect. Navigate the browser at top level, then reconcile completion with GET /vendor-payouts/connect/status after Stripe returns.",
+        "summary": "Start payment-provider onboarding (approved Vendors only)",
+        "description": "Uses the vendor's persisted provider. Stripe returns a single-use hosted onboarding URL; Razorpay sandbox deterministically completes mock linked-account onboarding without a redirect.",
         "responses": {
           "200": {
-            "description": "Onboarding URL",
+            "description": "Provider-discriminated onboarding result",
             "content": {
               "application/json": {
-                "example": {
-                  "success": true,
-                  "message": "Onboarding link generated",
-                  "data": {
-                    "url": "https://connect.stripe.com/setup/s/..."
-                  }
-                },
                 "schema": {
                   "$ref": "#/components/schemas/ConnectOnboardingSuccess"
                 }
@@ -11291,8 +11466,8 @@
         "tags": [
           "Vendor Payouts"
         ],
-        "summary": "Refresh the Stripe Connect onboarding link (approved Vendors only)",
-        "description": "Returns a fresh single-use onboarding URL when Stripe reaches the backend-configured refresh route. Call once per refresh event, navigate at top level, and guard the client against retry loops. Redirect targets are server configuration, never request input.",
+        "summary": "Refresh payment-provider onboarding (approved Vendors only)",
+        "description": "Refreshes onboarding for the vendor's persisted payment provider. Stripe returns a fresh single-use URL; Razorpay sandbox completes deterministic mock onboarding.",
         "responses": {
           "200": {
             "description": "Refreshed onboarding URL",
@@ -11305,7 +11480,7 @@
             }
           },
           "400": {
-            "description": "Stripe onboarding has not been started",
+            "description": "Payment provider onboarding has not been started",
             "content": {
               "application/json": {
                 "schema": {
@@ -11352,8 +11527,8 @@
         "tags": [
           "Vendor Payouts"
         ],
-        "summary": "Get Stripe Connect account status (Vendor only)",
-        "description": "Reconciles the Stripe account after onboarding return. Use onboardingStatus, chargesEnabled, payoutsEnabled, and detailsSubmitted as authoritative UI inputs; return query parameters are not proof of completion.",
+        "summary": "Get payment-provider account status (Vendor only)",
+        "description": "Returns the persisted provider and authoritative onboarding, charge, payout, and details-submitted state.",
         "responses": {
           "200": {
             "description": "Connect account status",

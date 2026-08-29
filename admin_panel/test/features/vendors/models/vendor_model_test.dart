@@ -9,7 +9,9 @@ void main() {
         'storeName': 'Demo Store',
         'status': 'APPROVED',
         'commissionRate': '10.5',
-        'stripeOnboardingStatus': 'COMPLETED',
+        'paymentProvider': 'RAZORPAY',
+        'settlementCountry': 'IN',
+        'paymentOnboardingStatus': 'COMPLETED',
         'createdAt': '2026-05-18T10:00:00.000Z',
         'user': {
           'id': 'user-1',
@@ -28,7 +30,9 @@ void main() {
         'storeName': 'Demo Store',
         'status': 'PENDING',
         'commissionRate': null,
-        'stripeOnboardingStatus': 'PENDING',
+        'paymentProvider': 'STRIPE',
+        'settlementCountry': 'US',
+        'paymentOnboardingStatus': 'PENDING',
         'createdAt': '2026-05-18T10:00:00.000Z',
         'user': {
           'id': 'user-1',

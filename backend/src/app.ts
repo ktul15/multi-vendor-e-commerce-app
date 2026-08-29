@@ -35,9 +35,9 @@ app.use(csrfProtection);
 // ---------------------
 // Stripe Webhooks (must be before globalLimiter so Stripe retries are never throttled)
 // ---------------------
-import paymentRoutes from './modules/payment/payment.routes';
+import { paymentWebhookRouter } from './modules/payment/payment.routes';
 import { vendorPayoutWebhookRouter } from './modules/vendor-payout/vendor-payout.routes';
-app.use('/api/v1/payments', paymentRoutes);
+app.use('/api/v1/payments', paymentWebhookRouter);
 app.use('/api/v1/vendor-payouts', vendorPayoutWebhookRouter);
 
 // ---------------------
@@ -132,6 +132,7 @@ import vendorPayoutRoutes from './modules/vendor-payout/vendor-payout.routes';
 import analyticsRoutes from './modules/analytics/analytics.routes';
 import adminRoutes from './modules/admin/admin.routes';
 import bannerRoutes from './modules/banner/banner.routes';
+import paymentRoutes from './modules/payment/payment.routes';
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/categories', categoryRoutes);
@@ -148,6 +149,7 @@ app.use('/api/v1/vendor-payouts', vendorPayoutRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/banners', bannerRoutes);
+app.use('/api/v1/payments', paymentRoutes);
 
 // ---------------------
 // Error Handling

@@ -53,4 +53,34 @@ describe('Production security configuration', () => {
       'STRIPE_CONNECT_RETURN_URL must be an HTTP(S) URL on VENDOR_DASHBOARD_URL'
     );
   });
+
+  it('rejects live payment credentials in the sandbox-only release', async () => {
+    productionEnvironment();
+    process.env.STRIPE_SECRET_KEY = 'sk_live_not_allowed';
+    jest.resetModules();
+
+    await expect(import('../../config/env')).rejects.toThrow(
+      'STRIPE_SECRET_KEY must be a sandbox/test credential'
+    );
+
+    process.env.STRIPE_SECRET_KEY = 'sk_test_allowed';
+    process.env.RAZORPAY_KEY_ID = 'rzp_live_not_allowed';
+    jest.resetModules();
+    await expect(import('../../config/env')).rejects.toThrow(
+      'RAZORPAY_KEY_ID must be a sandbox/test credential'
+    );
+  });
+
+  it('requires a private Razorpay webhook secret outside mock mode', async () => {
+    productionEnvironment();
+    process.env.RAZORPAY_KEY_ID = 'rzp_test_allowed';
+    process.env.RAZORPAY_KEY_SECRET = 'test-secret';
+    process.env.RAZORPAY_SANDBOX_MOCK = 'false';
+    process.env.RAZORPAY_WEBHOOK_SECRET = '';
+    jest.resetModules();
+
+    await expect(import('../../config/razorpay')).rejects.toThrow(
+      'RAZORPAY_WEBHOOK_SECRET is required when Razorpay sandbox mock mode is disabled'
+    );
+  });
 });

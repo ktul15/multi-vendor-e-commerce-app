@@ -162,6 +162,7 @@ beforeAll(async () => {
       },
       subtotal: 20,
       total: 20,
+      paymentProvider: 'STRIPE',
     },
   });
   const vendorOrder = await prisma.vendorOrder.create({
