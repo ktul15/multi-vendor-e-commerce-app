@@ -67,6 +67,7 @@ async function createVendorOrder(opts: {
       discount: 0,
       tax: 0,
       total,
+      paymentProvider: 'STRIPE',
       ...(createdAt && { createdAt }),
     },
   });

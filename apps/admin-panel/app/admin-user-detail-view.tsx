@@ -132,9 +132,10 @@ export function AdminUserDetailView({
                 }
               />
               <Field
-                label="Stripe onboarding"
-                value={user.vendorProfile.stripeOnboardingStatus.replaceAll("_", " ")}
+                label={`${user.vendorProfile.paymentProvider === "RAZORPAY" ? "Razorpay" : "Stripe"} onboarding`}
+                value={user.vendorProfile.paymentOnboardingStatus.replaceAll("_", " ")}
               />
+              <Field label="Payment provider" value={user.vendorProfile.paymentProvider} />
               <Field
                 label="Commission rate"
                 value={

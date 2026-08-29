@@ -4,6 +4,29 @@ dotenv.config();
 
 const nodeEnv = process.env.NODE_ENV || 'development';
 
+const booleanValue = (name: string, developmentDefault: boolean): boolean => {
+  const configured = process.env[name]?.trim().toLowerCase();
+  if (!configured) return developmentDefault;
+  if (configured === 'true') return true;
+  if (configured === 'false') return false;
+  throw new Error(`${name} must be either true or false`);
+};
+
+const sandboxCredential = (
+  name: string,
+  value: string | undefined,
+  allowedPrefixes: readonly string[]
+): string => {
+  const configured = value?.trim() || '';
+  if (
+    configured &&
+    !allowedPrefixes.some((prefix) => configured.startsWith(prefix))
+  ) {
+    throw new Error(`${name} must be a sandbox/test credential`);
+  }
+  return configured;
+};
+
 const signingSecret = (name: string, developmentFallback: string): string => {
   const configured = process.env[name]?.trim();
   if (nodeEnv === 'production' && (!configured || configured.length < 32)) {
@@ -126,10 +149,28 @@ export const env = {
   DASHBOARD_BFF_SECRET: dashboardBffSecret(),
 
   // Stripe
-  STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || '',
+  STRIPE_SECRET_KEY: sandboxCredential(
+    'STRIPE_SECRET_KEY',
+    process.env.STRIPE_SECRET_KEY,
+    ['sk_test_', 'rk_test_']
+  ),
   STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || '',
   STRIPE_CONNECT_WEBHOOK_SECRET:
     process.env.STRIPE_CONNECT_WEBHOOK_SECRET || '',
+
+  // Razorpay sandbox. The deterministic mock is intentionally unavailable in
+  // production so a portfolio configuration can never simulate real payments.
+  RAZORPAY_KEY_ID: sandboxCredential(
+    'RAZORPAY_KEY_ID',
+    process.env.RAZORPAY_KEY_ID,
+    ['rzp_test_']
+  ),
+  RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET?.trim() || '',
+  RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET?.trim() || '',
+  RAZORPAY_SANDBOX_MOCK: booleanValue(
+    'RAZORPAY_SANDBOX_MOCK',
+    nodeEnv !== 'production'
+  ),
 
   // Stripe Connect
   PLATFORM_COMMISSION_RATE: process.env.PLATFORM_COMMISSION_RATE || '10.00',

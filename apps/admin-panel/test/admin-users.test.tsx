@@ -168,7 +168,9 @@ describe("admin user management", () => {
         storeBanner: null,
         storeLogo: null,
         storeName: "Asha Market",
-        stripeOnboardingStatus: "COMPLETE",
+        paymentOnboardingStatus: "COMPLETE",
+        paymentProvider: "RAZORPAY",
+        settlementCountry: "IN",
         updatedAt: "2026-08-10T08:00:00.000Z",
         userId: user.id,
       },
@@ -177,6 +179,8 @@ describe("admin user management", () => {
 
     expect(screen.getByRole("heading", { name: "Asha Buyer" })).toBeVisible();
     expect(screen.getByText("Asha Market")).toBeVisible();
+    expect(screen.getByText("Razorpay onboarding")).toBeVisible();
+    expect(screen.getByText("Payment provider")).toBeVisible();
     expect(screen.getByText("12.50%")).toBeVisible();
     expect(screen.getByText("Everyday essentials")).toBeVisible();
   });

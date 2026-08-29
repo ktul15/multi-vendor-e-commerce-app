@@ -258,7 +258,7 @@ function PayoutTable({ payouts }: Readonly<{ payouts: PayoutHistory }>) {
         <tbody>
           {payouts.payouts.map((payout) => (
             <tr key={payout.id}>
-              <th scope="row">{payout.stripePayoutId}</th>
+              <th scope="row">{payout.providerPayoutId}</th>
               <td>{formatCurrency(payout.amount, payout.currency)}</td>
               <td>
                 <Badge tone={statusTone(payout.status)}>{payout.status}</Badge>

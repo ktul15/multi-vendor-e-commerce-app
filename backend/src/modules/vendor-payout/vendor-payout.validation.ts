@@ -32,6 +32,37 @@ export const vendorIdParamSchema = z.object({
   vendorId: z.string().uuid('Invalid vendor ID'),
 });
 
+export const updatePaymentProviderSchema = z
+  .object({
+    paymentProvider: z.enum(['STRIPE', 'RAZORPAY']),
+    settlementCountry: z
+      .string()
+      .regex(/^[A-Z]{2}$/, 'Settlement country must be an ISO alpha-2 code'),
+  })
+  .superRefine((value, context) => {
+    if (
+      value.paymentProvider === 'RAZORPAY' &&
+      value.settlementCountry !== 'IN'
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['settlementCountry'],
+        message: 'Razorpay Route is configured only for Indian vendors',
+      });
+    }
+    if (
+      value.paymentProvider === 'STRIPE' &&
+      value.settlementCountry === 'IN'
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['settlementCountry'],
+        message:
+          'Indian vendors must use Razorpay in this sandbox architecture',
+      });
+    }
+  });
+
 export type GetEarningsQueryInput = z.infer<typeof getEarningsQuerySchema>;
 export type GetPayoutsQueryInput = z.infer<typeof getPayoutsQuerySchema>;
 export type UpdateCommissionRateInput = z.infer<

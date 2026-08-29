@@ -139,7 +139,7 @@ export function AdminVendorsView({
                         <td>
                           <Badge tone={vendorStatusTone(vendor.status)}>{vendor.status}</Badge>
                         </td>
-                        <td>{vendor.stripeOnboardingStatus.replaceAll("_", " ")}</td>
+                        <td>{vendor.paymentOnboardingStatus.replaceAll("_", " ")}</td>
                         <td>
                           {vendor.commissionRate === null
                             ? "Platform default"

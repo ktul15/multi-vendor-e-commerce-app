@@ -57,7 +57,9 @@ beforeAll(async () => {
               description: 'First contract vendor',
               status: 'APPROVED',
               bankDetails: { accountNumber: 'must-not-leak' },
-              stripeAccountId: 'acct_contract_134_first',
+              paymentProvider: 'STRIPE',
+              settlementCountry: 'US',
+              providerAccountId: 'acct_contract_134_first',
             },
           },
         },
@@ -94,7 +96,9 @@ beforeAll(async () => {
               storeLogoPublicId: 'vendors/pending-logo',
               storeBanner: 'https://cdn.example.com/pending-banner.webp',
               storeBannerPublicId: 'vendors/pending-banner',
-              stripeAccountId: 'acct_contract_134_pending',
+              paymentProvider: 'STRIPE',
+              settlementCountry: 'US',
+              providerAccountId: 'acct_contract_134_pending',
               bankDetails: { accountNumber: 'pending-must-not-leak' },
             },
           },
@@ -215,6 +219,7 @@ beforeAll(async () => {
       shippingAddress,
       subtotal: 75,
       total: 75,
+      paymentProvider: 'STRIPE',
       createdAt: stableTimestamp,
       vendorOrders: {
         create: [
@@ -262,6 +267,7 @@ beforeAll(async () => {
       shippingAddress,
       subtotal: 45,
       total: 45,
+      paymentProvider: 'STRIPE',
       createdAt: stableTimestamp,
       vendorOrders: {
         create: {
@@ -310,7 +316,7 @@ describe('admin direct-load detail contracts', () => {
     expect(response.body.data.password).toBeUndefined();
     expect(response.body.data.fcmToken).toBeUndefined();
     expect(response.body.data.vendorProfile.bankDetails).toBeUndefined();
-    expect(response.body.data.vendorProfile.stripeAccountId).toBeUndefined();
+    expect(response.body.data.vendorProfile.providerAccountId).toBeUndefined();
   });
 
   it('searches vendors by store name and owner email and returns safe detail', async () => {
@@ -335,7 +341,7 @@ describe('admin direct-load detail contracts', () => {
       user: { id: vendorOneUserId },
     });
     expect(detail.body.data.bankDetails).toBeUndefined();
-    expect(detail.body.data.stripeAccountId).toBeUndefined();
+    expect(detail.body.data.providerAccountId).toBeUndefined();
 
     const userIdIsNotAProfileId = await request(app)
       .get(`/api/v1/admin/vendors/${vendorOneUserId}`)
@@ -537,7 +543,7 @@ describe('admin lifecycle error semantics', () => {
         status: testCase.expectedStatus,
       });
       expect(response.body.data.bankDetails).toBeUndefined();
-      expect(response.body.data.stripeAccountId).toBeUndefined();
+      expect(response.body.data.providerAccountId).toBeUndefined();
       expect(response.body.data.storeLogoPublicId).toBeUndefined();
       expect(response.body.data.storeBannerPublicId).toBeUndefined();
     }

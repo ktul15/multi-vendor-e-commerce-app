@@ -10,6 +10,7 @@ import {
   getEarningsQuerySchema,
   getPayoutsQuerySchema,
   updateCommissionRateSchema,
+  updatePaymentProviderSchema,
   vendorIdParamSchema,
 } from './vendor-payout.validation';
 import { VendorPayoutController } from './vendor-payout.controller';
@@ -53,18 +54,36 @@ const router = Router();
  * /vendor-payouts/connect/onboard:
  *   post:
  *     tags: [Vendor Payouts]
- *     summary: Start Stripe Connect onboarding (approved Vendors only)
- *     description: Generates a single-use Stripe-hosted onboarding URL using backend-configured return and refresh URLs; clients cannot supply either redirect. Navigate the browser at top level, then reconcile completion with GET /vendor-payouts/connect/status after Stripe returns.
+ *     summary: Start payment-provider onboarding (approved Vendors only)
+ *     description: Uses the vendor's persisted provider. Stripe returns a single-use hosted onboarding URL; Razorpay sandbox deterministically completes mock linked-account onboarding without a redirect.
  *     responses:
  *       200:
- *         description: Onboarding URL
+ *         description: Provider-discriminated onboarding result
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               message: Onboarding link generated
- *               data:
- *                 url: "https://connect.stripe.com/setup/s/..."
+ *             schema:
+ *               oneOf:
+ *                 - type: object
+ *                   properties:
+ *                     success: { type: boolean, example: true }
+ *                     message: { type: string }
+ *                     data:
+ *                       type: object
+ *                       required: [url]
+ *                       properties:
+ *                         url: { type: string, format: uri }
+ *                 - type: object
+ *                   properties:
+ *                     success: { type: boolean, example: true }
+ *                     message: { type: string }
+ *                     data:
+ *                       type: object
+ *                       required: [provider, accountId, onboardingStatus, sandbox]
+ *                       properties:
+ *                         provider: { type: string, enum: [RAZORPAY] }
+ *                         accountId: { type: string }
+ *                         onboardingStatus: { type: string, enum: [COMPLETE] }
+ *                         sandbox: { type: boolean, enum: [true] }
  *       401:
  *         description: Unauthorized
  *       403:
@@ -86,8 +105,8 @@ router.post(
  * /vendor-payouts/connect/onboard/refresh:
  *   get:
  *     tags: [Vendor Payouts]
- *     summary: Refresh the Stripe Connect onboarding link (approved Vendors only)
- *     description: Returns a fresh single-use onboarding URL when Stripe reaches the backend-configured refresh route. Call once per refresh event, navigate at top level, and guard the client against retry loops. Redirect targets are server configuration, never request input.
+ *     summary: Refresh payment-provider onboarding (approved Vendors only)
+ *     description: Refreshes onboarding for the vendor's persisted payment provider. Stripe returns a fresh single-use URL; Razorpay sandbox completes deterministic mock onboarding.
  *     responses:
  *       200:
  *         description: Refreshed onboarding URL
@@ -115,8 +134,8 @@ router.get(
  * /vendor-payouts/connect/status:
  *   get:
  *     tags: [Vendor Payouts]
- *     summary: Get Stripe Connect account status (Vendor only)
- *     description: Reconciles the Stripe account after onboarding return. Use onboardingStatus, chargesEnabled, payoutsEnabled, and detailsSubmitted as authoritative UI inputs; return query parameters are not proof of completion.
+ *     summary: Get payment-provider account status (Vendor only)
+ *     description: Returns the persisted provider and authoritative onboarding, charge, payout, and details-submitted state.
  *     responses:
  *       200:
  *         description: Connect account status
@@ -302,6 +321,15 @@ router.patch(
   validateParams(vendorIdParamSchema),
   validate(updateCommissionRateSchema),
   controller.updateCommissionRate
+);
+
+router.patch(
+  '/admin/provider/:vendorId',
+  authenticate,
+  authorize('ADMIN'),
+  validateParams(vendorIdParamSchema),
+  validate(updatePaymentProviderSchema),
+  controller.updatePaymentProvider
 );
 
 export default router;

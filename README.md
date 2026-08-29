@@ -130,7 +130,8 @@ JWT_ACCESS_SECRET=
 JWT_REFRESH_SECRET=
 ```
 
-Optional: `STRIPE_SECRET_KEY`, `CLOUDINARY_*`, `SMTP_*`, `FIREBASE_*`
+Optional: Stripe test credentials, Razorpay test credentials/mock settings,
+`CLOUDINARY_*`, `SMTP_*`, and `FIREBASE_*`. Live payment keys are rejected.
 
 ---
 
@@ -143,7 +144,7 @@ The customer-facing shopping app.
 - Product browsing with category filters, search, and sort
 - Product detail with image gallery, variants, and reviews
 - Cart management with promo code support
-- Stripe-powered checkout flow
+- Hybrid Stripe and Razorpay sandbox checkout flow
 - Order history and real-time order tracking
 - Wishlist
 - Saved addresses
@@ -159,7 +160,7 @@ The customer-facing shopping app.
 - **HTTP**: Dio
 - **DI**: GetIt
 - **Storage**: flutter_secure_storage, shared_preferences
-- **Payments**: flutter_stripe
+- **Payments**: flutter_stripe, razorpay_flutter (test mode only)
 - **Push notifications**: firebase_messaging
 - **Charts**: fl_chart
 
@@ -194,6 +195,12 @@ flutter analyze --no-fatal-infos
 # Tests
 flutter test
 ```
+
+Payment provider routing is trusted server-side configuration. Indian vendors
+use Razorpay Route sandbox; supported non-Indian vendors retain Stripe test
+mode, and mixed-provider carts are rejected. See the
+[hybrid sandbox architecture](docs/payments/hybrid-sandbox-architecture.md) for
+setup, limitations, refunds, webhooks, and the deterministic Route mock.
 
 ---
 
