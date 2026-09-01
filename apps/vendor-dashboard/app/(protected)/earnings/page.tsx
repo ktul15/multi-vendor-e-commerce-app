@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { EarningsOverview } from "../../earnings-overview";
+import type { ConnectOutcome } from "../../earnings-overview";
 import { getVendorEarningsData } from "../../../src/lib/earnings-data";
 import { parseDashboardRange } from "../../../src/lib/dashboard-range";
 import { redirect } from "next/navigation";
@@ -12,6 +13,19 @@ export default async function VendorEarningsPage({
   searchParams,
 }: Readonly<{ searchParams: SearchParams }>) {
   const params = await searchParams;
+  const connectOutcomes = new Set<ConnectOutcome>([
+    "invalid-destination",
+    "not-started",
+    "provider-complete",
+    "refresh-failed",
+    "refresh-loop",
+    "return-failed",
+    "returned",
+  ]);
+  const connectValue = typeof params.connect === "string" ? params.connect : params.connect?.[0];
+  const connectOutcome = connectOutcomes.has(connectValue as ConnectOutcome)
+    ? (connectValue as ConnectOutcome)
+    : undefined;
   const range = parseDashboardRange(params);
   const parsePage = (value: string | readonly string[] | undefined): number => {
     const parsed = Number.parseInt(typeof value === "string" ? value : (value?.[0] ?? ""), 10);
@@ -45,5 +59,7 @@ export default async function VendorEarningsPage({
       }).toString()}`,
     );
   }
-  return <EarningsOverview data={data} pages={pages} range={range} />;
+  return (
+    <EarningsOverview connectOutcome={connectOutcome} data={data} pages={pages} range={range} />
+  );
 }

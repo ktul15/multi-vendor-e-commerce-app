@@ -993,19 +993,40 @@ const dashboardSchemas: Record<string, OpenApiSchema> = {
       meta: ref('Pagination'),
     })
   ),
-  ConnectOnboardingSuccess: successEnvelope(
-    objectSchema({ url: { type: 'string', format: 'uri' } })
-  ),
+  ConnectOnboardingSuccess: {
+    oneOf: [
+      successEnvelope(objectSchema({ url: { type: 'string', format: 'uri' } })),
+      successEnvelope(
+        objectSchema({
+          provider: { type: 'string', enum: ['RAZORPAY'] },
+          accountId: stringSchema,
+          onboardingStatus: { type: 'string', enum: ['COMPLETE'] },
+          sandbox: { type: 'boolean', enum: [true] },
+        })
+      ),
+    ],
+  },
   ConnectStatusSuccess: successEnvelope(
-    objectSchema({
-      onboardingStatus: {
-        type: 'string',
-        enum: ['NOT_STARTED', 'PENDING', 'COMPLETE', 'RESTRICTED'],
+    objectSchema(
+      {
+        provider: { type: 'string', enum: ['STRIPE', 'RAZORPAY'] },
+        onboardingStatus: {
+          type: 'string',
+          enum: ['NOT_STARTED', 'PENDING', 'COMPLETE', 'RESTRICTED'],
+        },
+        chargesEnabled: booleanSchema,
+        payoutsEnabled: booleanSchema,
+        detailsSubmitted: booleanSchema,
+        sandbox: { type: 'boolean', nullable: true },
       },
-      chargesEnabled: booleanSchema,
-      payoutsEnabled: booleanSchema,
-      detailsSubmitted: booleanSchema,
-    })
+      [
+        'provider',
+        'onboardingStatus',
+        'chargesEnabled',
+        'payoutsEnabled',
+        'detailsSubmitted',
+      ]
+    )
   ),
   EarningsAmounts: objectSchema({
     count: integerSchema,

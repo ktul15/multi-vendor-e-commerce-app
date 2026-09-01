@@ -190,7 +190,7 @@ No known defect above should be preserved merely to achieve visual parity. Exist
 - [ ] Shipping requires valid tracking data.
 - [ ] Dashboard and earnings display INR consistently and handle independent failures.
 - [ ] Store editing honors profile-state restrictions and supports logo/banner uploads.
-- [ ] Stripe Connect onboarding/status, earnings ledger, and payout history are reachable.
+- [x] Stripe Connect onboarding/status, guarded return/refresh routes, earnings ledger, and payout history are reachable.
 - [ ] Loading, empty, validation, forbidden, network-error, and success states are demonstrated.
 - [ ] Critical desktop/tablet and keyboard workflows pass.
 

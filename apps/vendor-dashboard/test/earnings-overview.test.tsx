@@ -24,6 +24,7 @@ const completeData: VendorEarningsData = {
       detailsSubmitted: true,
       onboardingStatus: "COMPLETE",
       payoutsEnabled: true,
+      provider: "STRIPE",
     },
     status: "success",
   },
@@ -136,7 +137,9 @@ describe("earnings overview", () => {
       ),
     ).toBeVisible();
     expect(
-      within(screen.getByRole("table", { name: "Stripe payout history" })).getByText("po_1"),
+      within(screen.getByRole("table", { name: "Payment-provider payout history" })).getByText(
+        "po_1",
+      ),
     ).toBeVisible();
     expect(
       within(screen.getByRole("navigation", { name: "Earning records pages" })).getByRole("link", {
@@ -161,6 +164,7 @@ describe("earnings overview", () => {
               detailsSubmitted: false,
               onboardingStatus: "NOT_STARTED",
               payoutsEnabled: false,
+              provider: "STRIPE",
             },
             status: "success",
           },
@@ -173,10 +177,84 @@ describe("earnings overview", () => {
       />,
     );
 
-    expect(
-      screen.getByText(/Payouts are unavailable until Stripe Connect setup is completed/i),
-    ).toBeVisible();
+    expect(screen.getByText(/Set up Stripe to receive payouts/i)).toBeVisible();
+    expect(screen.getByRole("button", { name: "Set up Stripe payouts" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "No payout history" })).toBeVisible();
+  });
+
+  it("explains restricted and returned states using authoritative account data", () => {
+    renderWithProviders(
+      <EarningsOverview
+        connectOutcome="returned"
+        data={{
+          ...completeData,
+          connect: {
+            data: {
+              chargesEnabled: false,
+              detailsSubmitted: true,
+              onboardingStatus: "RESTRICTED",
+              payoutsEnabled: false,
+              provider: "STRIPE",
+            },
+            status: "success",
+          },
+        }}
+        range={range}
+      />,
+    );
+
+    expect(
+      screen.getByText(/account state below was refreshed directly from Stripe/i),
+    ).toBeVisible();
+    expect(screen.getByText(/Stripe has restricted payouts/i)).toBeVisible();
+    expect(screen.getByRole("button", { name: "Update Stripe details" })).toBeVisible();
+  });
+
+  it("announces completed provider onboarding as a successful status", () => {
+    renderWithProviders(
+      <EarningsOverview connectOutcome="provider-complete" data={completeData} range={range} />,
+    );
+
+    const notice = screen.getByText(/payment-provider sandbox onboarding completed successfully/i);
+    expect(notice).toHaveAttribute("role", "status");
+    expect(notice).toHaveClass("vendor-earnings__notice--success");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("shows provider-specific Razorpay sandbox onboarding without a Stripe redirect", () => {
+    renderWithProviders(
+      <EarningsOverview
+        data={{
+          ...completeData,
+          connect: {
+            data: {
+              chargesEnabled: false,
+              detailsSubmitted: false,
+              onboardingStatus: "NOT_STARTED",
+              payoutsEnabled: false,
+              provider: "RAZORPAY",
+              sandbox: true,
+            },
+            status: "success",
+          },
+        }}
+        range={range}
+      />,
+    );
+
+    expect(screen.getByText(/Set up Razorpay to receive payouts/i)).toBeVisible();
+    expect(screen.getByRole("button", { name: "Set up Razorpay payouts" })).toBeVisible();
+  });
+
+  it("shows a retryable failure without hiding authoritative earnings data", () => {
+    renderWithProviders(
+      <EarningsOverview connectOutcome="return-failed" data={completeData} range={range} />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "We could not reconcile your Stripe account",
+    );
+    expect(screen.getByText("Handmade Lamp")).toBeVisible();
   });
 
   it("keeps successful panels visible when payout history fails", () => {

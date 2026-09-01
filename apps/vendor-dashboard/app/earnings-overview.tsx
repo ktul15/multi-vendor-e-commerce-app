@@ -13,7 +13,17 @@ import type {
   VendorEarningsData,
 } from "../src/lib/earnings-data";
 import { DashboardRefreshButton } from "./dashboard-refresh-button";
+import { ConnectOnboardingAction } from "./connect-onboarding-action";
 import { RevenueChart } from "./dashboard-overview";
+
+export type ConnectOutcome =
+  | "invalid-destination"
+  | "not-started"
+  | "provider-complete"
+  | "refresh-failed"
+  | "refresh-loop"
+  | "return-failed"
+  | "returned";
 
 const inr = new Intl.NumberFormat("en-IN", {
   currency: "INR",
@@ -115,25 +125,51 @@ function SummaryMetrics({
 }
 
 function ConnectNotice({ connect }: Readonly<{ connect: ConnectStatus }>) {
-  if (connect.payoutsEnabled) {
+  const providerName = connect.provider === "STRIPE" ? "Stripe" : "Razorpay";
+  if (connect.onboardingStatus === "COMPLETE" && connect.chargesEnabled && connect.payoutsEnabled) {
     return (
       <p className="vendor-earnings__notice vendor-earnings__notice--success" role="status">
-        Payouts are enabled. Stripe sends transferred earnings to your connected bank account.
+        {connect.provider === "STRIPE"
+          ? "Payouts are enabled. Stripe sends transferred earnings to your connected bank account."
+          : "Razorpay Route sandbox payouts are enabled for this portfolio flow."}
       </p>
     );
   }
   const message =
     connect.onboardingStatus === "NOT_STARTED"
-      ? "Payouts are unavailable until Stripe Connect setup is completed. Pending earnings remain recorded."
+      ? `Set up ${providerName} to receive payouts. Pending earnings remain recorded until setup is complete.`
       : connect.onboardingStatus === "RESTRICTED"
-        ? "Payouts are unavailable because Stripe needs additional account information. Pending earnings remain recorded."
-        : "Payouts are not enabled yet. Stripe may still be reviewing your account; pending earnings remain recorded.";
+        ? `${providerName} has restricted payouts and needs updated account information. Pending earnings remain recorded.`
+        : connect.detailsSubmitted
+          ? `${providerName} is reviewing your submitted account details. Payouts remain unavailable until approval.`
+          : `${providerName} setup is incomplete. Continue setup to provide the remaining account details.`;
+  const label =
+    connect.onboardingStatus === "NOT_STARTED"
+      ? `Set up ${providerName} payouts`
+      : connect.onboardingStatus === "RESTRICTED"
+        ? `Update ${providerName} details`
+        : `Continue ${providerName} setup`;
   return (
-    <p className="vendor-earnings__notice" role="status">
-      {message}
-    </p>
+    <section className="vendor-earnings__notice" role="status">
+      <p>{message}</p>
+      <ConnectOnboardingAction label={label} provider={connect.provider} />
+    </section>
   );
 }
+
+const outcomeMessages: Record<ConnectOutcome, string> = {
+  "invalid-destination":
+    "Stripe returned an unsafe onboarding destination. Try again or contact support.",
+  "not-started": "Stripe setup has not started yet. Use the setup button below to begin.",
+  "provider-complete": "Payment-provider sandbox onboarding completed successfully.",
+  "refresh-failed": "Stripe could not refresh the expired setup link. Try again from this page.",
+  "refresh-loop":
+    "Stripe requested replacement links too quickly. Wait a moment, then continue setup again.",
+  "return-failed":
+    "We could not reconcile your Stripe account after return. Refresh this page before retrying.",
+  returned:
+    "Stripe returned you safely. The account state below was refreshed directly from Stripe.",
+};
 
 function TopProductsTable({ products }: Readonly<{ products: TopProducts }>) {
   if (products.products.length === 0) {
@@ -232,7 +268,7 @@ function PayoutTable({ payouts }: Readonly<{ payouts: PayoutHistory }>) {
   if (payouts.payouts.length === 0) {
     return (
       <EmptyState
-        description="No bank payouts have been reported by Stripe yet. Transferred earnings can take time to appear here."
+        description="No provider payouts have been reported yet. Transferred earnings can take time to appear here."
         title="No payout history"
       />
     );
@@ -245,10 +281,11 @@ function PayoutTable({ payouts }: Readonly<{ payouts: PayoutHistory }>) {
       tabIndex={0}
     >
       <table className="vendor-orders-table">
-        <caption className="ui-visually-hidden">Stripe payout history</caption>
+        <caption className="ui-visually-hidden">Payment-provider payout history</caption>
         <thead>
           <tr>
             <th scope="col">Payout</th>
+            <th scope="col">Provider</th>
             <th scope="col">Amount</th>
             <th scope="col">Status</th>
             <th scope="col">Arrival</th>
@@ -259,6 +296,7 @@ function PayoutTable({ payouts }: Readonly<{ payouts: PayoutHistory }>) {
           {payouts.payouts.map((payout) => (
             <tr key={payout.id}>
               <th scope="row">{payout.providerPayoutId}</th>
+              <td>{payout.provider}</td>
               <td>{formatCurrency(payout.amount, payout.currency)}</td>
               <td>
                 <Badge tone={statusTone(payout.status)}>{payout.status}</Badge>
@@ -274,7 +312,7 @@ function PayoutTable({ payouts }: Readonly<{ payouts: PayoutHistory }>) {
               </td>
               <td>
                 {payout.failureReason ??
-                  (payout.status === "PENDING" ? "Processing at Stripe" : "—")}
+                  (payout.status === "PENDING" ? `Processing at ${payout.provider}` : "—")}
               </td>
             </tr>
           ))}
@@ -312,11 +350,13 @@ function Pagination({
 }
 
 export function EarningsOverview({
+  connectOutcome,
   data,
   pages = { earningsPage: 1, payoutPage: 1 },
   range,
 }: Readonly<{
   data: VendorEarningsData;
+  connectOutcome?: ConnectOutcome;
   pages?: EarningsPageState;
   range: DashboardRangeState;
 }>) {
@@ -328,7 +368,7 @@ export function EarningsOverview({
         <div>
           <p className="vendor-overview__eyebrow">Store finances</p>
           <h1>Earnings</h1>
-          <p>Revenue, commissions, payable earnings, and Stripe payout history.</p>
+          <p>Revenue, commissions, payable earnings, and payment-provider payout history.</p>
         </div>
         <nav aria-label="Earnings date range" className="vendor-overview__range">
           {dashboardRanges.map((option) => (
@@ -347,6 +387,22 @@ export function EarningsOverview({
           <span>Some earnings sections could not be loaded.</span>
           <DashboardRefreshButton />
         </div>
+      ) : null}
+      {connectOutcome ? (
+        <p
+          className={
+            connectOutcome === "returned" || connectOutcome === "provider-complete"
+              ? "vendor-earnings__notice vendor-earnings__notice--success"
+              : "vendor-earnings__inline-error"
+          }
+          role={
+            connectOutcome === "returned" || connectOutcome === "provider-complete"
+              ? "status"
+              : "alert"
+          }
+        >
+          {outcomeMessages[connectOutcome]}
+        </p>
       ) : null}
       {data.connect.status === "success" ? (
         <ConnectNotice connect={data.connect.data} />

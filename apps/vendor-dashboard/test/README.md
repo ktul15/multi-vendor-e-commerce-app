@@ -13,6 +13,7 @@ The vendor dashboard keeps business-rule and UI-state coverage below Playwright 
 | Order tables, details, transitions, tracking, and conflicts       | `vendor-orders.test.tsx`, `order-list-state.test.ts`, `vendor-order-route.test.ts`     |
 | Store form validation, media, errors, and read-only states        | `store-profile-form.test.tsx`, `vendor-profile-route.test.ts`                          |
 | Dashboard and earnings tables, empty/error states, and formatting | `dashboard-overview.test.tsx`, `earnings-overview.test.tsx`, `sales-series.test.ts`    |
+| Stripe Connect authentication, redirects, return, and replay      | `connect-onboarding-routes.test.ts`, `earnings-overview.test.tsx`                      |
 | Same-origin browser API behavior isolated with MSW                | `api-behavior-msw.test.tsx`                                                            |
 
 ## Network isolation

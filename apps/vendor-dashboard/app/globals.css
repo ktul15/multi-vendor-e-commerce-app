@@ -740,6 +740,30 @@
   padding: var(--space-3) var(--space-4);
 }
 
+.vendor-earnings__notice {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: space-between;
+}
+
+.vendor-earnings__notice p,
+.vendor-connect-action__error {
+  margin: 0;
+}
+
+.vendor-connect-action {
+  align-items: flex-start;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.vendor-connect-action__error {
+  color: var(--color-danger-text);
+  max-width: 32rem;
+}
+
 .vendor-earnings__notice--success {
   background: var(--color-success-50);
   border-color: color-mix(in srgb, var(--color-success-600) 35%, transparent);
