@@ -26,6 +26,7 @@ void main() async {
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   // Initialize Stripe before running the app.
+  AppEnv.validatePaymentConfiguration();
   if (!kIsWeb) {
     Stripe.publishableKey = AppEnv.stripePublishableKey;
     Stripe.urlScheme = AppEnv.stripeUrlScheme;

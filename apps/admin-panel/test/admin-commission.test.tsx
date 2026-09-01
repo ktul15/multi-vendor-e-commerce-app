@@ -38,7 +38,9 @@ const vendor: AdminVendorDetail = {
   storeBanner: null,
   storeLogo: null,
   storeName: "Asha Market",
-  stripeOnboardingStatus: "COMPLETE",
+  paymentOnboardingStatus: "COMPLETE",
+  paymentProvider: "RAZORPAY",
+  settlementCountry: "IN",
   updatedAt: "2026-08-10T08:00:00.000Z",
   user: {
     avatar: null,

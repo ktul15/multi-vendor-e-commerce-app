@@ -1,9 +1,8 @@
 import 'package:bloc_test/bloc_test.dart';
-import 'package:flutter_stripe/flutter_stripe.dart'
-    show StripeException, FailureCode, LocalizedErrorMessage;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:storefront/core/network/api_exception.dart';
+import 'package:storefront/core/payment/checkout_payment_service.dart';
 import 'package:storefront/features/cart/bloc/cart_state.dart';
 import 'package:storefront/features/checkout/bloc/checkout_bloc.dart';
 import 'package:storefront/features/checkout/bloc/checkout_event.dart';
@@ -11,6 +10,7 @@ import 'package:storefront/features/checkout/bloc/checkout_state.dart';
 import 'package:storefront/shared/models/cart_model.dart';
 import 'package:storefront/shared/models/address_model.dart';
 import 'package:storefront/shared/models/order_model.dart';
+import 'package:storefront/shared/models/payment_checkout.dart';
 import '../../../mocks.dart';
 
 // ── Test fixtures ────────────────────────────────────────────────────────────
@@ -58,18 +58,41 @@ final _order = OrderModel(
   createdAt: DateTime(2026, 3, 23),
 );
 
+const _stripeCheckout = PaymentCheckout(
+  provider: PaymentProvider.stripe,
+  clientSecret: 'pi_test_secret',
+);
+
+const _razorpayCheckout = PaymentCheckout(
+  provider: PaymentProvider.razorpay,
+  providerOrderId: 'order_mock_1',
+  keyId: 'rzp_test_mock',
+  amount: 4999,
+  currency: 'INR',
+);
+
+const _razorpayResult = PaymentCheckoutResult(
+  providerOrderId: 'order_mock_1',
+  providerPaymentId: 'pay_mock_1',
+  signature: 'signature_mock_1',
+);
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 void main() {
   late MockAddressRepository addressRepo;
   late MockOrderRepository orderRepo;
-  late MockStripeService stripeService;
+  late MockCheckoutPaymentService paymentService;
   late MockCartCubit cartCubit;
+
+  setUpAll(() {
+    registerFallbackValue(_razorpayResult);
+  });
 
   setUp(() {
     addressRepo = MockAddressRepository();
     orderRepo = MockOrderRepository();
-    stripeService = MockStripeService();
+    paymentService = MockCheckoutPaymentService();
     cartCubit = MockCartCubit();
     when(() => cartCubit.mergeGuestCart()).thenAnswer((_) async {});
   });
@@ -77,7 +100,7 @@ void main() {
   CheckoutBloc buildBloc() => CheckoutBloc(
     addressRepository: addressRepo,
     orderRepository: orderRepo,
-    stripeService: stripeService,
+    paymentService: paymentService,
     cartCubit: cartCubit,
   );
 
@@ -340,17 +363,14 @@ void main() {
           ),
         ).thenAnswer((_) async => _order);
         when(
-          () => orderRepo.createPaymentIntent(orderId: any(named: 'orderId')),
-        ).thenAnswer((_) async => 'pi_test_secret');
+          () => orderRepo.createPaymentCheckout(orderId: any(named: 'orderId')),
+        ).thenAnswer((_) async => _stripeCheckout);
         when(
-          () => stripeService.initPaymentSheet(
-            clientSecret: any(named: 'clientSecret'),
+          () => paymentService.present(
+            _stripeCheckout,
             merchantDisplayName: any(named: 'merchantDisplayName'),
           ),
-        ).thenAnswer((_) async {});
-        when(
-          () => stripeService.presentPaymentSheet(),
-        ).thenAnswer((_) async {});
+        ).thenAnswer((_) async => null);
         when(() => cartCubit.loadCart()).thenAnswer((_) async {});
       });
 
@@ -377,17 +397,69 @@ void main() {
             ),
           ).called(1);
           verify(
-            () => orderRepo.createPaymentIntent(orderId: _order.id),
+            () => orderRepo.createPaymentCheckout(orderId: _order.id),
           ).called(1);
-          verify(() => stripeService.presentPaymentSheet()).called(1);
+          verify(
+            () => paymentService.present(
+              _stripeCheckout,
+              merchantDisplayName: any(named: 'merchantDisplayName'),
+            ),
+          ).called(1);
           verify(() => cartCubit.loadCart()).called(1);
+        },
+      );
+    });
+
+    group('CheckoutProceedToPayment — Razorpay success', () {
+      blocTest<CheckoutBloc, CheckoutState>(
+        'confirms the returned Razorpay identifiers before success',
+        setUp: () {
+          when(
+            () => orderRepo.createOrder(
+              addressId: any(named: 'addressId'),
+              promoCode: any(named: 'promoCode'),
+            ),
+          ).thenAnswer((_) async => _order);
+          when(
+            () =>
+                orderRepo.createPaymentCheckout(orderId: any(named: 'orderId')),
+          ).thenAnswer((_) async => _razorpayCheckout);
+          when(
+            () => paymentService.present(
+              _razorpayCheckout,
+              merchantDisplayName: any(named: 'merchantDisplayName'),
+            ),
+          ).thenAnswer((_) async => _razorpayResult);
+          when(
+            () => orderRepo.confirmRazorpayPayment(
+              orderId: any(named: 'orderId'),
+              result: any(named: 'result'),
+            ),
+          ).thenAnswer((_) async {});
+          when(() => cartCubit.loadCart()).thenAnswer((_) async {});
+        },
+        seed: () =>
+            CheckoutSummaryStep(selectedAddress: _defaultAddress, cart: _cart),
+        build: buildBloc,
+        act: (bloc) => bloc.add(const CheckoutProceedToPayment()),
+        expect: () => [
+          isA<CheckoutPaymentInProgress>(),
+          isA<CheckoutSuccess>(),
+        ],
+        verify: (_) {
+          verify(
+            () => orderRepo.confirmRazorpayPayment(
+              orderId: _order.id,
+              result: _razorpayResult,
+            ),
+          ).called(1);
         },
       );
     });
 
     // ── CheckoutProceedToPayment (user cancels) ──────────────────────────────
 
-    group('CheckoutProceedToPayment — Stripe cancel', () {
+    group('CheckoutProceedToPayment — Razorpay cancel', () {
       setUp(() {
         when(
           () => orderRepo.createOrder(
@@ -396,21 +468,15 @@ void main() {
           ),
         ).thenAnswer((_) async => _order);
         when(
-          () => orderRepo.createPaymentIntent(orderId: any(named: 'orderId')),
-        ).thenAnswer((_) async => 'pi_test_secret');
+          () => orderRepo.createPaymentCheckout(orderId: any(named: 'orderId')),
+        ).thenAnswer((_) async => _razorpayCheckout);
         when(
-          () => stripeService.initPaymentSheet(
-            clientSecret: any(named: 'clientSecret'),
+          () => paymentService.present(
+            _razorpayCheckout,
             merchantDisplayName: any(named: 'merchantDisplayName'),
           ),
-        ).thenAnswer((_) async {});
-        when(() => stripeService.presentPaymentSheet()).thenThrow(
-          StripeException(
-            error: const LocalizedErrorMessage(
-              code: FailureCode.Canceled,
-              message: 'User canceled',
-            ),
-          ),
+        ).thenThrow(
+          const CheckoutPaymentException('User canceled', cancelled: true),
         );
       });
 
@@ -435,7 +501,7 @@ void main() {
 
     // ── CheckoutProceedToPayment (payment error) ─────────────────────────────
 
-    group('CheckoutProceedToPayment — payment failure', () {
+    group('CheckoutProceedToPayment — Razorpay failure', () {
       setUp(() {
         when(
           () => orderRepo.createOrder(
@@ -444,22 +510,14 @@ void main() {
           ),
         ).thenAnswer((_) async => _order);
         when(
-          () => orderRepo.createPaymentIntent(orderId: any(named: 'orderId')),
-        ).thenAnswer((_) async => 'pi_test_secret');
+          () => orderRepo.createPaymentCheckout(orderId: any(named: 'orderId')),
+        ).thenAnswer((_) async => _razorpayCheckout);
         when(
-          () => stripeService.initPaymentSheet(
-            clientSecret: any(named: 'clientSecret'),
+          () => paymentService.present(
+            _razorpayCheckout,
             merchantDisplayName: any(named: 'merchantDisplayName'),
           ),
-        ).thenAnswer((_) async {});
-        when(() => stripeService.presentPaymentSheet()).thenThrow(
-          StripeException(
-            error: const LocalizedErrorMessage(
-              code: FailureCode.Failed,
-              message: 'Card declined',
-            ),
-          ),
-        );
+        ).thenThrow(const CheckoutPaymentException('Card declined'));
       });
 
       blocTest<CheckoutBloc, CheckoutState>(
@@ -479,14 +537,14 @@ void main() {
       blocTest<CheckoutBloc, CheckoutState>(
         'replaces Stripe diagnostic text with a customer-friendly message',
         setUp: () {
-          when(() => stripeService.presentPaymentSheet()).thenThrow(
-            StripeException(
-              error: const LocalizedErrorMessage(
-                code: FailureCode.Failed,
-                message:
-                    'There was an error confirming the Intent. Inspect the '
-                    '`paymentIntent.lastPaymentError` property.',
-              ),
+          when(
+            () => paymentService.present(
+              _razorpayCheckout,
+              merchantDisplayName: any(named: 'merchantDisplayName'),
+            ),
+          ).thenThrow(
+            const CheckoutPaymentException(
+              'Payment could not be completed. Please verify your card details and try again.',
             ),
           );
         },
@@ -511,17 +569,14 @@ void main() {
     group('CheckoutProceedToPayment — pendingOrder reuse', () {
       setUp(() {
         when(
-          () => orderRepo.createPaymentIntent(orderId: any(named: 'orderId')),
-        ).thenAnswer((_) async => 'pi_retry_secret');
+          () => orderRepo.createPaymentCheckout(orderId: any(named: 'orderId')),
+        ).thenAnswer((_) async => _stripeCheckout);
         when(
-          () => stripeService.initPaymentSheet(
-            clientSecret: any(named: 'clientSecret'),
+          () => paymentService.present(
+            _stripeCheckout,
             merchantDisplayName: any(named: 'merchantDisplayName'),
           ),
-        ).thenAnswer((_) async {});
-        when(
-          () => stripeService.presentPaymentSheet(),
-        ).thenAnswer((_) async {});
+        ).thenAnswer((_) async => null);
         when(() => cartCubit.loadCart()).thenAnswer((_) async {});
       });
 
@@ -551,7 +606,7 @@ void main() {
             ),
           );
           verify(
-            () => orderRepo.createPaymentIntent(orderId: _order.id),
+            () => orderRepo.createPaymentCheckout(orderId: _order.id),
           ).called(1);
         },
       );

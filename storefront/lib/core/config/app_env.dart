@@ -26,6 +26,13 @@ class AppEnv {
     defaultValue: '',
   );
 
+  static void validatePaymentConfiguration() {
+    if (stripePublishableKey.isNotEmpty &&
+        !stripePublishableKey.startsWith('pk_test_')) {
+      throw StateError('STRIPE_PUBLISHABLE_KEY must be a Stripe test-mode key');
+    }
+  }
+
   /// Must match the custom URL scheme registered by the native apps.
   static const String stripeUrlScheme = 'storefrontapp';
   static const String stripeReturnUrl = '$stripeUrlScheme://stripe-redirect';

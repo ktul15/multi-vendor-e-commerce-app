@@ -23,6 +23,14 @@ describe('Production security headers', () => {
       'https://vendor.example.com/stripe/return';
     process.env.STRIPE_CONNECT_REFRESH_URL =
       'https://vendor.example.com/stripe/refresh';
+    process.env.RAZORPAY_KEY_ID = 'rzp_test_production_security';
+    process.env.RAZORPAY_KEY_SECRET = 'test-secret';
+    process.env.RAZORPAY_WEBHOOK_SECRET =
+      'test-webhook-secret-with-at-least-32-characters';
+    process.env.RAZORPAY_SANDBOX_MOCK = 'false';
+    process.env.CLOUDINARY_CLOUD_NAME = 'production-security-test';
+    process.env.CLOUDINARY_API_KEY = 'production-security-test-key';
+    process.env.CLOUDINARY_API_SECRET = 'production-security-test-secret';
     jest.resetModules();
     const { default: productionApp } = await import('../../app');
 

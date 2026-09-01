@@ -15,6 +15,7 @@ import {
   GetEarningsQueryInput,
   GetPayoutsQueryInput,
 } from './vendor-payout.validation';
+import { paymentGatewayFor } from '../payment/providers/payment-gateway.registry';
 
 const notificationService = new NotificationService();
 
@@ -28,10 +29,34 @@ export class VendorPayoutService {
 
     if (!profile) throw ApiError.notFound('Vendor profile not found');
 
+    if (profile.paymentProvider === 'RAZORPAY') {
+      if (!env.RAZORPAY_SANDBOX_MOCK) {
+        throw ApiError.conflict(
+          'Live Razorpay Linked Account KYC is outside this sandbox-only integration'
+        );
+      }
+      const accountId =
+        profile.providerAccountId ??
+        `acc_mock_${profile.id.replaceAll('-', '').slice(0, 18)}`;
+      await prisma.vendorProfile.update({
+        where: { id: profile.id },
+        data: {
+          providerAccountId: accountId,
+          paymentOnboardingStatus: 'COMPLETE',
+        },
+      });
+      return {
+        provider: 'RAZORPAY' as const,
+        accountId,
+        onboardingStatus: 'COMPLETE' as const,
+        sandbox: true,
+      };
+    }
+
     // If already has a Stripe account, just generate a new onboarding link
-    if (profile.stripeAccountId) {
+    if (profile.providerAccountId) {
       const accountLink = await stripe.accountLinks.create({
-        account: profile.stripeAccountId,
+        account: profile.providerAccountId,
         refresh_url: env.STRIPE_CONNECT_REFRESH_URL,
         return_url: env.STRIPE_CONNECT_RETURN_URL,
         type: 'account_onboarding',
@@ -53,8 +78,8 @@ export class VendorPayoutService {
     await prisma.vendorProfile.update({
       where: { userId },
       data: {
-        stripeAccountId: account.id,
-        stripeOnboardingStatus: 'PENDING',
+        providerAccountId: account.id,
+        paymentOnboardingStatus: 'PENDING',
       },
     });
 
@@ -74,14 +99,17 @@ export class VendorPayoutService {
     });
 
     if (!profile) throw ApiError.notFound('Vendor profile not found');
-    if (!profile.stripeAccountId) {
+    if (profile.paymentProvider === 'RAZORPAY') {
+      return this.createConnectAccount(userId);
+    }
+    if (!profile.providerAccountId) {
       throw ApiError.badRequest(
         'No Stripe account found — start onboarding first'
       );
     }
 
     const accountLink = await stripe.accountLinks.create({
-      account: profile.stripeAccountId,
+      account: profile.providerAccountId,
       refresh_url: env.STRIPE_CONNECT_REFRESH_URL,
       return_url: env.STRIPE_CONNECT_RETURN_URL,
       type: 'account_onboarding',
@@ -97,19 +125,31 @@ export class VendorPayoutService {
 
     if (!profile) throw ApiError.notFound('Vendor profile not found');
 
-    if (!profile.stripeAccountId) {
+    if (!profile.providerAccountId) {
       return {
-        onboardingStatus: profile.stripeOnboardingStatus,
+        provider: profile.paymentProvider,
+        onboardingStatus: profile.paymentOnboardingStatus,
         chargesEnabled: false,
         payoutsEnabled: false,
         detailsSubmitted: false,
       };
     }
 
-    const account = await stripe.accounts.retrieve(profile.stripeAccountId);
+    if (profile.paymentProvider === 'RAZORPAY') {
+      return {
+        provider: 'RAZORPAY' as const,
+        onboardingStatus: profile.paymentOnboardingStatus,
+        chargesEnabled: profile.paymentOnboardingStatus === 'COMPLETE',
+        payoutsEnabled: profile.paymentOnboardingStatus === 'COMPLETE',
+        detailsSubmitted: profile.paymentOnboardingStatus === 'COMPLETE',
+        sandbox: env.RAZORPAY_SANDBOX_MOCK,
+      };
+    }
+    const account = await stripe.accounts.retrieve(profile.providerAccountId);
 
     return {
-      onboardingStatus: profile.stripeOnboardingStatus,
+      provider: 'STRIPE' as const,
+      onboardingStatus: profile.paymentOnboardingStatus,
       chargesEnabled: account.charges_enabled,
       payoutsEnabled: account.payouts_enabled,
       detailsSubmitted: account.details_submitted,
@@ -120,7 +160,7 @@ export class VendorPayoutService {
 
   async createTransfersForPayment(paymentIntentId: string) {
     const payment = await prisma.payment.findUnique({
-      where: { stripePaymentIntentId: paymentIntentId },
+      where: { providerPaymentId: paymentIntentId },
       include: {
         order: {
           include: {
@@ -142,144 +182,153 @@ export class VendorPayoutService {
       );
       return;
     }
-
-    const commissionSetting = await prisma.platformSetting.findUnique({
-      where: { key: 'defaultCommissionRate' },
-    });
-    const defaultRate = commissionSetting
-      ? parseFloat(commissionSetting.value)
-      : parseFloat(env.PLATFORM_COMMISSION_RATE);
-    if (isNaN(defaultRate)) {
-      throw new Error(
-        'Platform commission rate is not a valid number — check PlatformSetting or PLATFORM_COMMISSION_RATE env var'
-      );
-    }
+    if (payment.provider !== 'STRIPE') return;
 
     for (const vendorOrder of payment.order.vendorOrders) {
-      // Idempotency: skip if earning already exists for this vendor order
-      const existing = await prisma.vendorEarning.findUnique({
+      const earning = await prisma.vendorEarning.findUnique({
         where: { vendorOrderId: vendorOrder.id },
       });
-      if (existing) continue;
-
       const profile = vendorOrder.vendor.vendorProfile;
-      if (!profile) {
+      if (!earning || !profile) {
         logger.warn(
-          `createTransfersForPayment: vendor ${vendorOrder.vendorId} has no profile, skipping`
+          `createTransfersForPayment: vendor ${vendorOrder.vendorId} has no payment allocation, skipping`
         );
         continue;
       }
-
-      const commissionRate =
-        profile.commissionRate !== null
-          ? parseFloat(profile.commissionRate.toString())
-          : defaultRate;
-
-      const grossAmount =
-        Math.round(parseFloat(vendorOrder.subtotal.toString()) * 100) / 100;
-      const commissionAmount =
-        Math.round(grossAmount * (commissionRate / 100) * 100) / 100;
-      const netAmount =
-        Math.round((grossAmount - commissionAmount) * 100) / 100;
-
-      const earning = await prisma.vendorEarning.create({
-        data: {
-          vendorProfileId: profile.id,
-          vendorOrderId: vendorOrder.id,
-          orderId: payment.order.id,
-          grossAmount,
-          commissionRate,
-          commissionAmount,
-          netAmount,
-          currency: payment.currency,
-          status: 'PENDING',
-        },
-      });
-
-      // Only transfer if vendor has completed Connect onboarding
+      let transferredNow = false;
       if (
-        profile.stripeOnboardingStatus === 'COMPLETE' &&
-        profile.stripeAccountId
+        ['PENDING', 'FAILED'].includes(earning.status) &&
+        !earning.providerTransferId &&
+        profile.paymentProvider === 'STRIPE' &&
+        profile.paymentOnboardingStatus === 'COMPLETE' &&
+        profile.providerAccountId
       ) {
         try {
-          const netAmountInCents = Math.round(netAmount * 100);
-
-          const transfer = await stripe.transfers.create({
-            amount: netAmountInCents,
-            currency: payment.currency.toLowerCase(),
-            destination: profile.stripeAccountId,
-            transfer_group: payment.order.id,
-            metadata: {
-              vendorEarningId: earning.id,
+          const transferableMinor =
+            Math.round(Number(earning.netAmount) * 100) -
+            Math.round(Number(earning.reversedAmount) * 100);
+          if (transferableMinor <= 0) {
+            await prisma.vendorEarning.update({
+              where: { id: earning.id },
+              data: { status: 'REVERSED' },
+            });
+            continue;
+          }
+          const transferId = await paymentGatewayFor('STRIPE').createTransfer({
+            paymentId: paymentIntentId,
+            orderId: payment.order.id,
+            transfer: {
+              accountId: profile.providerAccountId,
+              amountMinor: transferableMinor,
+              earningId: earning.id,
               vendorOrderId: vendorOrder.id,
             },
           });
-
-          await prisma.vendorEarning.update({
-            where: { id: earning.id },
+          const transitioned = await prisma.vendorEarning.updateMany({
+            where: {
+              id: earning.id,
+              status: { in: ['PENDING', 'FAILED'] },
+              providerTransferId: null,
+            },
             data: {
-              stripeTransferId: transfer.id,
+              providerTransferId: transferId,
               status: 'TRANSFERRED',
               transferredAt: new Date(),
             },
           });
+          transferredNow = transitioned.count === 1;
         } catch (err) {
           logger.error(
             `Failed to create Stripe transfer for earning ${earning.id}:`,
             err
           );
-          await prisma.vendorEarning.update({
-            where: { id: earning.id },
+          await prisma.vendorEarning.updateMany({
+            where: { id: earning.id, providerTransferId: null },
             data: { status: 'FAILED' },
           });
         }
       }
 
-      // Notify vendor about the new earning
-      await notificationService
-        .createAndSend(
-          vendorOrder.vendorId,
-          'VENDOR_EARNING_CREATED',
-          'New Earning',
-          `You earned $${netAmount.toFixed(2)} from order #${payment.order.orderNumber}`,
-          { orderId: payment.order.id, vendorOrderId: vendorOrder.id }
-        )
-        .catch((err) =>
-          logger.error('Failed to send earning notification:', err)
-        );
+      if (transferredNow) {
+        await notificationService
+          .createAndSend(
+            vendorOrder.vendorId,
+            'VENDOR_EARNING_CREATED',
+            'New Earning',
+            `You earned ₹${Number(earning.netAmount).toFixed(2)} from order #${payment.order.orderNumber}`,
+            { orderId: payment.order.id, vendorOrderId: vendorOrder.id }
+          )
+          .catch((err) =>
+            logger.error('Failed to send earning notification:', err)
+          );
+      }
     }
   }
 
   // ─── Reversal (called from order cancellation) ────────────────────
 
-  async reverseEarningsForOrder(orderId: string) {
+  async reverseEarningsForOrder(
+    orderId: string,
+    cumulative: { refundedMinor: number; paidMinor: number },
+    idempotencyKey?: string
+  ): Promise<boolean> {
     const earnings = await prisma.vendorEarning.findMany({
       where: { orderId },
+      include: { order: { select: { paymentProvider: true } } },
     });
 
+    let succeeded = true;
     for (const earning of earnings) {
       if (earning.status === 'REVERSED') continue;
+      if (earning.status === 'FAILED') {
+        succeeded = false;
+        continue;
+      }
 
-      if (
-        earning.status === 'TRANSFERRED' &&
-        earning.stripeTransferId
-      ) {
+      const fullNetMinor = Math.round(Number(earning.netAmount) * 100);
+      const alreadyReversedMinor = Math.round(
+        Number(earning.reversedAmount) * 100
+      );
+      const targetReversedMinor = Math.min(
+        fullNetMinor,
+        Math.round(
+          (fullNetMinor * cumulative.refundedMinor) / cumulative.paidMinor
+        )
+      );
+      const reversalMinor = targetReversedMinor - alreadyReversedMinor;
+      if (reversalMinor <= 0) continue;
+
+      if (earning.providerTransferId) {
         try {
-          await stripe.transfers.createReversal(earning.stripeTransferId);
+          await paymentGatewayFor(
+            earning.order.paymentProvider
+          ).reverseTransfer(
+            earning.providerTransferId,
+            reversalMinor,
+            idempotencyKey
+              ? `${idempotencyKey}:${earning.id}:${targetReversedMinor}`
+              : undefined
+          );
         } catch (err) {
           logger.error(
-            `Failed to reverse Stripe transfer ${earning.stripeTransferId}:`,
+            `Failed to reverse provider transfer ${earning.providerTransferId}:`,
             err
           );
-          // Continue — mark as REVERSED in DB regardless so we don't double-reverse
+          succeeded = false;
+          continue;
         }
       }
 
       await prisma.vendorEarning.update({
         where: { id: earning.id },
-        data: { status: 'REVERSED' },
+        data: {
+          reversedAmount: (targetReversedMinor / 100).toFixed(2),
+          status:
+            targetReversedMinor >= fullNetMinor ? 'REVERSED' : earning.status,
+        },
       });
     }
+    return succeeded;
   }
 
   // ─── Connect Webhook ──────────────────────────────────────────────
@@ -309,7 +358,7 @@ export class VendorPayoutService {
         if (transfer.id) {
           await prisma.vendorEarning
             .update({
-              where: { stripeTransferId: transfer.id },
+              where: { providerTransferId: transfer.id },
               data: { status: 'TRANSFERRED', transferredAt: new Date() },
             })
             .catch((err) => {
@@ -327,9 +376,24 @@ export class VendorPayoutService {
         const transfer = event.data.object as Stripe.Transfer;
         if (transfer.id) {
           await prisma.vendorEarning
-            .update({
-              where: { stripeTransferId: transfer.id },
-              data: { status: 'REVERSED' },
+            .findUnique({ where: { providerTransferId: transfer.id } })
+            .then(async (earning) => {
+              if (!earning) return;
+              const fullNetMinor = Math.round(Number(earning.netAmount) * 100);
+              const reconciledMinor = Math.max(
+                Math.round(Number(earning.reversedAmount) * 100),
+                Math.min(fullNetMinor, transfer.amount_reversed)
+              );
+              await prisma.vendorEarning.update({
+                where: { id: earning.id },
+                data: {
+                  reversedAmount: (reconciledMinor / 100).toFixed(2),
+                  status:
+                    reconciledMinor >= fullNetMinor
+                      ? 'REVERSED'
+                      : earning.status,
+                },
+              });
             })
             .catch((err) => {
               logger.warn(
@@ -363,7 +427,7 @@ export class VendorPayoutService {
     if (!account.id) return;
 
     const profile = await prisma.vendorProfile.findUnique({
-      where: { stripeAccountId: account.id },
+      where: { providerAccountId: account.id },
     });
 
     if (!profile) return;
@@ -378,10 +442,10 @@ export class VendorPayoutService {
       newStatus = 'PENDING';
     }
 
-    if (profile.stripeOnboardingStatus !== newStatus) {
+    if (profile.paymentOnboardingStatus !== newStatus) {
       await prisma.vendorProfile.update({
         where: { id: profile.id },
-        data: { stripeOnboardingStatus: newStatus },
+        data: { paymentOnboardingStatus: newStatus },
       });
 
       if (newStatus === 'COMPLETE') {
@@ -400,10 +464,7 @@ export class VendorPayoutService {
     }
   }
 
-  private async upsertPayout(
-    payout: Stripe.Payout,
-    status: 'PAID' | 'FAILED'
-  ) {
+  private async upsertPayout(payout: Stripe.Payout, status: 'PAID' | 'FAILED') {
     // Payout events from Connect come with the connected account ID
     const connectedAccountId = (payout as Stripe.Payout & { account?: string })
       .account;
@@ -411,7 +472,7 @@ export class VendorPayoutService {
     if (!connectedAccountId) return;
 
     const profile = await prisma.vendorProfile.findUnique({
-      where: { stripeAccountId: connectedAccountId as string },
+      where: { providerAccountId: connectedAccountId as string },
     });
 
     if (!profile) return;
@@ -424,10 +485,11 @@ export class VendorPayoutService {
       : 'INR';
 
     await prisma.vendorPayout.upsert({
-      where: { stripePayoutId: payout.id },
+      where: { providerPayoutId: payout.id },
       create: {
         vendorProfileId: profile.id,
-        stripePayoutId: payout.id,
+        provider: 'STRIPE',
+        providerPayoutId: payout.id,
         amount: (payout.amount / 100).toFixed(2),
         currency: validCurrency,
         status,
@@ -454,7 +516,7 @@ export class VendorPayoutService {
           'VENDOR_PAYOUT_FAILED',
           'Payout Failed',
           `A payout of $${(payout.amount / 100).toFixed(2)} to your bank account failed.`,
-          { stripePayoutId: payout.id }
+          { providerPayoutId: payout.id, provider: 'STRIPE' }
         )
         .catch((err) =>
           logger.error('Failed to send payout failure notification:', err)
@@ -468,7 +530,7 @@ export class VendorPayoutService {
           'VENDOR_PAYOUT_PAID',
           'Payout Received',
           `A payout of $${(payout.amount / 100).toFixed(2)} is on its way to your bank account.`,
-          { stripePayoutId: payout.id }
+          { providerPayoutId: payout.id, provider: 'STRIPE' }
         )
         .catch((err) =>
           logger.error('Failed to send payout paid notification:', err)
@@ -608,6 +670,50 @@ export class VendorPayoutService {
       vendorId,
       commissionRate,
     };
+  }
+
+  async updatePaymentProvider(
+    vendorId: string,
+    input: { paymentProvider: 'STRIPE' | 'RAZORPAY'; settlementCountry: string }
+  ) {
+    const profile = await prisma.vendorProfile.findUnique({
+      where: { userId: vendorId },
+    });
+    if (!profile) throw ApiError.notFound('Vendor profile not found');
+
+    const activePayments = await prisma.payment.count({
+      where: {
+        status: { in: ['PROCESSING', 'SUCCEEDED'] },
+        order: { vendorOrders: { some: { vendorId } } },
+      },
+    });
+    if (
+      activePayments > 0 &&
+      profile.paymentProvider !== input.paymentProvider
+    ) {
+      throw ApiError.conflict(
+        'Cannot change provider while the vendor has processing or paid orders'
+      );
+    }
+
+    return prisma.vendorProfile.update({
+      where: { id: profile.id },
+      data: {
+        paymentProvider: input.paymentProvider,
+        settlementCountry: input.settlementCountry,
+        ...(profile.paymentProvider !== input.paymentProvider && {
+          providerAccountId: null,
+          paymentOnboardingStatus: 'NOT_STARTED',
+        }),
+      },
+      select: {
+        id: true,
+        userId: true,
+        paymentProvider: true,
+        settlementCountry: true,
+        paymentOnboardingStatus: true,
+      },
+    });
   }
 }
 

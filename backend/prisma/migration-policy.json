@@ -23,5 +23,11 @@
     "20260808050000_add_product_media": "a70e27e6bec0ceba2a5f8a7ab1b2fdeed502d1bd8728f5699cea2cc342210fc1",
     "20260818090000_add_idempotency_records": "ff89c85c3cda55aaa8b38870c3c185747be6cea704f03747e0a8a2a475469480"
   },
-  "migrations": {}
+  "migrations": {
+    "20260826090000_add_hybrid_payment_providers": {
+      "phase": "contract",
+      "changeTicket": "#139",
+      "compatibilityEvidence": "The migration renames provider-specific columns in place, preserving all Stripe identifiers and backfilling provider enums before enforcing required values. Backend, Flutter, dashboard, OpenAPI, and migration-safety tests move atomically with this sandbox-only release."
+    }
+  }
 }

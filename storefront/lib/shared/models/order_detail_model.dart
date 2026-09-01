@@ -132,7 +132,9 @@ class PaymentDetail extends Equatable {
   final String currency;
   final String method;
   final String status;
-  final String? stripePaymentIntentId;
+  final String provider;
+  final String? providerOrderId;
+  final String? providerPaymentId;
   final DateTime? paidAt;
 
   const PaymentDetail({
@@ -141,7 +143,9 @@ class PaymentDetail extends Equatable {
     required this.currency,
     required this.method,
     required this.status,
-    this.stripePaymentIntentId,
+    required this.provider,
+    this.providerOrderId,
+    this.providerPaymentId,
     this.paidAt,
   });
 
@@ -152,7 +156,9 @@ class PaymentDetail extends Equatable {
       currency: json['currency'] as String? ?? 'INR',
       method: json['method'] as String,
       status: json['status'] as String,
-      stripePaymentIntentId: json['stripePaymentIntentId'] as String?,
+      provider: json['provider'] as String,
+      providerOrderId: json['providerOrderId'] as String?,
+      providerPaymentId: json['providerPaymentId'] as String?,
       paidAt: json['paidAt'] != null
           ? DateTime.parse(json['paidAt'] as String)
           : null,
@@ -174,7 +180,9 @@ class PaymentDetail extends Equatable {
     currency,
     method,
     status,
-    stripePaymentIntentId,
+    provider,
+    providerOrderId,
+    providerPaymentId,
     paidAt,
   ];
 }

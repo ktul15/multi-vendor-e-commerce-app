@@ -2,11 +2,9 @@ import 'dart:async';
 
 import 'package:collection/collection.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_stripe/flutter_stripe.dart'
-    show StripeException, FailureCode;
 import '../../../core/config/app_env.dart';
 import '../../../core/network/api_exception.dart';
-import '../../../core/stripe/stripe_service.dart';
+import '../../../core/payment/checkout_payment_service.dart';
 import '../../../features/cart/bloc/cart_cubit.dart';
 import '../../../features/cart/bloc/cart_state.dart';
 import '../../../repositories/address_repository.dart';
@@ -18,7 +16,7 @@ import 'checkout_state.dart';
 class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
   final AddressRepository _addressRepository;
   final OrderRepository _orderRepository;
-  final StripeService _stripeService;
+  final CheckoutPaymentService _paymentService;
   final CartCubit _cartCubit;
 
   /// Cached address list so back-navigation (summary → address) avoids a
@@ -28,11 +26,11 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
   CheckoutBloc({
     required AddressRepository addressRepository,
     required OrderRepository orderRepository,
-    required StripeService stripeService,
+    required CheckoutPaymentService paymentService,
     required CartCubit cartCubit,
   }) : _addressRepository = addressRepository,
        _orderRepository = orderRepository,
-       _stripeService = stripeService,
+       _paymentService = paymentService,
        _cartCubit = cartCubit,
        super(const CheckoutAddressesLoading()) {
     on<CheckoutStarted>(_onStarted);
@@ -167,33 +165,34 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
           );
 
       try {
-        // 2. Create Stripe PaymentIntent.
-        final clientSecret = await _orderRepository.createPaymentIntent(
+        final checkout = await _orderRepository.createPaymentCheckout(
           orderId: order.id,
         );
 
-        // 3. Init and present the Payment Sheet.
-        await _stripeService
-            .initPaymentSheet(
-              clientSecret: clientSecret,
-              merchantDisplayName: AppEnv.appName,
-            )
-            .timeout(const Duration(seconds: 20));
-        await _stripeService.presentPaymentSheet();
+        final paymentResult = await _paymentService.present(
+          checkout,
+          merchantDisplayName: AppEnv.appName,
+        );
+        if (paymentResult != null) {
+          await _orderRepository.confirmRazorpayPayment(
+            orderId: order.id,
+            result: paymentResult,
+          );
+        }
 
         // 4. Payment confirmed — refresh cart (fire-and-forget so a cart
         //    reload failure does not block the success screen).
         unawaited(_cartCubit.loadCart().catchError((_) {}));
         emit(CheckoutSuccess(order: order));
-      } on StripeException catch (e) {
-        if (e.error.code == FailureCode.Canceled) {
+      } on CheckoutPaymentException catch (e) {
+        if (e.cancelled) {
           // User dismissed the sheet — return to summary preserving the
           // pending order so a second tap does not create a duplicate.
           emit(current.copyWith(pendingOrder: order));
         } else {
           emit(
             CheckoutError(
-              message: _stripeErrorMessage(e),
+              message: e.message,
               lastStep: CheckoutStep.payment,
               previousSummaryStep: current,
               failedOrder: order,
@@ -264,18 +263,6 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
         ),
       );
     }
-  }
-
-  String _stripeErrorMessage(StripeException exception) {
-    final message = exception.error.localizedMessage?.trim();
-    if (message == null ||
-        message.isEmpty ||
-        message.contains('lastPaymentError') ||
-        message.contains('lastSetupError')) {
-      return 'Payment could not be completed. Please verify your card details '
-          'and try again.';
-    }
-    return message;
   }
 
   Future<void> _onRetried(

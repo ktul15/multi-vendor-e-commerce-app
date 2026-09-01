@@ -8,6 +8,7 @@ import {
   EarningStatus,
   OrderStatus,
   PaymentMethod,
+  PaymentProvider,
   PaymentStatus,
   PayoutStatus,
   PrismaClient,
@@ -330,11 +331,13 @@ async function seedUsersAndVendors(passwordHash: string) {
             storeBanner: `https://picsum.photos/seed/qa-vendor-banner-${RUN_ID}-${number}/960/320`,
             description: `QA vendor profile for admin status, pagination, and detail testing ${number}.`,
             status,
-            stripeAccountId:
+            paymentProvider: PaymentProvider.STRIPE,
+            settlementCountry: 'US',
+            providerAccountId:
               persona?.stripeStarted === false
                 ? null
                 : `acct_qa_${RUN_ID}_${number}`,
-            stripeOnboardingStatus:
+            paymentOnboardingStatus:
               persona?.stripeStarted === false
                 ? VendorOnboardingStatus.NOT_STARTED
                 : status === VendorProfileStatus.APPROVED
@@ -686,6 +689,7 @@ async function seedOrders(
         discount: money(discount),
         tax: money(tax),
         total: money(total),
+        paymentProvider: PaymentProvider.STRIPE,
         notes: number % 6 === 0 ? 'QA order with notes for detail view.' : null,
         cancellationReason:
           status === OrderStatus.CANCELLED
@@ -727,6 +731,7 @@ async function seedOrders(
           create: {
             id: stableId(`payment:${number}`),
             amount: money(total),
+            provider: PaymentProvider.STRIPE,
             currency: Currency.INR,
             method:
               number % 5 === 0
@@ -738,7 +743,7 @@ async function seedOrders(
                 : status === OrderStatus.REFUNDED
                   ? PaymentStatus.REFUNDED
                   : PaymentStatus.SUCCEEDED,
-            stripePaymentIntentId:
+            providerPaymentId:
               number % 5 === 0 ? null : `pi_qa_${RUN_ID}_${number}`,
             paidAt:
               status === OrderStatus.CANCELLED || status === OrderStatus.PENDING
@@ -782,7 +787,7 @@ async function seedOrders(
             number % 4 === 0
               ? EarningStatus.TRANSFERRED
               : EarningStatus.PENDING,
-          stripeTransferId:
+          providerTransferId:
             number % 4 === 0 ? `tr_qa_${RUN_ID}_${number}` : null,
           transferredAt: number % 4 === 0 ? daysAgo(20 - index) : null,
           createdAt: order.createdAt,
@@ -912,7 +917,8 @@ async function seedVendorPayouts(vendors: SeedVendor[]) {
       data: {
         id: stableId(`vendor-payout:${index + 1}`),
         vendorProfileId: vendors[index]!.profileId,
-        stripePayoutId: `po_qa_${RUN_ID}_${index + 1}`,
+        provider: PaymentProvider.STRIPE,
+        providerPayoutId: `po_qa_${RUN_ID}_${index + 1}`,
         amount: money(75 + index * 25.5),
         currency: Currency.INR,
         status:

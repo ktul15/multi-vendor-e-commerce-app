@@ -66,9 +66,10 @@ export function AdminVendorDetailView({
             <Field label="Vendor profile ID" value={<code>{vendor.id}</code>} />
             <Field label="Owner user ID" value={<code>{vendor.userId}</code>} />
             <Field label="Profile status" value={vendor.status} />
+            <Field label="Payment provider" value={vendor.paymentProvider} />
             <Field
-              label="Stripe onboarding"
-              value={vendor.stripeOnboardingStatus.replaceAll("_", " ")}
+              label={`${vendor.paymentProvider === "RAZORPAY" ? "Razorpay" : "Stripe"} onboarding`}
+              value={vendor.paymentOnboardingStatus.replaceAll("_", " ")}
             />
             <Field
               label="Created"

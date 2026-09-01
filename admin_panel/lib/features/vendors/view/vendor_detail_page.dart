@@ -189,8 +189,9 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
                           : 'Platform default',
                     ),
                     _InfoRow(
-                      label: 'Stripe Status',
-                      value: vendor.stripeOnboardingStatus,
+                      label: '${vendor.paymentProvider} Status',
+                      value:
+                          '${vendor.paymentOnboardingStatus} (${vendor.settlementCountry})',
                     ),
                     _InfoRow(label: 'Joined', value: vendor.formattedJoinDate),
                   ],

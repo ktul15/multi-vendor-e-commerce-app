@@ -37,7 +37,9 @@ function vendor(status: VendorStatus, suffix = status): AdminVendor {
     id: `${suffix === "PENDING" ? "11111111" : suffix === "APPROVED" ? "22222222" : suffix === "REJECTED" ? "33333333" : "44444444"}-1111-4111-8111-111111111111`,
     status,
     storeName: `${status} Store`,
-    stripeOnboardingStatus: status === "APPROVED" ? "COMPLETE" : "PENDING",
+    paymentOnboardingStatus: status === "APPROVED" ? "COMPLETE" : "PENDING",
+    paymentProvider: "RAZORPAY",
+    settlementCountry: "IN",
     user: {
       email: `${status.toLowerCase()}@example.test`,
       id: `owner-${status}`,
@@ -171,6 +173,8 @@ describe("admin vendor management", () => {
     renderWithProviders(<AdminVendorDetailView vendor={detail} />);
     expect(screen.getByRole("heading", { name: "SUSPENDED Store" })).toBeVisible();
     expect(screen.getByText("Everyday essentials")).toBeVisible();
+    expect(screen.getByText("Razorpay onboarding")).toBeVisible();
+    expect(screen.getByText("Payment provider")).toBeVisible();
     expect(screen.getByRole("link", { name: "View banner" })).toHaveAttribute(
       "href",
       "https://cdn.test/banner.jpg",

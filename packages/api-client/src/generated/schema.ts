@@ -4359,7 +4359,56 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
-    readonly "/payments/create-intent": {
+    readonly "/payments/{paymentId}/refunds": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Create a full or partial provider refund (Admin only) */
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly paymentId: string;
+                };
+                readonly cookie?: never;
+            };
+            /** @description Omit amount for a full remaining refund. Reason is optional. */
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/json": {
+                        /**
+                         * Format: double
+                         * @example 49.99
+                         */
+                        readonly amount?: number;
+                        /** @example Customer requested cancellation */
+                        readonly reason?: string;
+                    };
+                };
+            };
+            readonly responses: {
+                /** @description Refund initiated and audited */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/payments/checkout": {
         readonly parameters: {
             readonly query?: never;
             readonly header?: never;
@@ -4369,8 +4418,8 @@ export interface paths {
         readonly get?: never;
         readonly put?: never;
         /**
-         * Create a Stripe PaymentIntent (Customer only)
-         * @description Creates a Stripe PaymentIntent for an order. The returned `clientSecret` is passed to Stripe's client-side SDK to complete payment.
+         * Create a trusted provider checkout (Customer only)
+         * @description Selects Stripe or Razorpay from the persisted order and vendor configuration. Clients cannot choose the provider.
          */
         readonly post: {
             readonly parameters: {
@@ -4396,7 +4445,7 @@ export interface paths {
                 };
             };
             readonly responses: {
-                /** @description PaymentIntent created */
+                /** @description Stripe PaymentIntent or Razorpay Order checkout created */
                 readonly 201: {
                     headers: {
                         readonly [name: string]: unknown;
@@ -4407,9 +4456,11 @@ export interface paths {
                          *       "success": true,
                          *       "message": "Payment intent created",
                          *       "data": {
-                         *         "clientSecret": "pi_3OxY...secret_...",
+                         *         "provider": "RAZORPAY",
+                         *         "providerOrderId": "order_test_123",
+                         *         "keyId": "rzp_test_123",
                          *         "amount": 9999,
-                         *         "currency": "usd"
+                         *         "currency": "INR"
                          *       }
                          *     }
                          */
@@ -4439,6 +4490,59 @@ export interface paths {
                 };
                 /** @description Order not found */
                 readonly 404: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/payments/razorpay/confirm": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Verify Razorpay Standard Checkout signature */
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody: {
+                readonly content: {
+                    readonly "application/json": {
+                        /** Format: uuid */
+                        readonly orderId: string;
+                        /** @example order_test_123 */
+                        readonly providerOrderId: string;
+                        /** @example pay_test_123 */
+                        readonly providerPaymentId: string;
+                        readonly signature: string;
+                    };
+                };
+            };
+            readonly responses: {
+                /** @description Signature verified */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invalid signature */
+                readonly 400: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
@@ -4487,6 +4591,64 @@ export interface paths {
                 };
                 /** @description Invalid Stripe signature */
                 readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Local payment or refund is not visible yet; Stripe should retry the event */
+                readonly 503: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/payments/webhooks/razorpay": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /**
+         * Razorpay payment and Route webhook
+         * @description Verifies the raw-body signature and deduplicates X-Razorpay-Event-Id.
+         */
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description Event received or already processed */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invalid signature or headers */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Local payment or refund is not visible yet; Razorpay should retry the event */
+                readonly 503: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
@@ -6420,8 +6582,8 @@ export interface paths {
         readonly get?: never;
         readonly put?: never;
         /**
-         * Start Stripe Connect onboarding (approved Vendors only)
-         * @description Generates a single-use Stripe-hosted onboarding URL using backend-configured return and refresh URLs; clients cannot supply either redirect. Navigate the browser at top level, then reconcile completion with GET /vendor-payouts/connect/status after Stripe returns.
+         * Start payment-provider onboarding (approved Vendors only)
+         * @description Uses the vendor's persisted provider. Stripe returns a single-use hosted onboarding URL; Razorpay sandbox deterministically completes mock linked-account onboarding without a redirect.
          */
         readonly post: {
             readonly parameters: {
@@ -6432,21 +6594,12 @@ export interface paths {
             };
             readonly requestBody?: never;
             readonly responses: {
-                /** @description Onboarding URL */
+                /** @description Provider-discriminated onboarding result */
                 readonly 200: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        /**
-                         * @example {
-                         *       "success": true,
-                         *       "message": "Onboarding link generated",
-                         *       "data": {
-                         *         "url": "https://connect.stripe.com/setup/s/..."
-                         *       }
-                         *     }
-                         */
                         readonly "application/json": components["schemas"]["ConnectOnboardingSuccess"];
                     };
                 };
@@ -6493,8 +6646,8 @@ export interface paths {
             readonly cookie?: never;
         };
         /**
-         * Refresh the Stripe Connect onboarding link (approved Vendors only)
-         * @description Returns a fresh single-use onboarding URL when Stripe reaches the backend-configured refresh route. Call once per refresh event, navigate at top level, and guard the client against retry loops. Redirect targets are server configuration, never request input.
+         * Refresh payment-provider onboarding (approved Vendors only)
+         * @description Refreshes onboarding for the vendor's persisted payment provider. Stripe returns a fresh single-use URL; Razorpay sandbox completes deterministic mock onboarding.
          */
         readonly get: {
             readonly parameters: {
@@ -6514,7 +6667,7 @@ export interface paths {
                         readonly "application/json": components["schemas"]["ConnectOnboardingSuccess"];
                     };
                 };
-                /** @description Stripe onboarding has not been started */
+                /** @description Payment provider onboarding has not been started */
                 readonly 400: {
                     headers: {
                         readonly [name: string]: unknown;
@@ -6568,8 +6721,8 @@ export interface paths {
             readonly cookie?: never;
         };
         /**
-         * Get Stripe Connect account status (Vendor only)
-         * @description Reconciles the Stripe account after onboarding return. Use onboardingStatus, chargesEnabled, payoutsEnabled, and detailsSubmitted as authoritative UI inputs; return query parameters are not proof of completion.
+         * Get payment-provider account status (Vendor only)
+         * @description Returns the persisted provider and authoritative onboarding, charge, payout, and details-submitted state.
          */
         readonly get: {
             readonly parameters: {
@@ -7570,12 +7723,15 @@ export interface components {
             readonly description: string | null;
             readonly id: string;
             /** @enum {string} */
+            readonly paymentOnboardingStatus: "NOT_STARTED" | "PENDING" | "COMPLETE" | "RESTRICTED";
+            /** @enum {string} */
+            readonly paymentProvider: "STRIPE" | "RAZORPAY";
+            readonly settlementCountry: string;
+            /** @enum {string} */
             readonly status: "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
             readonly storeBanner: string | null;
             readonly storeLogo: string | null;
             readonly storeName: string;
-            /** @enum {string} */
-            readonly stripeOnboardingStatus: "NOT_STARTED" | "PENDING" | "COMPLETE" | "RESTRICTED";
             /** Format: date-time */
             readonly updatedAt: string;
             readonly user: components["schemas"]["AdminVendorOwner"];
@@ -7617,12 +7773,15 @@ export interface components {
             readonly description: string | null;
             readonly id: string;
             /** @enum {string} */
+            readonly paymentOnboardingStatus: "NOT_STARTED" | "PENDING" | "COMPLETE" | "RESTRICTED";
+            /** @enum {string} */
+            readonly paymentProvider: "STRIPE" | "RAZORPAY";
+            readonly settlementCountry: string;
+            /** @enum {string} */
             readonly status: "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
             readonly storeBanner: string | null;
             readonly storeLogo: string | null;
             readonly storeName: string;
-            /** @enum {string} */
-            readonly stripeOnboardingStatus: "NOT_STARTED" | "PENDING" | "COMPLETE" | "RESTRICTED";
             /** Format: date-time */
             readonly updatedAt: string;
             readonly userId: string;
@@ -7642,10 +7801,13 @@ export interface components {
             readonly createdAt: string;
             readonly id: string;
             /** @enum {string} */
+            readonly paymentOnboardingStatus: "NOT_STARTED" | "PENDING" | "COMPLETE" | "RESTRICTED";
+            /** @enum {string} */
+            readonly paymentProvider: "STRIPE" | "RAZORPAY";
+            readonly settlementCountry: string;
+            /** @enum {string} */
             readonly status: "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
             readonly storeName: string;
-            /** @enum {string} */
-            readonly stripeOnboardingStatus: "NOT_STARTED" | "PENDING" | "COMPLETE" | "RESTRICTED";
             readonly user: {
                 readonly email: string;
                 readonly id: string;
@@ -8110,9 +8272,9 @@ export interface components {
                 readonly orderNumber: string;
             };
             readonly orderId: string;
+            readonly providerTransferId: string | null;
             /** @enum {string} */
             readonly status: "PENDING" | "TRANSFERRED" | "FAILED" | "REVERSED";
-            readonly stripeTransferId: string | null;
             /** Format: date-time */
             readonly transferredAt: string | null;
             /** Format: date-time */
@@ -8221,8 +8383,10 @@ export interface components {
             readonly failureReason: string | null;
             readonly id: string;
             /** @enum {string} */
+            readonly provider: "STRIPE" | "RAZORPAY";
+            readonly providerPayoutId: string;
+            /** @enum {string} */
             readonly status: "PENDING" | "PAID" | "FAILED";
-            readonly stripePayoutId: string;
             /** Format: date-time */
             readonly updatedAt: string;
             readonly vendorProfileId: string;
