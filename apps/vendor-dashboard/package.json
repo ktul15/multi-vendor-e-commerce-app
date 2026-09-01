@@ -12,7 +12,7 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "test:performance": "pnpm run build && pnpm run bundle:check",
-    "test:critical": "vitest run test/api-behavior-msw.test.tsx test/proxy.test.ts test/vendor-auth-routes.test.ts test/vendor-product-routes.test.ts test/vendor-order-route.test.ts test/vendor-profile-route.test.ts test/product-form.test.tsx test/product-media-manager.test.tsx test/product-inventory.test.tsx test/vendor-orders.test.tsx test/store-profile-form.test.tsx",
+    "test:critical": "vitest run test/api-behavior-msw.test.tsx test/proxy.test.ts test/vendor-auth-routes.test.ts test/vendor-product-routes.test.ts test/vendor-order-route.test.ts test/vendor-profile-route.test.ts test/connect-onboarding-routes.test.ts test/product-form.test.tsx test/product-media-manager.test.tsx test/product-inventory.test.tsx test/vendor-orders.test.tsx test/store-profile-form.test.tsx",
     "clean": "rm -rf .next .turbo"
   },
   "dependencies": {

@@ -6583,7 +6583,7 @@ export interface paths {
         readonly put?: never;
         /**
          * Start payment-provider onboarding (approved Vendors only)
-         * @description Uses the vendor's persisted provider. Stripe returns a single-use hosted onboarding URL; Razorpay sandbox deterministically completes mock linked-account onboarding without a redirect.
+         * @description Uses the vendor's persisted provider. Stripe returns a single-use hosted onboarding URL using backend-configured return and refresh URLs that browser clients cannot override; Razorpay sandbox deterministically completes mock linked-account onboarding without a redirect.
          */
         readonly post: {
             readonly parameters: {
@@ -6647,7 +6647,7 @@ export interface paths {
         };
         /**
          * Refresh payment-provider onboarding (approved Vendors only)
-         * @description Refreshes onboarding for the vendor's persisted payment provider. Stripe returns a fresh single-use URL; Razorpay sandbox completes deterministic mock onboarding.
+         * @description Refreshes onboarding for the vendor's persisted payment provider. Clients never request input or supply account IDs or redirects. Stripe returns a fresh single-use URL; Razorpay sandbox completes deterministic mock onboarding.
          */
         readonly get: {
             readonly parameters: {
@@ -6722,7 +6722,7 @@ export interface paths {
         };
         /**
          * Get payment-provider account status (Vendor only)
-         * @description Returns the persisted provider and authoritative onboarding, charge, payout, and details-submitted state.
+         * @description Returns the persisted provider and authoritative onboarding, charge, payout, and details-submitted state. Browser return query parameters are not proof of completion; Stripe state is retrieved server-side.
          */
         readonly get: {
             readonly parameters: {
@@ -6744,6 +6744,7 @@ export interface paths {
                          *       "success": true,
                          *       "message": "Connect status fetched",
                          *       "data": {
+                         *         "provider": "STRIPE",
                          *         "onboardingStatus": "COMPLETE",
                          *         "chargesEnabled": true,
                          *         "payoutsEnabled": true,
@@ -7932,6 +7933,19 @@ export interface components {
             readonly message: string;
             /** @enum {boolean} */
             readonly success: true;
+        } | {
+            readonly data: {
+                readonly accountId: string;
+                /** @enum {string} */
+                readonly onboardingStatus: "COMPLETE";
+                /** @enum {string} */
+                readonly provider: "RAZORPAY";
+                /** @enum {boolean} */
+                readonly sandbox: true;
+            };
+            readonly message: string;
+            /** @enum {boolean} */
+            readonly success: true;
         };
         readonly ConnectStatusSuccess: {
             readonly data: {
@@ -7940,6 +7954,9 @@ export interface components {
                 /** @enum {string} */
                 readonly onboardingStatus: "NOT_STARTED" | "PENDING" | "COMPLETE" | "RESTRICTED";
                 readonly payoutsEnabled: boolean;
+                /** @enum {string} */
+                readonly provider: "STRIPE" | "RAZORPAY";
+                readonly sandbox?: boolean | null;
             };
             readonly message: string;
             /** @enum {boolean} */

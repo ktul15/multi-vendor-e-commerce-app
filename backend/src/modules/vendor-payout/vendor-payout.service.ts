@@ -19,6 +19,46 @@ import { paymentGatewayFor } from '../payment/providers/payment-gateway.registry
 
 const notificationService = new NotificationService();
 
+type ConnectAccountState = Pick<
+  Stripe.Account,
+  'charges_enabled' | 'details_submitted' | 'payouts_enabled'
+> &
+  Readonly<{
+    requirements?: Partial<
+      Pick<
+        Stripe.Account.Requirements,
+        | 'currently_due'
+        | 'disabled_reason'
+        | 'past_due'
+        | 'pending_verification'
+      >
+    >;
+  }>;
+
+export function connectOnboardingStatus(
+  account: ConnectAccountState
+): VendorOnboardingStatus {
+  if (
+    account.details_submitted &&
+    account.charges_enabled &&
+    account.payouts_enabled
+  ) {
+    return 'COMPLETE';
+  }
+  const disabledReason = account.requirements?.disabled_reason;
+  const hasActionableRequirements = Boolean(
+    account.requirements?.currently_due?.length ||
+    account.requirements?.past_due?.length
+  );
+  if (
+    hasActionableRequirements ||
+    (disabledReason && disabledReason !== 'requirements.pending_verification')
+  ) {
+    return 'RESTRICTED';
+  }
+  return 'PENDING';
+}
+
 export class VendorPayoutService {
   // ─── Connect Onboarding ────────────────────────────────────────────
 
@@ -64,16 +104,19 @@ export class VendorPayoutService {
       return { url: accountLink.url };
     }
 
-    const account = await stripe.accounts.create({
-      type: 'express',
-      email: (
-        await prisma.user.findUnique({
-          where: { id: userId },
-          select: { email: true },
-        })
-      )?.email,
-      metadata: { userId, vendorProfileId: profile.id },
-    });
+    const account = await stripe.accounts.create(
+      {
+        type: 'express',
+        email: (
+          await prisma.user.findUnique({
+            where: { id: userId },
+            select: { email: true },
+          })
+        )?.email,
+        metadata: { userId, vendorProfileId: profile.id },
+      },
+      { idempotencyKey: `vendor-connect-account:${profile.id}` }
+    );
 
     await prisma.vendorProfile.update({
       where: { userId },
@@ -146,10 +189,11 @@ export class VendorPayoutService {
       };
     }
     const account = await stripe.accounts.retrieve(profile.providerAccountId);
+    const onboardingStatus = await this.syncAccountStatus(profile, account);
 
     return {
       provider: 'STRIPE' as const,
-      onboardingStatus: profile.paymentOnboardingStatus,
+      onboardingStatus,
       chargesEnabled: account.charges_enabled,
       payoutsEnabled: account.payouts_enabled,
       detailsSubmitted: account.details_submitted,
@@ -432,23 +476,30 @@ export class VendorPayoutService {
 
     if (!profile) return;
 
-    let newStatus: VendorOnboardingStatus;
+    await this.syncAccountStatus(profile, account);
+  }
 
-    if (account.charges_enabled && account.details_submitted) {
-      newStatus = 'COMPLETE';
-    } else if (account.details_submitted && !account.charges_enabled) {
-      newStatus = 'RESTRICTED';
-    } else {
-      newStatus = 'PENDING';
-    }
+  private async syncAccountStatus(
+    profile: Readonly<{
+      id: string;
+      userId: string;
+      paymentOnboardingStatus: VendorOnboardingStatus;
+    }>,
+    account: ConnectAccountState
+  ): Promise<VendorOnboardingStatus> {
+    const newStatus = connectOnboardingStatus(account);
 
     if (profile.paymentOnboardingStatus !== newStatus) {
-      await prisma.vendorProfile.update({
-        where: { id: profile.id },
+      const updated = await prisma.vendorProfile.updateMany({
+        where: {
+          id: profile.id,
+          paymentProvider: 'STRIPE',
+          paymentOnboardingStatus: profile.paymentOnboardingStatus,
+        },
         data: { paymentOnboardingStatus: newStatus },
       });
 
-      if (newStatus === 'COMPLETE') {
+      if (updated.count > 0 && newStatus === 'COMPLETE') {
         await notificationService
           .createAndSend(
             profile.userId,
@@ -462,6 +513,7 @@ export class VendorPayoutService {
           );
       }
     }
+    return newStatus;
   }
 
   private async upsertPayout(payout: Stripe.Payout, status: 'PAID' | 'FAILED') {

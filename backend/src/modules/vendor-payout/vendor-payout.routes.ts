@@ -55,7 +55,7 @@ const router = Router();
  *   post:
  *     tags: [Vendor Payouts]
  *     summary: Start payment-provider onboarding (approved Vendors only)
- *     description: Uses the vendor's persisted provider. Stripe returns a single-use hosted onboarding URL; Razorpay sandbox deterministically completes mock linked-account onboarding without a redirect.
+ *     description: Uses the vendor's persisted provider. Stripe returns a single-use hosted onboarding URL using backend-configured return and refresh URLs that browser clients cannot override; Razorpay sandbox deterministically completes mock linked-account onboarding without a redirect.
  *     responses:
  *       200:
  *         description: Provider-discriminated onboarding result
@@ -106,7 +106,7 @@ router.post(
  *   get:
  *     tags: [Vendor Payouts]
  *     summary: Refresh payment-provider onboarding (approved Vendors only)
- *     description: Refreshes onboarding for the vendor's persisted payment provider. Stripe returns a fresh single-use URL; Razorpay sandbox completes deterministic mock onboarding.
+ *     description: Refreshes onboarding for the vendor's persisted payment provider. Clients never request input or supply account IDs or redirects. Stripe returns a fresh single-use URL; Razorpay sandbox completes deterministic mock onboarding.
  *     responses:
  *       200:
  *         description: Refreshed onboarding URL
@@ -135,7 +135,7 @@ router.get(
  *   get:
  *     tags: [Vendor Payouts]
  *     summary: Get payment-provider account status (Vendor only)
- *     description: Returns the persisted provider and authoritative onboarding, charge, payout, and details-submitted state.
+ *     description: Returns the persisted provider and authoritative onboarding, charge, payout, and details-submitted state. Browser return query parameters are not proof of completion; Stripe state is retrieved server-side.
  *     responses:
  *       200:
  *         description: Connect account status
@@ -145,6 +145,7 @@ router.get(
  *               success: true
  *               message: Connect status fetched
  *               data:
+ *                 provider: STRIPE
  *                 onboardingStatus: COMPLETE
  *                 chargesEnabled: true
  *                 payoutsEnabled: true

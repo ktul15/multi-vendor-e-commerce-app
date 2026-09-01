@@ -201,11 +201,42 @@ test.describe("vendor workflows", () => {
 
     await page.goto("/earnings");
     await expect(page.getByRole("heading", { level: 1, name: "Earnings" })).toBeVisible();
-    await expect(
-      page.getByText(/Payouts are unavailable until Stripe Connect setup/),
-    ).toBeVisible();
+    await expect(page.getByText(/Set up Stripe to receive payouts/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Set up Stripe payouts" })).toBeVisible();
     await expect(page.getByLabel("Earnings summary")).toContainText("Net earnings");
     await expect(page.getByRole("heading", { name: "Earning records" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Payout history" })).toBeVisible();
+  });
+
+  test("Stripe Connect setup uses a top-level trusted redirect", async ({ page }) => {
+    await login(page, stripeVendor);
+    await page.route("**/api/connect/onboard", async (route) => {
+      expect(route.request().method()).toBe("POST");
+      expect(route.request().headers()["x-csrf-token"]).toBeTruthy();
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: {
+            provider: "STRIPE",
+            url: "https://connect.stripe.com/setup/s/issue97-e2e",
+          },
+          success: true,
+        }),
+        status: 200,
+      });
+    });
+    await page.route("https://connect.stripe.com/**", async (route) => {
+      await route.fulfill({
+        contentType: "text/html",
+        body: "<!doctype html><title>Stripe test onboarding</title><h1>Stripe test onboarding</h1>",
+        status: 200,
+      });
+    });
+
+    await page.goto("/earnings");
+    await page.getByRole("button", { name: "Set up Stripe payouts" }).click();
+
+    await expect(page).toHaveURL("https://connect.stripe.com/setup/s/issue97-e2e");
+    await expect(page.getByRole("heading", { name: "Stripe test onboarding" })).toBeVisible();
   });
 });
