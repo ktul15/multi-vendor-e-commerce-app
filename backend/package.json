@@ -39,6 +39,9 @@
   "author": "ktul15",
   "license": "ISC",
   "type": "commonjs",
+  "engines": {
+    "node": ">=24.15.0 <25"
+  },
   "dependencies": {
     "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.4.2",

@@ -4,6 +4,14 @@ dotenv.config();
 
 const nodeEnv = process.env.NODE_ENV || 'development';
 
+const deploymentLabel = (name: string, fallback: string): string => {
+  const value = process.env[name]?.trim() || fallback;
+  if (!/^[a-zA-Z0-9._/-]{1,100}$/.test(value)) {
+    throw new Error(`${name} must be a deployment-safe label`);
+  }
+  return value;
+};
+
 const booleanValue = (name: string, developmentDefault: boolean): boolean => {
   const configured = process.env[name]?.trim().toLowerCase();
   if (!configured) return developmentDefault;
@@ -134,6 +142,11 @@ export const env = {
   // Server
   NODE_ENV: nodeEnv,
   PORT: parseInt(process.env.PORT || '5000', 10),
+  APP_ENVIRONMENT: deploymentLabel('APP_ENVIRONMENT', nodeEnv),
+  APP_RELEASE: deploymentLabel(
+    'APP_RELEASE',
+    process.env.RAILWAY_GIT_COMMIT_SHA || process.env.GITHUB_SHA || 'local'
+  ),
 
   // Database
   DATABASE_URL: process.env.DATABASE_URL || '',

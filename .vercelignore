@@ -1,0 +1,31 @@
+# Vercel builds only the Next.js workspace. Exclude independent applications
+# and operational files while retaining apps/, packages/, tooling/, and root
+# pnpm/Turborepo configuration.
+backend/
+storefront/
+vendor_dashboard/
+admin_panel/
+docs/
+e2e/
+scripts/
+
+# Repository and local agent metadata are not build inputs.
+.git/
+.github/
+.agents/
+.codex/
+.claude/
+**/AGENTS.md
+**/CLAUDE.md
+
+# Local and generated artifacts.
+**/node_modules/
+**/.next/
+**/.turbo/
+**/dist/
+**/coverage/
+**/playwright-report/
+**/test-results/
+**/*.log
+**/*.tsbuildinfo
+**/.env*

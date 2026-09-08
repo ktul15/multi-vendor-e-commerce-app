@@ -1,0 +1,5 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm run lint && pnpm run typecheck && NODE_ENV=test pnpm run test:critical && pnpm run build",
+  "framework": "nextjs"
+}

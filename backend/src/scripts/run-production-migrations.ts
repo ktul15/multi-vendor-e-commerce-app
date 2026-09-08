@@ -14,9 +14,12 @@ import {
 
 const LOCK_NAMESPACE = 137;
 const LOCK_KEY = 20260819;
+const AUDIT_TABLE = '"deployment"."migration_runs"';
+const LEGACY_AUDIT_TABLE = '"public"."_deployment_migration_runs"';
 
 const auditTableSql = `
-  CREATE TABLE IF NOT EXISTS "_deployment_migration_runs" (
+  CREATE SCHEMA IF NOT EXISTS "deployment";
+  CREATE TABLE IF NOT EXISTS ${AUDIT_TABLE} (
     "id" UUID PRIMARY KEY,
     "environment" TEXT NOT NULL,
     "releaseSha" TEXT NOT NULL,
@@ -35,6 +38,29 @@ const auditTableSql = `
     "errorMessage" TEXT
   )
 `;
+
+async function migrateLegacyAuditRows(client: pg.Client): Promise<void> {
+  const legacy = await client.query<{ name: string | null }>(
+    `SELECT to_regclass('public._deployment_migration_runs')::text AS name`
+  );
+  if (!legacy.rows[0]?.name) return;
+
+  await client.query(`
+    INSERT INTO ${AUDIT_TABLE} (
+      "id", "environment", "releaseSha", "actor", "changeTicket",
+      "evidenceUrl", "backupId", "pitrVerifiedAt", "restoreDrillId",
+      "restoreDrillVerifiedAt", "stagingEvidence", "pendingMigrations",
+      "status", "startedAt", "finishedAt", "errorMessage"
+    )
+    SELECT
+      "id", "environment", "releaseSha", "actor", "changeTicket",
+      "evidenceUrl", "backupId", "pitrVerifiedAt", "restoreDrillId",
+      "restoreDrillVerifiedAt", "stagingEvidence", "pendingMigrations",
+      "status", "startedAt", "finishedAt", "errorMessage"
+    FROM ${LEGACY_AUDIT_TABLE}
+    ON CONFLICT ("id") DO NOTHING
+  `);
+}
 
 function runPrismaDeploy(): Promise<void> {
   const executable = path.resolve(
@@ -106,6 +132,7 @@ async function main() {
   try {
     await client.connect();
     await client.query(auditTableSql);
+    await migrateLegacyAuditRows(client);
     const lock = await client.query<{ acquired: boolean }>(
       'SELECT pg_try_advisory_lock($1, $2) AS acquired',
       [LOCK_NAMESPACE, LOCK_KEY]
@@ -113,14 +140,14 @@ async function main() {
     locked = lock.rows[0]?.acquired === true;
     if (locked) {
       await client.query(
-        `UPDATE "_deployment_migration_runs"
+        `UPDATE ${AUDIT_TABLE}
          SET "status" = 'ABANDONED', "finishedAt" = CURRENT_TIMESTAMP,
              "errorMessage" = 'Runner ended without releasing its audit state; lock was no longer held'
          WHERE "status" IN ('PREPARING', 'RUNNING')`
       );
     }
     await client.query(
-      `INSERT INTO "_deployment_migration_runs" (
+      `INSERT INTO ${AUDIT_TABLE} (
         "id", "environment", "releaseSha", "actor", "changeTicket",
         "evidenceUrl", "backupId", "pitrVerifiedAt", "restoreDrillId",
         "restoreDrillVerifiedAt", "stagingEvidence", "status"
@@ -165,7 +192,7 @@ async function main() {
       );
     }
     await client.query(
-      `UPDATE "_deployment_migration_runs" SET
+      `UPDATE ${AUDIT_TABLE} SET
          "backupId" = $2, "pitrVerifiedAt" = $3,
          "restoreDrillId" = $4, "restoreDrillVerifiedAt" = $5,
          "stagingEvidence" = $6, "pendingMigrations" = $7::jsonb,
@@ -195,7 +222,7 @@ async function main() {
     migrationApplied = true;
     const finishedAt = new Date();
     await client.query(
-      `UPDATE "_deployment_migration_runs"
+      `UPDATE ${AUDIT_TABLE}
        SET "status" = 'SUCCEEDED', "finishedAt" = $2
        WHERE "id" = $1`,
       [runId, finishedAt]
@@ -231,7 +258,7 @@ async function main() {
     if (auditCreated) {
       await client
         .query(
-          `UPDATE "_deployment_migration_runs"
+          `UPDATE ${AUDIT_TABLE}
            SET "status" = CASE WHEN "status" = 'BLOCKED_LOCKED' THEN "status" ELSE $5 END,
                "finishedAt" = $2, "errorMessage" = $3,
                "pendingMigrations" = $4::jsonb
