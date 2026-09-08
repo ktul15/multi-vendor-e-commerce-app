@@ -1,7 +1,7 @@
 # ============================================================
 # Stage 1: builder — compile TypeScript and generate Prisma client
 # ============================================================
-FROM node:20-alpine AS builder
+FROM node:24.15.0-alpine AS builder
 
 WORKDIR /app
 
@@ -34,7 +34,7 @@ ENTRYPOINT ["npm", "run", "migrations:deploy"]
 # ============================================================
 # Stage 2: production — lean runtime image
 # ============================================================
-FROM node:20-alpine AS production
+FROM node:24.15.0-alpine AS production
 
 WORKDIR /app
 
@@ -59,5 +59,8 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 
 EXPOSE 5000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||5000)+'/api/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 
 ENTRYPOINT ["./docker-entrypoint.sh"]

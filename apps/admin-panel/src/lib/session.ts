@@ -1,12 +1,21 @@
 import { createNextDashboardAuth } from "@repo/auth/next";
 import { DashboardAuthError } from "@repo/auth";
+import { resolveDashboardAppOrigin } from "@repo/config";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { adminLoginSchema } from "./auth-forms";
 
+export const dashboardAppOrigin = () =>
+  resolveDashboardAppOrigin({
+    configuredOrigin: process.env.NEXT_PUBLIC_APP_URL,
+    deploymentEnvironment: process.env.DASHBOARD_ENVIRONMENT ?? process.env.VERCEL_ENV,
+    production: process.env.NODE_ENV === "production",
+    vercelUrl: process.env.VERCEL_URL,
+  });
+
 const auth = createNextDashboardAuth({
   apiBaseUrl: () => process.env.API_BASE_URL,
-  appOrigin: () => process.env.NEXT_PUBLIC_APP_URL,
+  appOrigin: dashboardAppOrigin,
   bffSecret: () => process.env.DASHBOARD_BFF_SECRET,
   dashboard: "admin",
   requiredRole: "ADMIN",

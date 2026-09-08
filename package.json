@@ -14,6 +14,7 @@
     "test:e2e": "bash scripts/run-web-e2e.sh",
     "test:e2e:raw": "playwright test",
     "source-maps:check": "node tooling/check-dashboard-source-maps.mjs",
+    "deployment:smoke": "node scripts/smoke-deployment.mjs",
     "api:generate": "npm --prefix backend run openapi:generate && pnpm run api:types:generate",
     "api:check": "npm --prefix backend run openapi:check && pnpm run api:types:check",
     "api:types:generate": "node tooling/generate-openapi.mjs",

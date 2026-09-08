@@ -1,14 +1,23 @@
 import { createNextDashboardAuth } from "@repo/auth/next";
 import { DashboardAuthError } from "@repo/auth";
+import { resolveDashboardAppOrigin } from "@repo/config";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { vendorLoginSchema, vendorRegistrationSchema } from "./auth-forms";
 import { canRenderVendorRoute } from "./vendor-access";
 import { requestVendorAccessProfile } from "./vendor-profile-api";
 
+export const dashboardAppOrigin = () =>
+  resolveDashboardAppOrigin({
+    configuredOrigin: process.env.NEXT_PUBLIC_APP_URL,
+    deploymentEnvironment: process.env.DASHBOARD_ENVIRONMENT ?? process.env.VERCEL_ENV,
+    production: process.env.NODE_ENV === "production",
+    vercelUrl: process.env.VERCEL_URL,
+  });
+
 const auth = createNextDashboardAuth({
   apiBaseUrl: () => process.env.API_BASE_URL,
-  appOrigin: () => process.env.NEXT_PUBLIC_APP_URL,
+  appOrigin: dashboardAppOrigin,
   bffSecret: () => process.env.DASHBOARD_BFF_SECRET,
   dashboard: "vendor",
   requiredRole: "VENDOR",
@@ -36,8 +45,8 @@ const lifecyclePath = "/access";
 const publicPaths = new Set(["/design-system", "/forbidden", "/login"]);
 
 function redirectWithCookieWrites(response: NextResponse, path: string) {
-  const appOrigin = process.env.NEXT_PUBLIC_APP_URL;
-  if (!appOrigin) throw new Error("NEXT_PUBLIC_APP_URL is required");
+  const appOrigin = dashboardAppOrigin();
+  if (!appOrigin) throw new Error("A valid dashboard app origin is required");
   const redirectResponse = NextResponse.redirect(new URL(path, appOrigin));
   for (const cookie of response.cookies.getAll()) redirectResponse.cookies.set(cookie);
   return redirectResponse;

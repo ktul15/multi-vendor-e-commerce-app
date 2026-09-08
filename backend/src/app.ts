@@ -9,9 +9,9 @@ import {
   dashboardClientLimiter,
   globalLimiter,
 } from './middleware/rateLimiter';
-import { ApiResponse } from './utils/apiResponse';
 import { corsOptions } from './middleware/cors';
 import { csrfProtection } from './middleware/csrf';
+import { healthRouter } from './modules/health/health.routes';
 
 const app: Application = express();
 
@@ -31,6 +31,10 @@ app.use(
 );
 app.use(express.urlencoded({ extended: true }));
 app.use(csrfProtection);
+
+// Liveness and dependency readiness probes must not be rate limited. Railway
+// uses the readiness path to decide when a new deployment can receive traffic.
+app.use('/api/health', healthRouter);
 
 // ---------------------
 // Stripe Webhooks (must be before globalLimiter so Stripe retries are never throttled)
@@ -97,22 +101,6 @@ if (env.isDev) {
     res.send(swaggerSpec);
   });
 }
-
-// ---------------------
-// Health Check
-// ---------------------
-app.get('/api/health', (_req, res) => {
-  ApiResponse.success(
-    res,
-    {
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: env.NODE_ENV,
-    },
-    'Server is running'
-  );
-});
 
 // ---------------------
 // API Routes

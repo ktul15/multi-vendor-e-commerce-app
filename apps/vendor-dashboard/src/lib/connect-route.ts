@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import {
   applyCookieWrites,
+  dashboardAppOrigin,
   requestCredentials,
   resolveRequestSession,
   rotateRequestSession,
@@ -32,8 +33,8 @@ export function connectFailure(message: string, status: number) {
 }
 
 export function vendorDashboardLocation(path: string): URL {
-  const appOrigin = process.env.NEXT_PUBLIC_APP_URL;
-  if (!appOrigin) throw new Error("NEXT_PUBLIC_APP_URL is required");
+  const appOrigin = dashboardAppOrigin();
+  if (!appOrigin) throw new Error("A valid dashboard app origin is required");
   const origin = new URL(appOrigin);
   if (origin.origin !== appOrigin || !["http:", "https:"].includes(origin.protocol)) {
     throw new Error("NEXT_PUBLIC_APP_URL must be an exact HTTP(S) origin");

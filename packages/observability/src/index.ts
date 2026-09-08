@@ -133,6 +133,29 @@ export function createServerTelemetry({
   } as const;
 }
 
+export function createDashboardHealthResponse({
+  app,
+  environment,
+  now = () => new Date(),
+  release,
+}: Readonly<{
+  app: DashboardApp;
+  environment?: string;
+  now?: () => Date;
+  release?: string;
+}>): Response {
+  return Response.json(
+    {
+      app,
+      environment: safeLabel(environment, "unknown"),
+      release: safeLabel(release, "local"),
+      status: "healthy",
+      timestamp: now().toISOString(),
+    },
+    { headers: { "Cache-Control": "no-store" } },
+  );
+}
+
 type ClientTelemetryEvent = Readonly<{
   category: TelemetryCategory;
   error?: Readonly<{ message?: string; name?: string }>;

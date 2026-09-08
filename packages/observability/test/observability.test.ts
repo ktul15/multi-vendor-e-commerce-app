@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  createDashboardHealthResponse,
   createClientTelemetryRoute,
   createObservedFetch,
   createObservedServerFetch,
@@ -8,6 +9,25 @@ import {
 } from "../src";
 
 describe("dashboard observability", () => {
+  it("returns an uncached deployment health record", async () => {
+    const response = createDashboardHealthResponse({
+      app: "vendor",
+      environment: "staging",
+      now: () => new Date("2026-09-05T00:00:00.000Z"),
+      release: "sha-abc123",
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    await expect(response.json()).resolves.toEqual({
+      app: "vendor",
+      environment: "staging",
+      release: "sha-abc123",
+      status: "healthy",
+      timestamp: "2026-09-05T00:00:00.000Z",
+    });
+  });
+
   it("redacts sensitive values and removes identifiers and query strings", () => {
     const records: unknown[] = [];
     createServerTelemetry({

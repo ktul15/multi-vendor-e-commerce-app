@@ -10,7 +10,7 @@ Applies to PostgreSQL changes used by the backend, Flutter storefront/vendor/adm
 - Schema deployment is a separate, manually authorized GitHub Actions job in `.github/workflows/database-migrate.yml`.
 - The target GitHub environment (`staging` or `production`) supplies its protected `DATABASE_URL`, a shared `MIGRATION_EVIDENCE_SIGNING_KEY` of at least 32 characters, and required reviewers.
 - Workflow concurrency and a PostgreSQL advisory lock allow one runner per database. A second runner records `BLOCKED_LOCKED` and fails.
-- Every attempt is recorded in `_deployment_migration_runs`, including actor, release, change ticket, evidence, pending migration checksums, timestamps, result, and bounded failure text.
+- Every attempt is recorded in `deployment.migration_runs`, including actor, release, change ticket, evidence, pending migration checksums, timestamps, result, and bounded failure text. The runner copies records from the legacy `public._deployment_migration_runs` table idempotently before reconciliation.
 - A migration failure stops the rollout. Do not start new application instances until the migration owner resolves or rolls forward the failure. Prisma migrations are forward-fix by default; never edit an applied migration.
 
 When a new runner obtains the lock, unfinished `PREPARING`/`RUNNING` rows whose sessions no longer hold it become `ABANDONED`. If schema deployment succeeds but evidence persistence fails, the row becomes `SUCCEEDED_EVIDENCE_FAILED`; treat the schema as changed, stop application rollout, and repair the evidence path instead of rerunning blindly.
@@ -113,7 +113,7 @@ On failure, stop the application rollout and backfills, retain logs/audit eviden
 ## Evidence queries and retention
 
 ```sql
-SELECT * FROM "_deployment_migration_runs" ORDER BY "startedAt" DESC LIMIT 20;
+SELECT * FROM "deployment"."migration_runs" ORDER BY "startedAt" DESC LIMIT 20;
 SELECT * FROM "_deployment_backfill_runs" ORDER BY "updatedAt" DESC;
 SELECT migration_name, started_at, finished_at, rolled_back_at
 FROM "_prisma_migrations" ORDER BY started_at DESC;
