@@ -115,8 +115,11 @@ class _ActivePromoChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.check_circle_outline,
-              size: 16, color: AppColors.success),
+          const Icon(
+            Icons.check_circle_outline,
+            size: 16,
+            color: AppColors.success,
+          ),
           const SizedBox(width: AppSpacing.xs),
           Text(
             '$code applied',
@@ -125,8 +128,7 @@ class _ActivePromoChip extends StatelessWidget {
           const SizedBox(width: AppSpacing.sm),
           GestureDetector(
             onTap: onRemove,
-            child:
-                const Icon(Icons.close, size: 16, color: AppColors.success),
+            child: const Icon(Icons.close, size: 16, color: AppColors.success),
           ),
         ],
       ),

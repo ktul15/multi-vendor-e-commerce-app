@@ -1,9 +1,27 @@
 import { Router } from 'express';
 import { ProductController } from './product.controller';
 import { authenticate, authorize } from '../../middleware/auth';
-import { validate, validateQuery } from '../../middleware/validate';
-import { createProductSchema, updateProductSchema, addVariantSchema, updateVariantSchema, getProductQuerySchema, searchProductQuerySchema } from './product.validation';
+import { requireApprovedVendor } from '../../middleware/requireApprovedVendor';
+import {
+  validate,
+  validateParams,
+  validateQuery,
+} from '../../middleware/validate';
+import {
+  createProductSchema,
+  editProductSchema,
+  updateProductSchema,
+  addVariantSchema,
+  updateVariantSchema,
+  getProductQuerySchema,
+  searchProductQuerySchema,
+  vendorInventoryQuerySchema,
+  productParamSchema,
+  productVariantParamSchema,
+  productMediaParamSchema,
+} from './product.validation';
 import { Role } from '../../generated/prisma/client';
+import upload, { withUpload } from '../../middleware/upload';
 
 const router = Router();
 const productController = new ProductController();
@@ -75,7 +93,11 @@ const productController = new ProductController();
  *                   limit: 10
  *                   totalPages: 5
  */
-router.get('/', validateQuery(getProductQuerySchema), productController.getProducts);
+router.get(
+  '/',
+  validateQuery(getProductQuerySchema),
+  productController.getProducts
+);
 
 /**
  * @openapi
@@ -113,7 +135,99 @@ router.get('/', validateQuery(getProductQuerySchema), productController.getProdu
  *       400:
  *         description: Missing required query param `q`
  */
-router.get('/search', validateQuery(searchProductQuerySchema), productController.searchProducts);
+router.get(
+  '/search',
+  validateQuery(searchProductQuerySchema),
+  productController.searchProducts
+);
+
+/**
+ * @openapi
+ * /products/vendor:
+ *   get:
+ *     tags: [Products]
+ *     summary: List the authenticated vendor's inventory
+ *     description: Includes active and inactive products. Vendor identity is derived from the authenticated session.
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1, minimum: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10, minimum: 1, maximum: 100 }
+ *       - in: query
+ *         name: search
+ *         schema: { type: string, maxLength: 100 }
+ *         description: Case-insensitive product name, description, or variant SKU search.
+ *       - in: query
+ *         name: categoryId
+ *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: isActive
+ *         schema: { type: boolean }
+ *       - in: query
+ *         name: inStock
+ *         schema: { type: boolean }
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [createdAt, updatedAt, name, basePrice]
+ *           default: createdAt
+ *       - in: query
+ *         name: sortOrder
+ *         schema: { type: string, enum: [asc, desc], default: desc }
+ *     responses:
+ *       200:
+ *         description: Paginated vendor inventory
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProductsSuccess'
+ *       400:
+ *         description: Invalid query parameters
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Vendor account is not approved
+ */
+router.get(
+  '/vendor',
+  authenticate,
+  authorize(Role.VENDOR),
+  requireApprovedVendor,
+  validateQuery(vendorInventoryQuerySchema),
+  productController.getVendorInventory
+);
+
+/**
+ * @openapi
+ * /products/vendor/{id}:
+ *   get:
+ *     tags: [Products]
+ *     summary: Get an owned product for editing
+ *     description: Returns active or inactive product details only when the authenticated approved vendor owns the product.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Owned product detail
+ *       400: { description: Invalid product ID }
+ *       401: { description: Unauthorized }
+ *       403: { description: Vendor account is not approved }
+ *       404: { description: Product not found }
+ */
+router.get(
+  '/vendor/:id',
+  authenticate,
+  authorize(Role.VENDOR),
+  requireApprovedVendor,
+  validateParams(productParamSchema),
+  productController.getVendorProductById
+);
 
 /**
  * @openapi
@@ -140,7 +254,7 @@ router.get('/search', validateQuery(searchProductQuerySchema), productController
 router.get('/:id', productController.getProductById);
 
 // Vendor-only routes (Dashboard inventory management)
-router.use(authenticate, authorize(Role.VENDOR));
+router.use(authenticate, authorize(Role.VENDOR), requireApprovedVendor);
 
 /**
  * @openapi
@@ -154,7 +268,7 @@ router.use(authenticate, authorize(Role.VENDOR));
  *         application/json:
  *           schema:
  *             type: object
- *             required: [categoryId, name, description, basePrice]
+ *             required: [categoryId, name, description, basePrice, variants]
  *             properties:
  *               categoryId:
  *                 type: string
@@ -173,7 +287,7 @@ router.use(authenticate, authorize(Role.VENDOR));
  *                 example: 99.99
  *               images:
  *                 type: array
- *                 items: { type: string, format: uri }
+ *                 items: { type: string, format: uri, pattern: '^https://' }
  *                 maxItems: 5
  *               isActive:
  *                 type: boolean
@@ -184,6 +298,7 @@ router.use(authenticate, authorize(Role.VENDOR));
  *                 example: [electronics, audio]
  *               variants:
  *                 type: array
+ *                 minItems: 1
  *                 items:
  *                   type: object
  *                   required: [sku, price]
@@ -206,11 +321,164 @@ router.use(authenticate, authorize(Role.VENDOR));
  *         description: Unauthorized
  *       403:
  *         description: Forbidden — VENDOR role required
+ *       404:
+ *         description: Category not found
+ *       409:
+ *         description: A variant SKU already exists
  */
 router.post(
-    '/',
-    validate(createProductSchema),
-    productController.createProduct
+  '/',
+  validate(createProductSchema),
+  productController.createProduct
+);
+
+/**
+ * @openapi
+ * /products/{id}/media:
+ *   post:
+ *     tags: [Products]
+ *     summary: Upload product images (approved owner vendor only)
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     description: Appends one to five managed images without exceeding five total. Uploads are rolled back if persistence fails. JPEG, PNG, and WebP files up to 5 MB each are accepted.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [images]
+ *             properties:
+ *               images:
+ *                 type: array
+ *                 minItems: 1
+ *                 maxItems: 5
+ *                 items: { type: string, format: binary }
+ *     responses:
+ *       201:
+ *         description: Ordered product media after upload
+ *       400:
+ *         description: Missing files, invalid type, excess files, or five-image limit exceeded
+ *       401: { description: Unauthorized }
+ *       403: { description: Vendor is unapproved or does not own the product }
+ *       404: { description: Product not found }
+ *       413: { description: A file exceeds 5 MB }
+ */
+router.post(
+  '/:id/media',
+  validateParams(productParamSchema),
+  withUpload(upload.array('images', 5)),
+  productController.uploadMedia
+);
+
+/**
+ * @openapi
+ * /products/{id}/media/{mediaId}:
+ *   put:
+ *     tags: [Products]
+ *     summary: Replace one product image (approved owner vendor only)
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     description: Preserves the media ID and ordering position. The new upload rolls back on persistence failure; replaced managed media is deleted best effort after commit.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *       - in: path
+ *         name: mediaId
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [image]
+ *             properties:
+ *               image: { type: string, format: binary }
+ *     responses:
+ *       200: { description: Ordered product media after replacement }
+ *       400:
+ *         description: "Missing image, invalid type, or unexpected field"
+ *       401: { description: Unauthorized }
+ *       403: { description: Vendor is unapproved or does not own the product }
+ *       404: { description: Product or media not found }
+ *       413: { description: The file exceeds 5 MB }
+ *   delete:
+ *     tags: [Products]
+ *     summary: Remove one product image (approved owner vendor only)
+ *     security:
+ *       - BearerAuth: []
+ *       - CookieAuth: []
+ *     description: The database mutation is authoritative. Managed Cloudinary cleanup is best effort and observable in server logs.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *       - in: path
+ *         name: mediaId
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200: { description: Ordered remaining product media }
+ *       400: { description: Invalid product or media ID }
+ *       401: { description: Unauthorized }
+ *       403: { description: Vendor is unapproved or does not own the product }
+ *       404: { description: Product or media not found }
+ */
+router.put(
+  '/:id/media/:mediaId',
+  validateParams(productMediaParamSchema),
+  withUpload(upload.single('image')),
+  productController.replaceMedia
+);
+router.delete(
+  '/:id/media/:mediaId',
+  validateParams(productMediaParamSchema),
+  productController.removeMedia
+);
+
+/**
+ * @openapi
+ * /products/{id}/editor:
+ *   put:
+ *     tags: [Products]
+ *     summary: Atomically save the complete vendor product editor
+ *     description: Reconciles product fields, ordered image URLs, variants, and inventory in one transaction.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200: { description: Complete updated product }
+ *       400: { description: Invalid product ID or editor payload }
+ *       401: { description: Unauthorized }
+ *       403: { description: Vendor is unapproved or does not own the product }
+ *       404: { description: "Product, category, or variant not found" }
+ *       409: { description: SKU conflict or ordered variant removal }
+ */
+router.put(
+  '/:id/editor',
+  validateParams(productParamSchema),
+  validate(editProductSchema),
+  productController.editProduct
 );
 
 /**
@@ -231,6 +499,7 @@ router.post(
  *         application/json:
  *           schema:
  *             type: object
+ *             minProperties: 1
  *             properties:
  *               categoryId: { type: string, format: uuid }
  *               name: { type: string, minLength: 2 }
@@ -238,7 +507,7 @@ router.post(
  *               basePrice: { type: number, minimum: 0 }
  *               images:
  *                 type: array
- *                 items: { type: string, format: uri }
+ *                 items: { type: string, format: uri, pattern: '^https://' }
  *                 maxItems: 5
  *               isActive: { type: boolean }
  *               tags:
@@ -247,6 +516,8 @@ router.post(
  *     responses:
  *       200:
  *         description: Product updated
+ *       400:
+ *         description: Invalid product ID or update payload
  *       401:
  *         description: Unauthorized
  *       403:
@@ -255,9 +526,10 @@ router.post(
  *         description: Product not found
  */
 router.put(
-    '/:id',
-    validate(updateProductSchema),
-    productController.updateProduct
+  '/:id',
+  validateParams(productParamSchema),
+  validate(updateProductSchema),
+  productController.updateProduct
 );
 
 /**
@@ -273,18 +545,23 @@ router.put(
  *         required: true
  *         schema: { type: string, format: uuid }
  *     responses:
- *       204:
+ *       200:
  *         description: Product deleted
+ *       400:
+ *         description: Invalid product ID
  *       401:
  *         description: Unauthorized
  *       403:
  *         description: Forbidden
  *       404:
  *         description: Product not found
+ *       409:
+ *         description: Product has related order history and cannot be deleted
  */
 router.delete(
-    '/:id',
-    productController.deleteProduct
+  '/:id',
+  validateParams(productParamSchema),
+  productController.deleteProduct
 );
 
 /**
@@ -327,11 +604,14 @@ router.delete(
  *         description: Forbidden — VENDOR role required
  *       404:
  *         description: Product not found
+ *       409:
+ *         description: SKU already exists
  */
 router.post(
-    '/:id/variants',
-    validate(addVariantSchema),
-    productController.addVariant
+  '/:id/variants',
+  validateParams(productParamSchema),
+  validate(addVariantSchema),
+  productController.addVariant
 );
 
 /**
@@ -357,6 +637,7 @@ router.post(
  *         application/json:
  *           schema:
  *             type: object
+ *             minProperties: 1
  *             properties:
  *               sku: { type: string }
  *               size: { type: string, nullable: true }
@@ -366,17 +647,58 @@ router.post(
  *     responses:
  *       200:
  *         description: Variant updated
+ *       400:
+ *         description: Invalid route parameter or update payload
  *       401:
  *         description: Unauthorized
  *       403:
  *         description: Forbidden
  *       404:
  *         description: Product or variant not found
+ *       409:
+ *         description: SKU already exists
  */
 router.put(
-    '/:id/variants/:vid',
-    validate(updateVariantSchema),
-    productController.updateVariant
+  '/:id/variants/:vid',
+  validateParams(productVariantParamSchema),
+  validate(updateVariantSchema),
+  productController.updateVariant
+);
+
+/**
+ * @openapi
+ * /products/{id}/variants/{vid}:
+ *   delete:
+ *     tags: [Products]
+ *     summary: Delete an unreferenced product variant (Vendor only)
+ *     description: Variants referenced by order history are retained and return 409 Conflict.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *       - in: path
+ *         name: vid
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Variant deleted
+ *       400:
+ *         description: Invalid route parameter
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Vendor does not own the product
+ *       404:
+ *         description: Product or variant not found
+ *       409:
+ *         description: Variant is referenced by order history
+ */
+router.delete(
+  '/:id/variants/:vid',
+  validateParams(productVariantParamSchema),
+  productController.deleteVariant
 );
 
 export default router;

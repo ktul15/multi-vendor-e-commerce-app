@@ -27,13 +27,11 @@ redis.on('connect', () => {
  * Connect to Redis. Called during server startup.
  */
 export const connectRedis = async (): Promise<void> => {
-    try {
-        await redis.connect();
-    } catch (error) {
-        logger.error('Failed to connect to Redis:', error);
-        // Redis is optional — server can still run without it
-        // Token blacklisting and caching will be unavailable
+    if (redis.status === 'ready' || redis.status === 'connecting') {
+        logger.info('Redis already connected/connecting — skipping explicit connect');
+        return;
     }
+    await redis.connect();
 };
 
 /**

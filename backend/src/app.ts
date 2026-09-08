@@ -4,8 +4,14 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { env } from './config/env';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
-import { globalLimiter, authLimiter } from './middleware/rateLimiter';
-import { ApiResponse } from './utils/apiResponse';
+import {
+  dashboardAggregateLimiter,
+  dashboardClientLimiter,
+  globalLimiter,
+} from './middleware/rateLimiter';
+import { corsOptions } from './middleware/cors';
+import { csrfProtection } from './middleware/csrf';
+import { healthRouter } from './modules/health/health.routes';
 
 const app: Application = express();
 
@@ -14,36 +20,7 @@ const app: Application = express();
 // ---------------------
 // Strict Helmet for all routes
 app.use(helmet());
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-
-      const allowedOrigins = [
-        env.STOREFRONT_URL,
-        env.VENDOR_DASHBOARD_URL,
-        env.ADMIN_DASHBOARD_URL,
-      ];
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      // In development, allow any localhost/127.0.0.1 port (Flutter web often uses random ports)
-      if (
-        env.isDev &&
-        (origin.startsWith('http://localhost:') ||
-          origin.startsWith('http://127.0.0.1:'))
-      ) {
-        return callback(null, true);
-      }
-
-      callback(new Error('Not allowed by CORS'));
-    },
-    credentials: true,
-  })
-);
+app.use(cors(corsOptions));
 app.use(
   express.json({
     limit: '10mb',
@@ -53,19 +30,26 @@ app.use(
   })
 );
 app.use(express.urlencoded({ extended: true }));
+app.use(csrfProtection);
+
+// Liveness and dependency readiness probes must not be rate limited. Railway
+// uses the readiness path to decide when a new deployment can receive traffic.
+app.use('/api/health', healthRouter);
 
 // ---------------------
 // Stripe Webhooks (must be before globalLimiter so Stripe retries are never throttled)
 // ---------------------
-import paymentRoutes from './modules/payment/payment.routes';
+import { paymentWebhookRouter } from './modules/payment/payment.routes';
 import { vendorPayoutWebhookRouter } from './modules/vendor-payout/vendor-payout.routes';
-app.use('/api/v1/payments', paymentRoutes);
+app.use('/api/v1/payments', paymentWebhookRouter);
 app.use('/api/v1/vendor-payouts', vendorPayoutWebhookRouter);
 
 // ---------------------
 // Rate Limiting
 // ---------------------
 app.use(globalLimiter);
+app.use(dashboardClientLimiter);
+app.use(dashboardAggregateLimiter);
 
 // ---------------------
 // Logging
@@ -119,22 +103,6 @@ if (env.isDev) {
 }
 
 // ---------------------
-// Health Check
-// ---------------------
-app.get('/api/health', (_req, res) => {
-  ApiResponse.success(
-    res,
-    {
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: env.NODE_ENV,
-    },
-    'Server is running'
-  );
-});
-
-// ---------------------
 // API Routes
 // ---------------------
 import authRoutes from './modules/auth/auth.routes';
@@ -152,8 +120,9 @@ import vendorPayoutRoutes from './modules/vendor-payout/vendor-payout.routes';
 import analyticsRoutes from './modules/analytics/analytics.routes';
 import adminRoutes from './modules/admin/admin.routes';
 import bannerRoutes from './modules/banner/banner.routes';
+import paymentRoutes from './modules/payment/payment.routes';
 
-app.use('/api/v1/auth', authLimiter, authRoutes);
+app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/cart', cartRoutes);
@@ -168,6 +137,7 @@ app.use('/api/v1/vendor-payouts', vendorPayoutRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/banners', bannerRoutes);
+app.use('/api/v1/payments', paymentRoutes);
 
 // ---------------------
 // Error Handling

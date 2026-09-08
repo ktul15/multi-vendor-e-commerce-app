@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/config/injection_container.dart';
+import '../../../core/network/error_messages.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../features/auth/bloc/auth_bloc.dart';
 import '../../../features/auth/bloc/auth_state.dart';
+import '../../../repositories/category_repository.dart';
 import '../../../shared/models/product.dart';
+import '../../../shared/models/product_category.dart';
 import '../bloc/products_cubit.dart';
 import '../bloc/products_state.dart';
 import '../../../shared/widgets/skeleton_box.dart';
 import '../../../shared/widgets/error_state.dart';
+import '../../../shared/widgets/overflow_safe_text.dart';
 import '../widgets/products_skeleton.dart';
 import '../widgets/products_table.dart';
 import '../widgets/product_form_dialog.dart';
@@ -42,37 +46,69 @@ class _ProductsView extends StatelessWidget {
   const _ProductsView();
 
   Future<void> _showCreateDialog(BuildContext context) async {
+    final categories = await _loadCategories(context);
+    if (categories == null || !context.mounted) return;
+
     final result = await showDialog<ProductFormResult>(
       context: context,
-      builder: (_) => const ProductFormDialog(),
+      builder: (_) => ProductFormDialog(categories: categories),
     );
     if (result != null && context.mounted) {
       await context.read<ProductsCubit>().createProduct(
-            name: result.name,
-            description: result.description,
-            basePrice: result.basePrice,
-            categoryId: result.categoryId,
-            isActive: result.isActive,
-          );
+        name: result.name,
+        description: result.description,
+        basePrice: result.basePrice,
+        categoryId: result.categoryId!,
+        variants: result.variants,
+        isActive: result.isActive,
+      );
     }
   }
 
-  Future<void> _showEditDialog(
-    BuildContext context,
-    Product product,
-  ) async {
+  Future<List<CategoryOption>?> _loadCategories(BuildContext context) async {
+    try {
+      final categories = await sl<CategoryRepository>().getCategoryOptions();
+      if (categories.isEmpty && context.mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('No product categories are available yet.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        return null;
+      }
+      return categories;
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(userFacingErrorMessage(e)),
+              backgroundColor: AppColors.error,
+            ),
+          );
+      }
+      return null;
+    }
+  }
+
+  Future<void> _showEditDialog(BuildContext context, Product product) async {
     final result = await showDialog<ProductFormResult>(
       context: context,
       builder: (_) => ProductFormDialog(product: product),
     );
     if (result != null && context.mounted) {
       await context.read<ProductsCubit>().updateProduct(
-            product.id,
-            name: result.name,
-            description: result.description,
-            basePrice: result.basePrice,
-            isActive: result.isActive,
-          );
+        product.id,
+        name: result.name,
+        description: result.description,
+        basePrice: result.basePrice,
+        isActive: result.isActive,
+        variants: result.variants,
+      );
     }
   }
 
@@ -107,12 +143,14 @@ class _ProductsView extends StatelessWidget {
       body: BlocConsumer<ProductsCubit, ProductsState>(
         listener: (context, state) {
           if (state is ProductsError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: AppColors.error,
-              ),
-            );
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: AppColors.error,
+                ),
+              );
           }
         },
         builder: (context, state) {
@@ -121,18 +159,16 @@ class _ProductsView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Products', style: AppTextStyles.h2),
-                    FilledButton.icon(
-                      onPressed: state is ProductsLoading
-                          ? null
-                          : () => _showCreateDialog(context),
-                      icon: const Icon(Icons.add),
-                      label: const Text('New Product'),
-                    ),
-                  ],
+                ResponsiveActionHeader(
+                  title: 'Products',
+                  titleStyle: AppTextStyles.h2,
+                  action: FilledButton.icon(
+                    onPressed: state is ProductsLoading
+                        ? null
+                        : () => _showCreateDialog(context),
+                    icon: const Icon(Icons.add),
+                    label: const Text('New Product'),
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Expanded(
@@ -148,10 +184,14 @@ class _ProductsView extends StatelessWidget {
                         ProductsLoading() || ProductsInitial() =>
                           const SkeletonContainer(child: ProductsSkeleton()),
                         ProductsError(:final message) => ErrorState(
-                            message: message,
-                            onRetry: () => context.read<ProductsCubit>().load(),
-                          ),
-                        ProductsLoaded(:final products, :final hasMore, :final total) =>
+                          message: message,
+                          onRetry: () => context.read<ProductsCubit>().load(),
+                        ),
+                        ProductsLoaded(
+                          :final products,
+                          :final hasMore,
+                          :final total,
+                        ) =>
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [

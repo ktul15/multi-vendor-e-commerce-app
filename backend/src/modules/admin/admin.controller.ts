@@ -30,6 +30,12 @@ export class AdminController {
     ApiResponse.success(res, result, 'Users retrieved');
   });
 
+  getUserById = catchAsync(async (req: AuthRequest, res: Response) => {
+    const { userId } = req.params as { userId: string };
+    const user = await adminService.getUserById(userId);
+    ApiResponse.success(res, user, 'User retrieved');
+  });
+
   banUser = catchAsync(async (req: AuthRequest, res: Response) => {
     const { userId } = req.params as { userId: string };
     const user = await adminService.banUser(userId);
@@ -49,6 +55,12 @@ export class AdminController {
       req.query as unknown as ListVendorsQueryInput
     );
     ApiResponse.success(res, result, 'Vendors retrieved');
+  });
+
+  getVendorById = catchAsync(async (req: AuthRequest, res: Response) => {
+    const { vendorProfileId } = req.params as { vendorProfileId: string };
+    const profile = await adminService.getVendorById(vendorProfileId);
+    ApiResponse.success(res, profile, 'Vendor retrieved');
   });
 
   approveVendor = catchAsync(async (req: AuthRequest, res: Response) => {
@@ -72,7 +84,10 @@ export class AdminController {
   setVendorCommission = catchAsync(async (req: AuthRequest, res: Response) => {
     const { vendorProfileId } = req.params as { vendorProfileId: string };
     const { rate } = req.body as UpdateVendorCommissionInput;
-    const profile = await adminService.setVendorCommission(vendorProfileId, rate);
+    const profile = await adminService.setVendorCommission(
+      vendorProfileId,
+      rate
+    );
     ApiResponse.success(res, profile, 'Vendor commission rate updated');
   });
 
@@ -83,6 +98,12 @@ export class AdminController {
       req.query as unknown as ListProductsQueryInput
     );
     ApiResponse.success(res, result, 'Products retrieved');
+  });
+
+  getProductById = catchAsync(async (req: AuthRequest, res: Response) => {
+    const { productId } = req.params as { productId: string };
+    const product = await adminService.getProductById(productId);
+    ApiResponse.success(res, product, 'Product retrieved');
   });
 
   activateProduct = catchAsync(async (req: AuthRequest, res: Response) => {
@@ -129,10 +150,12 @@ export class AdminController {
 
   // ---- Commission ----
 
-  getDefaultCommission = catchAsync(async (_req: AuthRequest, res: Response) => {
-    const result = await adminService.getDefaultCommission();
-    ApiResponse.success(res, result, 'Default commission rate retrieved');
-  });
+  getDefaultCommission = catchAsync(
+    async (_req: AuthRequest, res: Response) => {
+      const result = await adminService.getDefaultCommission();
+      ApiResponse.success(res, result, 'Default commission rate retrieved');
+    }
+  );
 
   setDefaultCommission = catchAsync(async (req: AuthRequest, res: Response) => {
     const { rate } = req.body as UpdateCommissionInput;

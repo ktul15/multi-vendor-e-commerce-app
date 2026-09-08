@@ -20,19 +20,19 @@ class SummaryCards extends StatelessWidget {
       ),
       _CardData(
         title: 'Gross Revenue',
-        value: '\$${summary.revenue.gross.toStringAsFixed(2)}',
+        value: '₹${summary.revenue.gross.toStringAsFixed(2)}',
         icon: Icons.attach_money,
         color: AppColors.success,
       ),
       _CardData(
         title: 'Net Earnings',
-        value: '\$${summary.revenue.net.toStringAsFixed(2)}',
+        value: '₹${summary.revenue.net.toStringAsFixed(2)}',
         icon: Icons.account_balance_wallet_outlined,
         color: AppColors.secondary,
       ),
       _CardData(
         title: 'Commission Paid',
-        value: '\$${summary.revenue.commission.toStringAsFixed(2)}',
+        value: '₹${summary.revenue.commission.toStringAsFixed(2)}',
         icon: Icons.percent,
         color: AppColors.error,
       ),
@@ -40,18 +40,26 @@ class SummaryCards extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final crossAxis = constraints.maxWidth < 600
+        final width = constraints.maxWidth;
+        final crossAxis = width < 600
             ? 2
-            : constraints.maxWidth < 900
-                ? 2
-                : 4;
+            : width < 900
+            ? 2
+            : 4;
+        final childAspectRatio = width < 420
+            ? 1.45
+            : width < 600
+            ? 1.6
+            : width < 900
+            ? 1.8
+            : 2.1;
         return GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: crossAxis,
           crossAxisSpacing: AppSpacing.md,
           mainAxisSpacing: AppSpacing.md,
-          childAspectRatio: 1.8,
+          childAspectRatio: childAspectRatio,
           children: cards.map((c) => _SummaryCard(data: c)).toList(),
         );
       },

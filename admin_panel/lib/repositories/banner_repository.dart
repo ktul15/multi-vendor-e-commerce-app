@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
+import 'package:http_parser/http_parser.dart';
 import '../core/network/api_client.dart';
 import '../core/network/api_exception.dart';
 import '../features/banners/models/banner_model.dart';
@@ -56,10 +59,11 @@ class BannerRepository {
     }
   }
 
-  /// Creates a banner. [imagePath] is the local file path selected via file_picker.
+  /// Creates a banner. [imageBytes] is selected via file_picker.
   Future<BannerModel> createBanner({
     required String title,
-    required String imagePath,
+    required Uint8List imageBytes,
+    required String imageFilename,
     String? linkUrl,
     int position = 0,
     bool isActive = true,
@@ -70,9 +74,10 @@ class BannerRepository {
         if (linkUrl != null && linkUrl.isNotEmpty) 'linkUrl': linkUrl,
         'position': position,
         'isActive': isActive,
-        'image': await MultipartFile.fromFile(
-          imagePath,
-          filename: imagePath.split('/').last,
+        'image': MultipartFile.fromBytes(
+          imageBytes,
+          filename: imageFilename,
+          contentType: _mediaTypeFor(imageFilename),
         ),
       });
       final response = await _dio.post('/banners', data: formData);
@@ -86,11 +91,12 @@ class BannerRepository {
     }
   }
 
-  /// Updates a banner. [imagePath] is optional — omit to keep the current image.
+  /// Updates a banner. [imageBytes] is optional — omit to keep the current image.
   Future<BannerModel> updateBanner(
     String id, {
     String? title,
-    String? imagePath,
+    Uint8List? imageBytes,
+    String? imageFilename,
     String? linkUrl,
     bool clearLinkUrl = false,
     int? position,
@@ -98,16 +104,17 @@ class BannerRepository {
   }) async {
     try {
       final FormData formData;
-      if (imagePath != null) {
+      if (imageBytes != null) {
         formData = FormData.fromMap({
           if (title != null) 'title': title,
           if (clearLinkUrl) 'linkUrl': '',
           if (!clearLinkUrl && linkUrl != null) 'linkUrl': linkUrl,
           if (position != null) 'position': position,
           if (isActive != null) 'isActive': isActive,
-          'image': await MultipartFile.fromFile(
-            imagePath,
-            filename: imagePath.split('/').last,
+          'image': MultipartFile.fromBytes(
+            imageBytes,
+            filename: imageFilename ?? 'banner-image',
+            contentType: _mediaTypeFor(imageFilename),
           ),
         });
       } else {
@@ -143,5 +150,15 @@ class BannerRepository {
     } on DioException catch (e) {
       throw ApiException(e.errorMessage, statusCode: e.response?.statusCode);
     }
+  }
+
+  MediaType _mediaTypeFor(String? filename) {
+    final extension = filename?.split('.').last.toLowerCase();
+    return switch (extension) {
+      'jpg' || 'jpeg' => MediaType('image', 'jpeg'),
+      'png' => MediaType('image', 'png'),
+      'webp' => MediaType('image', 'webp'),
+      _ => MediaType('image', 'jpeg'),
+    };
   }
 }

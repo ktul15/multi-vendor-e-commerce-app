@@ -33,13 +33,13 @@ class RecentOrdersTable extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             if (orders.isEmpty)
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(vertical: AppSpacing.base),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.base),
                 child: Center(
                   child: Text(
                     'No orders yet',
-                    style: AppTextStyles.body
-                        .copyWith(color: AppColors.textSecondary),
+                    style: AppTextStyles.body.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
               )
@@ -92,7 +92,7 @@ class _OrderRow extends StatelessWidget {
               const SizedBox(width: AppSpacing.sm),
               // Total
               Text(
-                '\$${order.total.toStringAsFixed(2)}',
+                '₹${order.total.toStringAsFixed(2)}',
                 style: AppTextStyles.bodySmall.copyWith(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w600,

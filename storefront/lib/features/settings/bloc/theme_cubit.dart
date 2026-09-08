@@ -7,8 +7,8 @@ class ThemeCubit extends Cubit<ThemeState> {
   final ThemeStorage _storage;
 
   ThemeCubit({required ThemeStorage storage})
-      : _storage = storage,
-        super(const ThemeLoaded(mode: ThemeMode.system));
+    : _storage = storage,
+      super(const ThemeLoaded(mode: ThemeMode.system));
 
   Future<void> loadTheme() async {
     final stored = await _storage.load();

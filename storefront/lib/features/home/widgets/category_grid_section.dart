@@ -35,10 +35,7 @@ class CategoryTile extends StatelessWidget {
     return GestureDetector(
       onTap: () => context.pushNamed(
         AppRoutes.productsName,
-        queryParameters: {
-          'categoryId': category.id,
-          'title': category.name,
-        },
+        queryParameters: {'categoryId': category.id, 'title': category.name},
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

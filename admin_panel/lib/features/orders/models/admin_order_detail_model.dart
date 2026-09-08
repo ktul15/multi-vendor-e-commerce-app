@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../../dashboard/models/dashboard_json_parsers.dart';
+
 class AdminOrderDetailModel extends Equatable {
   final String id;
   final String orderNumber;
@@ -36,10 +38,10 @@ class AdminOrderDetailModel extends Equatable {
     return AdminOrderDetailModel(
       id: json['id'] as String,
       orderNumber: json['orderNumber'] as String,
-      subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0.0,
-      discount: (json['discount'] as num?)?.toDouble() ?? 0.0,
-      tax: (json['tax'] as num?)?.toDouble() ?? 0.0,
-      total: (json['total'] as num?)?.toDouble() ?? 0.0,
+      subtotal: readDashboardDouble(json['subtotal']),
+      discount: readDashboardDouble(json['discount']),
+      tax: readDashboardDouble(json['tax']),
+      total: readDashboardDouble(json['total']),
       notes: json['notes'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
       customer: AdminOrderCustomerModel.fromJson(user),
@@ -48,35 +50,38 @@ class AdminOrderDetailModel extends Equatable {
           .toList(),
       address: json['address'] != null
           ? AdminOrderAddressModel.fromJson(
-              json['address'] as Map<String, dynamic>)
+              json['address'] as Map<String, dynamic>,
+            )
           : null,
       payment: json['payment'] != null
           ? AdminOrderPaymentModel.fromJson(
-              json['payment'] as Map<String, dynamic>)
+              json['payment'] as Map<String, dynamic>,
+            )
           : null,
       promoCode: json['promoCode'] != null
           ? AdminOrderPromoModel.fromJson(
-              json['promoCode'] as Map<String, dynamic>)
+              json['promoCode'] as Map<String, dynamic>,
+            )
           : null,
     );
   }
 
   @override
   List<Object?> get props => [
-        id,
-        orderNumber,
-        subtotal,
-        discount,
-        tax,
-        total,
-        notes,
-        createdAt,
-        customer,
-        vendorOrders,
-        address,
-        payment,
-        promoCode,
-      ];
+    id,
+    orderNumber,
+    subtotal,
+    discount,
+    tax,
+    total,
+    notes,
+    createdAt,
+    customer,
+    vendorOrders,
+    address,
+    payment,
+    promoCode,
+  ];
 }
 
 class AdminOrderCustomerModel extends Equatable {
@@ -131,7 +136,7 @@ class AdminVendorOrderModel extends Equatable {
     return AdminVendorOrderModel(
       id: json['id'] as String,
       status: json['status'] as String? ?? 'PENDING',
-      subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0.0,
+      subtotal: readDashboardDouble(json['subtotal']),
       vendorId: json['vendorId'] as String? ?? '',
       storeName: vendorProfile['storeName'] as String? ?? 'Unknown Store',
       trackingNumber: json['trackingNumber'] as String?,
@@ -143,8 +148,16 @@ class AdminVendorOrderModel extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [id, status, subtotal, vendorId, storeName, trackingNumber, trackingCarrier, items];
+  List<Object?> get props => [
+    id,
+    status,
+    subtotal,
+    vendorId,
+    storeName,
+    trackingNumber,
+    trackingCarrier,
+    items,
+  ];
 }
 
 class AdminOrderItemModel extends Equatable {
@@ -181,16 +194,25 @@ class AdminOrderItemModel extends Equatable {
       sku: variant['sku'] as String? ?? '',
       size: variant['size'] as String?,
       color: variant['color'] as String?,
-      price: (json['unitPrice'] as num?)?.toDouble() ?? 0.0,
+      price: readDashboardDouble(json['unitPrice']),
       quantity: json['quantity'] as int? ?? 1,
-      subtotal: (json['totalPrice'] as num?)?.toDouble() ?? 0.0,
+      subtotal: readDashboardDouble(json['totalPrice']),
       imageUrl: images.isNotEmpty ? images.first as String? : null,
     );
   }
 
   @override
-  List<Object?> get props =>
-      [id, productName, sku, size, color, price, quantity, subtotal, imageUrl];
+  List<Object?> get props => [
+    id,
+    productName,
+    sku,
+    size,
+    color,
+    price,
+    quantity,
+    subtotal,
+    imageUrl,
+  ];
 }
 
 class AdminOrderAddressModel extends Equatable {
@@ -262,7 +284,7 @@ class AdminOrderPromoModel extends Equatable {
     return AdminOrderPromoModel(
       code: json['code'] as String? ?? '',
       discountType: json['discountType'] as String? ?? '',
-      discountValue: (json['discountValue'] as num?)?.toDouble() ?? 0.0,
+      discountValue: readDashboardDouble(json['discountValue']),
     );
   }
 

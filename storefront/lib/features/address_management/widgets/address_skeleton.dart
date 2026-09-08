@@ -14,7 +14,8 @@ class AddressSkeleton extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.base),
       physics: const NeverScrollableScrollPhysics(),
       itemCount: 3,
-      separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.md),
+      separatorBuilder: (context, index) =>
+          const SizedBox(height: AppSpacing.md),
       itemBuilder: (context, index) => const _AddressCardSkeleton(),
     );
   }

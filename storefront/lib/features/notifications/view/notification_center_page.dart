@@ -91,7 +91,8 @@ class _NotificationCenterPageState extends State<NotificationCenterPage> {
               child: ListView.separated(
                 controller: _scrollController,
                 itemCount:
-                    loaded.notifications.length + (loaded.isLoadingMore ? 1 : 0),
+                    loaded.notifications.length +
+                    (loaded.isLoadingMore ? 1 : 0),
                 separatorBuilder: (_, _) =>
                     const Divider(height: 1, indent: AppSpacing.base),
                 itemBuilder: (context, index) {
@@ -106,9 +107,9 @@ class _NotificationCenterPageState extends State<NotificationCenterPage> {
                   return NotificationTile(
                     notification: notification,
                     onTap: () {
-                      context
-                          .read<NotificationCubit>()
-                          .markAsRead(notification.id);
+                      context.read<NotificationCubit>().markAsRead(
+                        notification.id,
+                      );
 
                       // Deep-link to order detail if data contains orderId
                       final orderId = notification.data?['orderId'] as String?;

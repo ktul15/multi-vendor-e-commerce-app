@@ -43,13 +43,15 @@ class _CheckoutView extends StatelessWidget {
       },
       builder: (context, state) {
         return switch (state) {
-          CheckoutAddressesLoading() => const _LoadingScaffold(title: 'Checkout'),
+          CheckoutAddressesLoading() => const _LoadingScaffold(
+            title: 'Checkout',
+          ),
           CheckoutAddressStep() => _AddressStepBody(state: state),
           CheckoutSummaryStep() => _SummaryStepBody(state: state),
           CheckoutPaymentInProgress() => const _LoadingScaffold(
-              title: 'Processing',
-              message: 'Processing your payment…',
-            ),
+            title: 'Processing',
+            message: 'Processing your payment…',
+          ),
           // Navigation is handled by the listener; render nothing for one frame.
           CheckoutSuccess() => const SizedBox.shrink(),
           CheckoutError() => _ErrorBody(state: state),
@@ -87,7 +89,9 @@ class _AddressStepBody extends StatelessWidget {
           if (state.error != null)
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.base,
+                ),
                 child: Container(
                   padding: const EdgeInsets.all(AppSpacing.sm),
                   decoration: BoxDecoration(
@@ -96,62 +100,65 @@ class _AddressStepBody extends StatelessWidget {
                   ),
                   child: Text(
                     state.error!,
-                    style: AppTextStyles.caption
-                        .copyWith(color: AppColors.error),
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.error,
+                    ),
                   ),
                 ),
               ),
             ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  TextButton.icon(
+                    onPressed: () => _openAddForm(context),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add new address'),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      await context.push(AppRoutes.addresses);
+                      // Reload addresses so any additions/edits made on the
+                      // management screen appear here without restarting checkout.
+                      if (context.mounted) {
+                        context.read<CheckoutBloc>().add(
+                          const CheckoutStarted(),
+                        );
+                      }
+                    },
+                    child: const Text('Manage saved addresses →'),
+                  ),
+                ],
+              ),
+            ),
+          ),
           if (state.addresses.isEmpty)
             const SliverFillRemaining(
+              hasScrollBody: false,
               child: Center(
                 child: Text(
-                  'No addresses yet.\nTap + to add one.',
+                  'No addresses yet.\nUse Add new address above to add one.',
                   textAlign: TextAlign.center,
                 ),
               ),
             )
           else
             SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (ctx, i) {
-                  final addr = state.addresses[i];
-                  return AddressListTile(
-                    address: addr,
-                    isSelected: state.selectedAddress?.id == addr.id,
-                    onTap: () => ctx
-                        .read<CheckoutBloc>()
-                        .add(CheckoutAddressSelected(addr)),
-                  );
-                },
-                childCount: state.addresses.length,
-              ),
+              delegate: SliverChildBuilderDelegate((ctx, i) {
+                final addr = state.addresses[i];
+                return AddressListTile(
+                  address: addr,
+                  isSelected: state.selectedAddress?.id == addr.id,
+                  onTap: () => ctx.read<CheckoutBloc>().add(
+                    CheckoutAddressSelected(addr),
+                  ),
+                );
+              }, childCount: state.addresses.length),
             ),
-          SliverToBoxAdapter(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                TextButton.icon(
-                  onPressed: () => _openAddForm(context),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add new address'),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    await context.push(AppRoutes.addresses);
-                    // Reload addresses so any additions/edits made on the
-                    // management screen appear here without restarting checkout.
-                    if (context.mounted) {
-                      context
-                          .read<CheckoutBloc>()
-                          .add(const CheckoutStarted());
-                    }
-                  },
-                  child: const Text('Manage saved addresses →'),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
       bottomNavigationBar: SafeArea(
@@ -165,12 +172,11 @@ class _AddressStepBody extends StatelessWidget {
           child: ElevatedButton(
             onPressed: state.selectedAddress == null || state.isAddingAddress
                 ? null
-                : () => context
-                    .read<CheckoutBloc>()
-                    .add(const CheckoutProceedToSummary()),
+                : () => context.read<CheckoutBloc>().add(
+                    const CheckoutProceedToSummary(),
+                  ),
             style: ElevatedButton.styleFrom(
-              padding:
-                  const EdgeInsets.symmetric(vertical: AppSpacing.md),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
             ),
             child: state.isAddingAddress
                 ? const SizedBox(
@@ -214,9 +220,7 @@ class _SummaryStepBody extends StatelessWidget {
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) {
-          context
-              .read<CheckoutBloc>()
-              .add(const CheckoutBackToAddress());
+          context.read<CheckoutBloc>().add(const CheckoutBackToAddress());
         }
       },
       child: Scaffold(
@@ -224,9 +228,8 @@ class _SummaryStepBody extends StatelessWidget {
         appBar: AppBar(
           title: const Text('Checkout'),
           leading: BackButton(
-            onPressed: () => context
-                .read<CheckoutBloc>()
-                .add(const CheckoutBackToAddress()),
+            onPressed: () =>
+                context.read<CheckoutBloc>().add(const CheckoutBackToAddress()),
           ),
         ),
         body: CustomScrollView(
@@ -258,9 +261,7 @@ class _SummaryStepBody extends StatelessWidget {
                 child: Text('Your Items', style: AppTextStyles.h5),
               ),
             ),
-            SliverToBoxAdapter(
-              child: OrderSummarySection(cart: state.cart),
-            ),
+            SliverToBoxAdapter(child: OrderSummarySection(cart: state.cart)),
             // Price summary
             SliverToBoxAdapter(
               child: CheckoutPriceSummary(
@@ -278,8 +279,9 @@ class _SummaryStepBody extends StatelessWidget {
                   ),
                   child: Text(
                     'Prices confirmed at checkout. Discount subject to promo terms.',
-                    style: AppTextStyles.caption
-                        .copyWith(color: AppColors.textSecondary),
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -296,14 +298,13 @@ class _SummaryStepBody extends StatelessWidget {
               AppSpacing.base,
             ),
             child: ElevatedButton(
-              onPressed: () => context
-                  .read<CheckoutBloc>()
-                  .add(const CheckoutProceedToPayment()),
-              style: ElevatedButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(vertical: AppSpacing.md),
+              onPressed: () => context.read<CheckoutBloc>().add(
+                const CheckoutProceedToPayment(),
               ),
-              child: Text('Pay \$${total.toStringAsFixed(2)}'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+              ),
+              child: Text('Pay ₹${total.toStringAsFixed(2)}'),
             ),
           ),
         ),
@@ -330,8 +331,11 @@ class _DeliveryAddressCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.location_on_outlined,
-              color: AppColors.primary, size: 20),
+          const Icon(
+            Icons.location_on_outlined,
+            color: AppColors.primary,
+            size: 20,
+          ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(
@@ -339,19 +343,22 @@ class _DeliveryAddressCard extends StatelessWidget {
               children: [
                 Text(
                   'Delivering to',
-                  style: AppTextStyles.caption
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   address.fullName,
-                  style: AppTextStyles.body
-                      .copyWith(fontWeight: FontWeight.w600),
+                  style: AppTextStyles.body.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 Text(
                   address.singleLine,
-                  style: AppTextStyles.caption
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -408,22 +415,21 @@ class _ErrorBody extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline,
-                  size: 64, color: AppColors.error),
+              const Icon(Icons.error_outline, size: 64, color: AppColors.error),
               const SizedBox(height: AppSpacing.base),
               Text('Something went wrong', style: AppTextStyles.h5),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 state.message,
-                style: AppTextStyles.body
-                    .copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.body.copyWith(
+                  color: AppColors.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.xl),
               ElevatedButton(
-                onPressed: () => context
-                    .read<CheckoutBloc>()
-                    .add(const CheckoutRetried()),
+                onPressed: () =>
+                    context.read<CheckoutBloc>().add(const CheckoutRetried()),
                 child: const Text('Retry'),
               ),
             ],

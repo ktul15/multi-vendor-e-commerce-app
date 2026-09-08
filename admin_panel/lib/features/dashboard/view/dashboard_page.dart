@@ -15,8 +15,8 @@ import '../widgets/revenue_chart.dart';
 import '../widgets/stat_card.dart';
 
 final _currencyFormat = NumberFormat.currency(
-  locale: 'en_US',
-  symbol: '\$',
+  locale: 'en_IN',
+  symbol: '₹',
   decimalDigits: 2,
 );
 

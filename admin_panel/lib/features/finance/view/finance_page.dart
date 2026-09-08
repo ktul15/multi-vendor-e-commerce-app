@@ -13,7 +13,7 @@ import '../bloc/finance_state.dart';
 import '../models/commission_model.dart';
 import '../widgets/finance_skeleton.dart';
 
-final _currencyFormat = NumberFormat.currency(symbol: '\$');
+final _currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
 
 class FinancePage extends StatefulWidget {
   const FinancePage({super.key});
@@ -33,26 +33,25 @@ class _FinancePageState extends State<FinancePage> {
           : null,
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: Theme.of(context)
-              .colorScheme
-              .copyWith(primary: AppColors.primary),
+          colorScheme: Theme.of(
+            context,
+          ).colorScheme.copyWith(primary: AppColors.primary),
         ),
         child: child!,
       ),
     );
     if (picked != null && mounted) {
-      await context
-          .read<FinanceCubit>()
-          .applyDateRange(picked.start, picked.end);
+      await context.read<FinanceCubit>().applyDateRange(
+        picked.start,
+        picked.end,
+      );
     }
   }
 
-  Future<void> _showEditDialog(
-    BuildContext context,
-    double currentRate,
-  ) async {
-    final controller =
-        TextEditingController(text: currentRate.toStringAsFixed(2));
+  Future<void> _showEditDialog(BuildContext context, double currentRate) async {
+    final controller = TextEditingController(
+      text: currentRate.toStringAsFixed(2),
+    );
     String? errorText;
 
     await showDialog<void>(
@@ -64,8 +63,9 @@ class _FinancePageState extends State<FinancePage> {
               title: const Text('Edit Commission Rate'),
               content: TextField(
                 controller: controller,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 decoration: InputDecoration(
                   label: const Text('Rate'),
                   suffixText: '%',
@@ -109,11 +109,14 @@ class _FinancePageState extends State<FinancePage> {
     return BlocConsumer<FinanceCubit, FinanceState>(
       listenWhen: (prev, curr) {
         if (curr is FinanceLoaded && prev is FinanceLoaded) {
-          final newRevenueError = curr.revenueError != null &&
+          final newRevenueError =
+              curr.revenueError != null &&
               curr.revenueError != prev.revenueError;
-          final newCommissionError = curr.commissionError != null &&
+          final newCommissionError =
+              curr.commissionError != null &&
               curr.commissionError != prev.commissionError;
-          final newSuccess = curr.commissionSuccess != null &&
+          final newSuccess =
+              curr.commissionSuccess != null &&
               curr.commissionSuccess != prev.commissionSuccess;
           return newRevenueError || newCommissionError || newSuccess;
         }
@@ -141,35 +144,38 @@ class _FinancePageState extends State<FinancePage> {
             elevation: 0,
             scrolledUnderElevation: 1,
             title: const Text('Finance'),
-            titleTextStyle:
-                AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
+            titleTextStyle: AppTextStyles.h5.copyWith(
+              color: AppColors.textPrimary,
+            ),
           ),
           body: switch (state) {
-            FinanceInitial() ||
-            FinanceLoading() =>
-              const SkeletonContainer(child: FinanceSkeleton()),
+            FinanceInitial() || FinanceLoading() => const SkeletonContainer(
+              child: FinanceSkeleton(),
+            ),
             FinanceError(:final message) => ErrorState(
-                message: message,
-                onRetry: () => context.read<FinanceCubit>().load(),
-              ),
+              message: message,
+              onRetry: () => context.read<FinanceCubit>().load(),
+            ),
             FinanceLoaded() => _FinanceBody(
-                state: state,
-                onShowDatePicker: () => _showDateRangePicker(state),
-                onEditCommission: (rate) => _showEditDialog(context, rate),
-              ),
+              state: state,
+              onShowDatePicker: () => _showDateRangePicker(state),
+              onEditCommission: (rate) => _showEditDialog(context, rate),
+            ),
           },
         );
       },
     );
   }
 
-  void _showSnackBar(BuildContext context, String message,
-      {required bool isError}) {
+  void _showSnackBar(
+    BuildContext context,
+    String message, {
+    required bool isError,
+  }) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor:
-            isError ? AppColors.error : AppColors.success,
+        backgroundColor: isError ? AppColors.error : AppColors.success,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -275,8 +281,9 @@ class _DateRangeBar extends StatelessWidget {
           icon: const Icon(Icons.date_range_rounded, size: 18),
           label: Text(_dateRangeLabel()),
           style: OutlinedButton.styleFrom(
-            foregroundColor:
-                hasDateFilter ? AppColors.primary : AppColors.textSecondary,
+            foregroundColor: hasDateFilter
+                ? AppColors.primary
+                : AppColors.textSecondary,
             side: BorderSide(
               color: hasDateFilter ? AppColors.primary : AppColors.border,
             ),
@@ -321,10 +328,8 @@ class _RevenueSummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalRevenue =
-        revenue.series.fold(0.0, (sum, p) => sum + p.revenue);
-    final totalOrders =
-        revenue.series.fold(0, (sum, p) => sum + p.orderCount);
+    final totalRevenue = revenue.series.fold(0.0, (sum, p) => sum + p.revenue);
+    final totalOrders = revenue.series.fold(0, (sum, p) => sum + p.orderCount);
 
     return Row(
       children: [
@@ -390,12 +395,15 @@ class _SummaryTile extends StatelessWidget {
               children: [
                 Text(
                   value,
-                  style: AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
+                  style: AppTextStyles.h5.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 Text(
                   label,
-                  style: AppTextStyles.caption
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -445,20 +453,23 @@ class _CommissionCard extends StatelessWidget {
                   children: [
                     Text(
                       'Platform Commission Rate',
-                      style: AppTextStyles.body
-                          .copyWith(color: AppColors.textSecondary),
+                      style: AppTextStyles.body.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '${commission.rate.toStringAsFixed(2)}%',
-                      style: AppTextStyles.h3
-                          .copyWith(color: AppColors.primary),
+                      style: AppTextStyles.h3.copyWith(
+                        color: AppColors.primary,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       sourceLabel,
-                      style: AppTextStyles.caption
-                          .copyWith(color: AppColors.textSecondary),
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -485,4 +496,3 @@ class _CommissionCard extends StatelessWidget {
     );
   }
 }
-

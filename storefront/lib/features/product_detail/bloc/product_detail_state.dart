@@ -23,10 +23,7 @@ class ProductDetailLoaded extends ProductDetailState {
   final ProductModel product;
   final VariantModel? selectedVariant;
 
-  const ProductDetailLoaded({
-    required this.product,
-    this.selectedVariant,
-  });
+  const ProductDetailLoaded({required this.product, this.selectedVariant});
 
   /// Price to show — selected variant's price, or the product's lowest price.
   double get displayPrice => selectedVariant?.price ?? product.displayPrice;
@@ -44,8 +41,9 @@ class ProductDetailLoaded extends ProductDetailState {
   }) {
     return ProductDetailLoaded(
       product: product ?? this.product,
-      selectedVariant:
-          clearVariant ? null : (selectedVariant ?? this.selectedVariant),
+      selectedVariant: clearVariant
+          ? null
+          : (selectedVariant ?? this.selectedVariant),
     );
   }
 

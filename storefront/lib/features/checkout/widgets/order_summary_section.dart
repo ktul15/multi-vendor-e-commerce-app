@@ -41,8 +41,11 @@ class _VendorGroup extends StatelessWidget {
           ),
           child: Row(
             children: [
-              const Icon(Icons.storefront_outlined,
-                  size: 16, color: AppColors.textSecondary),
+              const Icon(
+                Icons.storefront_outlined,
+                size: 16,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(width: AppSpacing.xs),
               Text(
                 group.vendorName ?? 'Vendor',
@@ -96,16 +99,18 @@ class _OrderItemRow extends StatelessWidget {
               children: [
                 Text(
                   item.productName,
-                  style: AppTextStyles.body
-                      .copyWith(fontWeight: FontWeight.w500),
+                  style: AppTextStyles.body.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   item.variantLabel,
-                  style: AppTextStyles.caption
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -116,14 +121,14 @@ class _OrderItemRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '\$${item.lineTotal.toStringAsFixed(2)}',
-                style: AppTextStyles.body
-                    .copyWith(fontWeight: FontWeight.w600),
+                '₹${item.lineTotal.toStringAsFixed(2)}',
+                style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
               ),
               Text(
                 'x${item.quantity}',
-                style: AppTextStyles.caption
-                    .copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
             ],
           ),
@@ -137,8 +142,11 @@ class _OrderItemRow extends StatelessWidget {
       width: _kItemThumbnailSize,
       height: _kItemThumbnailSize,
       color: AppColors.divider,
-      child: const Icon(Icons.image_outlined,
-          color: AppColors.textSecondary, size: 24),
+      child: const Icon(
+        Icons.image_outlined,
+        color: AppColors.textSecondary,
+        size: 24,
+      ),
     );
   }
 }

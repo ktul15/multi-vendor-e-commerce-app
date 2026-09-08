@@ -17,11 +17,7 @@ class OrdersLoaded extends OrdersState {
   final String? activeStatus;
   final int total;
 
-  const OrdersLoaded(
-    this.orders, {
-    this.activeStatus,
-    this.total = 0,
-  });
+  const OrdersLoaded(this.orders, {this.activeStatus, this.total = 0});
 
   @override
   List<Object?> get props => [orders, activeStatus, total];

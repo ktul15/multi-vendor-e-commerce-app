@@ -1,0 +1,19 @@
+{
+  "name": "@repo/observability",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src test vitest.config.ts",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run",
+    "clean": "rm -rf .turbo *.tsbuildinfo"
+  },
+  "devDependencies": {
+    "vitest": "4.1.10"
+  }
+}

@@ -1,19 +1,53 @@
 import 'package:bloc_test/bloc_test.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:storefront/core/config/injection_container.dart';
+import 'package:storefront/core/network/api_exception.dart';
+import 'package:storefront/core/services/push_notification_service.dart';
+import 'package:storefront/features/notifications/bloc/notification_cubit.dart';
 import 'package:storefront/repositories/auth_repository.dart';
 import 'package:storefront/features/auth/bloc/auth_bloc.dart';
 import 'package:storefront/features/auth/bloc/auth_event.dart';
 import 'package:storefront/features/auth/bloc/auth_state.dart';
+import 'package:storefront/features/wishlist/bloc/wishlist_cubit.dart';
 
 class MockAuthRepository extends Mock implements AuthRepository {}
 
+class MockPushNotificationService extends Mock
+    implements PushNotificationService {}
+
+class MockNotificationCubit extends Mock implements NotificationCubit {}
+
+class MockWishlistCubit extends Mock implements WishlistCubit {}
+
 void main() {
   late MockAuthRepository mockAuthRepository;
+  late MockPushNotificationService mockPushNotificationService;
+  late MockNotificationCubit mockNotificationCubit;
+  late MockWishlistCubit mockWishlistCubit;
 
-  setUp(() {
+  setUp(() async {
+    await sl.reset();
     mockAuthRepository = MockAuthRepository();
+    mockPushNotificationService = MockPushNotificationService();
+    mockNotificationCubit = MockNotificationCubit();
+    mockWishlistCubit = MockWishlistCubit();
+
+    when(
+      () => mockPushNotificationService.initialize(),
+    ).thenAnswer((_) async {});
+    when(() => mockNotificationCubit.init()).thenAnswer((_) async {});
+    when(() => mockWishlistCubit.loadWishlist()).thenAnswer((_) async {});
+
+    sl.registerLazySingleton<PushNotificationService>(
+      () => mockPushNotificationService,
+    );
+    sl.registerLazySingleton<NotificationCubit>(() => mockNotificationCubit);
+    sl.registerLazySingleton<WishlistCubit>(() => mockWishlistCubit);
+  });
+
+  tearDown(() async {
+    await sl.reset();
   });
 
   group('AuthBloc', () {
@@ -58,7 +92,7 @@ void main() {
         ).thenAnswer((_) async => true);
         when(
           () => mockAuthRepository.getProfile(),
-        ).thenThrow(DioException(requestOptions: RequestOptions()));
+        ).thenThrow(const ApiException('Unauthorized', statusCode: 401));
         return AuthBloc(authRepository: mockAuthRepository);
       },
       act: (bloc) => bloc.add(AuthCheckRequested()),
@@ -109,12 +143,7 @@ void main() {
             email: any(named: 'email'),
             password: any(named: 'password'),
           ),
-        ).thenThrow(
-          DioException(
-            requestOptions: RequestOptions(),
-            message: 'Invalid credentials',
-          ),
-        );
+        ).thenThrow(const ApiException('Invalid credentials', statusCode: 401));
         return AuthBloc(authRepository: mockAuthRepository);
       },
       act: (bloc) => bloc.add(
@@ -175,10 +204,7 @@ void main() {
             password: any(named: 'password'),
           ),
         ).thenThrow(
-          DioException(
-            requestOptions: RequestOptions(),
-            message: 'Email already exists',
-          ),
+          const ApiException('Email already exists', statusCode: 409),
         );
         return AuthBloc(authRepository: mockAuthRepository);
       },
@@ -212,6 +238,16 @@ void main() {
       verify: (_) {
         verify(() => mockAuthRepository.logout()).called(1);
       },
+    );
+
+    blocTest<AuthBloc, AuthState>(
+      'emits [AuthUnauthenticated] when the API session expires',
+      build: () => AuthBloc(authRepository: mockAuthRepository),
+      seed: () =>
+          const AuthAuthenticated(user: {'id': '1', 'email': 'test@test.com'}),
+      act: (bloc) => bloc.add(AuthSessionExpired()),
+      expect: () => [isA<AuthUnauthenticated>()],
+      verify: (_) => verifyNever(() => mockAuthRepository.logout()),
     );
   });
 }

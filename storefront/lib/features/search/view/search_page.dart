@@ -106,18 +106,18 @@ class _SearchViewState extends State<_SearchView> {
       body: BlocBuilder<SearchCubit, SearchState>(
         builder: (context, state) => switch (state) {
           SearchIdle(:final recentSearches) => _IdleView(
-              recentSearches: recentSearches,
-              onRecentTap: _onRecentTap,
-            ),
+            recentSearches: recentSearches,
+            onRecentTap: _onRecentTap,
+          ),
           SearchLoading() => const _LoadingView(),
           SearchLoaded() => _ResultsView(
-              state: state,
-              scrollController: _scrollController,
-            ),
+            state: state,
+            scrollController: _scrollController,
+          ),
           SearchError(:final query, :final message) => _ErrorView(
-              query: query,
-              message: message,
-            ),
+            query: query,
+            message: message,
+          ),
         },
       ),
     );
@@ -160,8 +160,9 @@ class _SearchBar extends StatelessWidget implements PreferredSizeWidget {
         style: AppTextStyles.body.copyWith(color: AppColors.textPrimary),
         decoration: InputDecoration(
           hintText: 'Search products…',
-          hintStyle:
-              AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+          hintStyle: AppTextStyles.body.copyWith(
+            color: AppColors.textSecondary,
+          ),
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,
@@ -192,10 +193,7 @@ class _IdleView extends StatelessWidget {
   final List<String> recentSearches;
   final ValueChanged<String> onRecentTap;
 
-  const _IdleView({
-    required this.recentSearches,
-    required this.onRecentTap,
-  });
+  const _IdleView({required this.recentSearches, required this.onRecentTap});
 
   @override
   Widget build(BuildContext context) {
@@ -212,14 +210,14 @@ class _IdleView extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             Text(
               'Search for products',
-              style:
-                  AppTextStyles.h5.copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.h5.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
               'Start typing to find what you\'re looking for',
-              style:
-                  AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.body.copyWith(
+                color: AppColors.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -357,8 +355,9 @@ class _ResultsView extends StatelessWidget {
           ),
           child: Text(
             '${state.total} result${state.total == 1 ? '' : 's'} for "${state.query}"',
-            style:
-                AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
         ),
         Expanded(
@@ -413,12 +412,12 @@ class _EmptyResults extends StatelessWidget {
           Text('No results found', style: AppTextStyles.h5),
           const SizedBox(height: AppSpacing.xs),
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
             child: Text(
               'We couldn\'t find anything for "$query".\nTry different keywords.',
-              style:
-                  AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.body.copyWith(
+                color: AppColors.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
           ),
@@ -454,8 +453,9 @@ class _ErrorView extends StatelessWidget {
             const SizedBox(height: AppSpacing.xs),
             Text(
               message,
-              style:
-                  AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.body.copyWith(
+                color: AppColors.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.xl),

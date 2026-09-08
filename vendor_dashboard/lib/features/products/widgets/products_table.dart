@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/product.dart';
+import '../../../shared/widgets/overflow_safe_text.dart';
 
 class ProductsTable extends StatelessWidget {
   const ProductsTable({
@@ -42,10 +43,10 @@ class ProductsTable extends StatelessWidget {
               DataCell(
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 200),
-                  child: Text(p.name, overflow: TextOverflow.ellipsis),
+                  child: SingleLineText(p.name),
                 ),
               ),
-              DataCell(Text('\$${p.basePrice.toStringAsFixed(2)}')),
+              DataCell(Text('₹${p.basePrice.toStringAsFixed(2)}')),
               DataCell(Text(p.variants.length.toString())),
               DataCell(_StatusBadge(isActive: p.isActive)),
               DataCell(

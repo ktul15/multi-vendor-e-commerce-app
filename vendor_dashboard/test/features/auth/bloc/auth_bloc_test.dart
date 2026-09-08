@@ -115,6 +115,108 @@ void main() {
       ],
     );
 
+    blocTest<AuthBloc, AuthState>(
+      'emits a server unavailable message when login cannot reach the backend',
+      build: () {
+        when(
+          () => mockAuthRepository.login(
+            email: any(named: 'email'),
+            password: any(named: 'password'),
+          ),
+        ).thenThrow(
+          DioException(
+            requestOptions: RequestOptions(path: '/auth/login'),
+            type: DioExceptionType.connectionError,
+            message:
+                'The connection errored: Connection refused. This indicates an error which most likely cannot be solved by the library.',
+          ),
+        );
+        return AuthBloc(authRepository: mockAuthRepository);
+      },
+      act: (bloc) => bloc.add(
+        const AuthLoginRequested(
+          email: 'vendor@test.com',
+          password: 'password123',
+        ),
+      ),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthError>().having(
+          (e) => e.message,
+          'message',
+          'The server is currently unavailable. Please try again later.',
+        ),
+      ],
+    );
+
+    // ── AuthRegisterRequested ────────────────
+
+    blocTest<AuthBloc, AuthState>(
+      'emits [AuthLoading, AuthAuthenticated] on successful vendor registration',
+      build: () {
+        when(
+          () => mockAuthRepository.registerVendor(
+            name: any(named: 'name'),
+            email: any(named: 'email'),
+            password: any(named: 'password'),
+            storeName: any(named: 'storeName'),
+          ),
+        ).thenAnswer(
+          (_) async => {'id': '1', 'name': 'Vendor', 'role': 'VENDOR'},
+        );
+        return AuthBloc(authRepository: mockAuthRepository);
+      },
+      act: (bloc) => bloc.add(
+        const AuthRegisterRequested(
+          name: 'Vendor Owner',
+          email: 'vendor@test.com',
+          password: 'password123',
+          storeName: 'QA Store',
+        ),
+      ),
+      expect: () => [isA<AuthLoading>(), isA<AuthAuthenticated>()],
+    );
+
+    blocTest<AuthBloc, AuthState>(
+      'emits [AuthLoading, AuthError] on vendor registration failure',
+      build: () {
+        when(
+          () => mockAuthRepository.registerVendor(
+            name: any(named: 'name'),
+            email: any(named: 'email'),
+            password: any(named: 'password'),
+            storeName: any(named: 'storeName'),
+          ),
+        ).thenThrow(
+          DioException(
+            requestOptions: RequestOptions(),
+            response: Response(
+              requestOptions: RequestOptions(),
+              statusCode: 409,
+              data: {'message': 'Email is already registered'},
+            ),
+          ),
+        );
+        return AuthBloc(authRepository: mockAuthRepository);
+      },
+      act: (bloc) => bloc.add(
+        const AuthRegisterRequested(
+          name: 'Vendor Owner',
+          email: 'vendor@test.com',
+          password: 'password123',
+          storeName: 'QA Store',
+        ),
+      ),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthError>().having(
+          (e) => e.message,
+          'message',
+          'Email is already registered',
+        ),
+      ],
+    );
+
     // ── AuthLogoutRequested ───────────────────
 
     blocTest<AuthBloc, AuthState>(

@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'dashboard_json_parsers.dart';
 
 class AdminStatsModel extends Equatable {
   final int totalUsers;
@@ -21,15 +22,13 @@ class AdminStatsModel extends Equatable {
 
   factory AdminStatsModel.fromJson(Map<String, dynamic> json) {
     return AdminStatsModel(
-      totalUsers: json['totalUsers'] as int,
-      bannedUsers: json['bannedUsers'] as int,
-      totalVendors: json['totalVendors'] as int,
-      pendingVendors: json['pendingVendors'] as int,
-      totalProducts: json['totalProducts'] as int,
-      totalOrders: json['totalOrders'] as int,
-      platformRevenue: json['platformRevenue'] is String
-          ? double.tryParse(json['platformRevenue'] as String) ?? 0.0
-          : (json['platformRevenue'] as num?)?.toDouble() ?? 0.0,
+      totalUsers: readDashboardInt(json['totalUsers']),
+      bannedUsers: readDashboardInt(json['bannedUsers']),
+      totalVendors: readDashboardInt(json['totalVendors']),
+      pendingVendors: readDashboardInt(json['pendingVendors']),
+      totalProducts: readDashboardInt(json['totalProducts']),
+      totalOrders: readDashboardInt(json['totalOrders']),
+      platformRevenue: readDashboardDouble(json['platformRevenue']),
     );
   }
 

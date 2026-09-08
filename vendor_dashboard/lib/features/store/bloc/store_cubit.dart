@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/network/error_messages.dart';
 import '../../../repositories/vendor_profile_repository.dart';
 import 'store_state.dart';
 
@@ -6,8 +7,8 @@ class StoreCubit extends Cubit<StoreState> {
   final VendorProfileRepository _profileRepository;
 
   StoreCubit({required VendorProfileRepository profileRepository})
-      : _profileRepository = profileRepository,
-        super(StoreInitial());
+    : _profileRepository = profileRepository,
+      super(StoreInitial());
 
   Future<void> load() async {
     emit(StoreLoading());
@@ -15,7 +16,7 @@ class StoreCubit extends Cubit<StoreState> {
       final profile = await _profileRepository.getProfile();
       emit(StoreLoaded(profile));
     } catch (e) {
-      emit(StoreError(e.toString()));
+      emit(StoreError(userFacingErrorMessage(e)));
     }
   }
 
@@ -33,7 +34,7 @@ class StoreCubit extends Cubit<StoreState> {
       emit(StoreSaved(updated));
       emit(StoreLoaded(updated));
     } catch (e) {
-      emit(StoreError(e.toString()));
+      emit(StoreError(userFacingErrorMessage(e)));
     }
   }
 }

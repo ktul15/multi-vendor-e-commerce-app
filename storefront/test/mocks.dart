@@ -1,7 +1,9 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:storefront/core/network/http_client.dart';
+import 'package:storefront/core/network/token_storage.dart';
 import 'package:storefront/core/stripe/stripe_service.dart';
+import 'package:storefront/core/payment/checkout_payment_service.dart';
 import 'package:storefront/features/auth/bloc/auth_bloc.dart';
 import 'package:storefront/features/auth/bloc/auth_event.dart';
 import 'package:storefront/features/auth/bloc/auth_state.dart';
@@ -13,7 +15,12 @@ import 'package:storefront/repositories/order_repository.dart';
 
 class MockHttpClient extends Mock implements HttpClient {}
 
+class MockTokenStorage extends Mock implements TokenStorage {}
+
 class MockStripeService extends Mock implements StripeService {}
+
+class MockCheckoutPaymentService extends Mock
+    implements CheckoutPaymentService {}
 
 class MockAddressRepository extends Mock implements AddressRepository {}
 

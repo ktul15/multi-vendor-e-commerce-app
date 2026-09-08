@@ -1,8 +1,9 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../bloc/banner_cubit.dart';
 import '../bloc/banner_state.dart';
@@ -28,13 +29,15 @@ class _BannerFormPageState extends State<BannerFormPage> {
   late final TextEditingController _linkUrlController;
   late final TextEditingController _positionController;
 
-  // Picked file path (create) or null (keeping existing image on edit).
-  String? _pickedImagePath;
+  Uint8List? _pickedImageBytes;
+  String? _pickedImageName;
   // Existing image URL shown on edit form.
   String? _existingImageUrl;
   bool _isActive = true;
   bool _isSaving = false;
-  bool _formPopulated = false;
+  bool _loadStarted = false;
+  bool _isLoadingBanner = false;
+  String? _loadError;
   // True when the loaded banner had a non-empty linkUrl.
   // Used to detect when the user has cleared a previously-set link URL
   // so that clearLinkUrl: true is only sent when there was actually a URL to clear.
@@ -51,40 +54,50 @@ class _BannerFormPageState extends State<BannerFormPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_formPopulated || !widget.isEditing) return;
+    if (_loadStarted || !widget.isEditing) return;
+    _loadStarted = true;
+    _loadBannerForEdit();
+  }
 
+  Future<void> _loadBannerForEdit() async {
     final state = context.read<BannerCubit>().state;
-    if (state is BannerLoaded || state is BannerError) {
-      _loadFromState();
-    } else if (state is BannerInitial) {
-      context.read<BannerCubit>().load();
+    final localBanner = state is BannerLoaded
+        ? state.items.where((b) => b.id == widget.bannerId).firstOrNull
+        : null;
+    if (localBanner != null) {
+      _populateForm(localBanner);
+      return;
+    }
+
+    setState(() {
+      _isLoadingBanner = true;
+      _loadError = null;
+    });
+
+    try {
+      final banner = await context.read<BannerCubit>().getBannerById(
+        widget.bannerId!,
+      );
+      if (!mounted) return;
+      _populateForm(banner);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = e.statusCode == 404
+            ? 'This banner no longer exists or has been deleted.'
+            : e.message;
+        _isLoadingBanner = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = 'Something went wrong. Please try again.';
+        _isLoadingBanner = false;
+      });
     }
   }
 
-  void _loadFromState() {
-    final state = context.read<BannerCubit>().state;
-    if (state is BannerError) {
-      // Data failed to load — navigate back with an error so the user isn't
-      // stuck on a blank form with no feedback.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load banner: ${state.message}'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      });
-      return;
-    }
-    final items = switch (state) {
-      BannerLoaded() => state.items,
-      _ => <BannerModel>[],
-    };
-    final banner = items.where((b) => b.id == widget.bannerId).firstOrNull;
-    if (banner == null) return;
-
+  void _populateForm(BannerModel banner) {
     _titleController.text = banner.title;
     _linkUrlController.text = banner.linkUrl ?? '';
     _positionController.text = banner.position.toString();
@@ -92,7 +105,8 @@ class _BannerFormPageState extends State<BannerFormPage> {
       _existingImageUrl = banner.imageUrl;
       _isActive = banner.isActive;
       _hadLinkUrl = banner.linkUrl?.isNotEmpty == true;
-      _formPopulated = true;
+      _isLoadingBanner = false;
+      _loadError = null;
     });
   }
 
@@ -105,19 +119,34 @@ class _BannerFormPageState extends State<BannerFormPage> {
   }
 
   Future<void> _pickImage() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      allowMultiple: false,
-    );
-    if (result == null || result.files.single.path == null) return;
-    setState(() => _pickedImagePath = result.files.single.path!);
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp'],
+        allowMultiple: false,
+        withData: true,
+      );
+      if (result == null || result.files.single.bytes == null) return;
+      setState(() {
+        _pickedImageBytes = result.files.single.bytes!;
+        _pickedImageName = result.files.single.name;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to pick image: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   Future<void> _onSave() async {
     if (!_formKey.currentState!.validate()) return;
 
     // Create requires an image.
-    if (!widget.isEditing && _pickedImagePath == null) {
+    if (!widget.isEditing && _pickedImageBytes == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select a banner image'),
@@ -136,22 +165,24 @@ class _BannerFormPageState extends State<BannerFormPage> {
     String? error;
     if (widget.isEditing) {
       error = await context.read<BannerCubit>().updateBanner(
-            widget.bannerId!,
-            title: title,
-            imagePath: _pickedImagePath,
-            linkUrl: linkUrl.isEmpty ? null : linkUrl,
-            clearLinkUrl: _hadLinkUrl && linkUrl.isEmpty,
-            position: position,
-            isActive: _isActive,
-          );
+        widget.bannerId!,
+        title: title,
+        imageBytes: _pickedImageBytes,
+        imageFilename: _pickedImageName,
+        linkUrl: linkUrl.isEmpty ? null : linkUrl,
+        clearLinkUrl: _hadLinkUrl && linkUrl.isEmpty,
+        position: position,
+        isActive: _isActive,
+      );
     } else {
       error = await context.read<BannerCubit>().createBanner(
-            title: title,
-            imagePath: _pickedImagePath!,
-            linkUrl: linkUrl.isEmpty ? null : linkUrl,
-            position: position,
-            isActive: _isActive,
-          );
+        title: title,
+        imageBytes: _pickedImageBytes!,
+        imageFilename: _pickedImageName ?? 'banner-image',
+        linkUrl: linkUrl.isEmpty ? null : linkUrl,
+        position: position,
+        isActive: _isActive,
+      );
     }
 
     if (!mounted) return;
@@ -159,10 +190,7 @@ class _BannerFormPageState extends State<BannerFormPage> {
 
     if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error),
-          backgroundColor: AppColors.error,
-        ),
+        SnackBar(content: Text(error), backgroundColor: AppColors.error),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -186,12 +214,52 @@ class _BannerFormPageState extends State<BannerFormPage> {
         title: Text(widget.isEditing ? 'Edit Banner' : 'Add Banner'),
       ),
       body: BlocConsumer<BannerCubit, BannerState>(
-        listenWhen: (prev, next) =>
-            widget.isEditing &&
-            !_formPopulated &&
-            (next is BannerLoaded || next is BannerError),
-        listener: (context, state) => _loadFromState(),
+        listenWhen: (prev, next) => false,
+        listener: (context, state) {},
         builder: (context, state) {
+          if (_isLoadingBanner) {
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            );
+          }
+
+          if (_loadError != null) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.image_not_supported_outlined,
+                      size: 64,
+                      color: AppColors.textSecondary,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Banner unavailable',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _loadError!,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton.icon(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                      label: const Text('Back to banners'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Center(
@@ -236,14 +304,13 @@ class _BannerFormPageState extends State<BannerFormPage> {
                             widget.isEditing
                                 ? 'Banner Image (leave unchanged to keep current)'
                                 : 'Banner Image *',
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: AppColors.textSecondary,
-                                    ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: AppColors.textSecondary),
                           ),
                           const SizedBox(height: 8),
                           _ImagePickerSection(
-                            pickedPath: _pickedImagePath,
+                            pickedBytes: _pickedImageBytes,
+                            pickedName: _pickedImageName,
                             existingUrl: _existingImageUrl,
                             onPick: _pickImage,
                           ),
@@ -284,8 +351,12 @@ class _BannerFormPageState extends State<BannerFormPage> {
                             keyboardType: TextInputType.number,
                             validator: (v) {
                               if (v == null || v.trim().isEmpty) return null;
-                              if (int.tryParse(v.trim()) == null) {
+                              final position = int.tryParse(v.trim());
+                              if (position == null) {
                                 return 'Position must be a whole number';
+                              }
+                              if (position < 0) {
+                                return 'Position cannot be negative';
                               }
                               return null;
                             },
@@ -297,8 +368,7 @@ class _BannerFormPageState extends State<BannerFormPage> {
                             children: [
                               Switch(
                                 value: _isActive,
-                                onChanged: (v) =>
-                                    setState(() => _isActive = v),
+                                onChanged: (v) => setState(() => _isActive = v),
                               ),
                               const SizedBox(width: 8),
                               Text(
@@ -347,12 +417,14 @@ class _BannerFormPageState extends State<BannerFormPage> {
 // ── Image picker section ──────────────────────────────────────────────────────
 
 class _ImagePickerSection extends StatelessWidget {
-  final String? pickedPath;
+  final Uint8List? pickedBytes;
+  final String? pickedName;
   final String? existingUrl;
   final VoidCallback onPick;
 
   const _ImagePickerSection({
-    required this.pickedPath,
+    required this.pickedBytes,
+    required this.pickedName,
     required this.existingUrl,
     required this.onPick,
   });
@@ -363,44 +435,47 @@ class _ImagePickerSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Preview area
-        if (pickedPath != null || existingUrl != null)
+        if (pickedBytes != null || existingUrl != null)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: pickedPath != null
-                  ? Image.file(
-                      File(pickedPath!),
+              child: pickedBytes != null
+                  ? Image.memory(
+                      pickedBytes!,
                       height: 120,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => _placeholder(),
+                      errorBuilder: (context, error, stackTrace) =>
+                          _placeholder(),
                     )
                   : Image.network(
                       existingUrl!,
                       height: 120,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => _placeholder(),
+                      errorBuilder: (context, error, stackTrace) =>
+                          _placeholder(),
                     ),
             ),
           ),
         OutlinedButton.icon(
           onPressed: onPick,
           icon: const Icon(Icons.upload_file_rounded, size: 18),
-          label: Text(pickedPath != null || existingUrl != null
-              ? 'Change Image'
-              : 'Choose Image'),
+          label: Text(
+            pickedBytes != null || existingUrl != null
+                ? 'Change Image'
+                : 'Choose Image',
+          ),
         ),
-        if (pickedPath != null)
+        if (pickedName != null)
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              pickedPath!.split('/').last,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: AppColors.textSecondary),
+              pickedName!,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -416,8 +491,10 @@ class _ImagePickerSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: const Center(
-        child: Icon(Icons.broken_image_outlined,
-            color: AppColors.textSecondary),
+        child: Icon(
+          Icons.broken_image_outlined,
+          color: AppColors.textSecondary,
+        ),
       ),
     );
   }

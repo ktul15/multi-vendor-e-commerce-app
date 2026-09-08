@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../bloc/promo_cubit.dart';
 import '../bloc/promo_state.dart';
@@ -33,7 +34,9 @@ class _PromoFormPageState extends State<PromoFormPage> {
   bool _isActive = true;
   DateTime? _expiresAt;
   bool _isSaving = false;
-  bool _formPopulated = false;
+  bool _loadStarted = false;
+  bool _isLoadingPromo = false;
+  String? _loadError;
 
   // Track whether optional fields had values (for clearX flags on update).
   bool _hadMinOrder = false;
@@ -56,58 +59,62 @@ class _PromoFormPageState extends State<PromoFormPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_formPopulated || !widget.isEditing) return;
+    if (_loadStarted || !widget.isEditing) return;
+    _loadStarted = true;
+    _loadPromoForEdit();
+  }
 
+  Future<void> _loadPromoForEdit() async {
     final state = context.read<PromoCubit>().state;
-    if (state is PromoLoaded || state is PromoError) {
-      _loadFromState();
-    } else if (state is PromoInitial) {
-      context.read<PromoCubit>().load();
+    final localPromo = state is PromoLoaded
+        ? state.items.where((p) => p.id == widget.promoId).firstOrNull
+        : null;
+    if (localPromo != null) {
+      _populateForm(localPromo);
+      return;
+    }
+
+    setState(() {
+      _isLoadingPromo = true;
+      _loadError = null;
+    });
+
+    try {
+      final promo = await context.read<PromoCubit>().getPromoById(
+        widget.promoId!,
+      );
+      if (!mounted) return;
+      _populateForm(promo);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = e.statusCode == 404
+            ? 'This promo code no longer exists or has been deleted.'
+            : e.message;
+        _isLoadingPromo = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = 'Something went wrong. Please try again.';
+        _isLoadingPromo = false;
+      });
     }
   }
 
-  void _loadFromState() {
-    final state = context.read<PromoCubit>().state;
-    if (state is PromoError) {
-      // Data failed to load — navigate back with an error so the user isn't
-      // stuck on a blank form with no feedback.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load promo code: ${state.message}'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      });
-      return;
-    }
-    final items = switch (state) {
-      PromoLoaded() => state.items,
-      _ => <PromoModel>[],
-    };
-    final promo = items.where((p) => p.id == widget.promoId).firstOrNull;
-    if (promo == null) return;
-
+  void _populateForm(PromoModel promo) {
     _codeController.text = promo.code;
     _discountValueController.text = promo.discountValue.toStringAsFixed(
       promo.discountValue % 1 == 0 ? 0 : 2,
     );
-    if (promo.minOrderValue != null) {
-      _minOrderController.text =
-          promo.minOrderValue!.toStringAsFixed(2);
-    }
-    if (promo.maxDiscount != null) {
-      _maxDiscountController.text =
-          promo.maxDiscount!.toStringAsFixed(2);
-    }
-    if (promo.usageLimit != null) {
-      _usageLimitController.text = promo.usageLimit.toString();
-    }
-    if (promo.perUserLimit != null) {
-      _perUserLimitController.text = promo.perUserLimit.toString();
-    }
+    _minOrderController.text = promo.minOrderValue != null
+        ? promo.minOrderValue!.toStringAsFixed(2)
+        : '';
+    _maxDiscountController.text = promo.maxDiscount != null
+        ? promo.maxDiscount!.toStringAsFixed(2)
+        : '';
+    _usageLimitController.text = promo.usageLimit?.toString() ?? '';
+    _perUserLimitController.text = promo.perUserLimit?.toString() ?? '';
 
     setState(() {
       _discountType = promo.discountType;
@@ -118,7 +125,8 @@ class _PromoFormPageState extends State<PromoFormPage> {
       _hadUsageLimit = promo.usageLimit != null;
       _hadPerUserLimit = promo.perUserLimit != null;
       _hadExpiresAt = promo.expiresAt != null;
-      _formPopulated = true;
+      _isLoadingPromo = false;
+      _loadError = null;
     });
   }
 
@@ -151,7 +159,8 @@ class _PromoFormPageState extends State<PromoFormPage> {
     setState(() => _isSaving = true);
 
     final code = _codeController.text.trim().toUpperCase();
-    final discountValue = double.tryParse(_discountValueController.text.trim()) ?? 0;
+    final discountValue =
+        double.tryParse(_discountValueController.text.trim()) ?? 0;
     final minOrder = _minOrderController.text.trim().isEmpty
         ? null
         : double.tryParse(_minOrderController.text.trim());
@@ -168,34 +177,34 @@ class _PromoFormPageState extends State<PromoFormPage> {
     String? error;
     if (widget.isEditing) {
       error = await context.read<PromoCubit>().updatePromo(
-            widget.promoId!,
-            code: code,
-            discountType: _discountType,
-            discountValue: discountValue,
-            minOrderValue: minOrder,
-            maxDiscount: maxDiscount,
-            usageLimit: usageLimit,
-            perUserLimit: perUserLimit,
-            isActive: _isActive,
-            expiresAt: _expiresAt,
-            clearMinOrderValue: _hadMinOrder && minOrder == null,
-            clearMaxDiscount: _hadMaxDiscount && maxDiscount == null,
-            clearUsageLimit: _hadUsageLimit && usageLimit == null,
-            clearPerUserLimit: _hadPerUserLimit && perUserLimit == null,
-            clearExpiresAt: _hadExpiresAt && _expiresAt == null,
-          );
+        widget.promoId!,
+        code: code,
+        discountType: _discountType,
+        discountValue: discountValue,
+        minOrderValue: minOrder,
+        maxDiscount: maxDiscount,
+        usageLimit: usageLimit,
+        perUserLimit: perUserLimit,
+        isActive: _isActive,
+        expiresAt: _expiresAt,
+        clearMinOrderValue: _hadMinOrder && minOrder == null,
+        clearMaxDiscount: _hadMaxDiscount && maxDiscount == null,
+        clearUsageLimit: _hadUsageLimit && usageLimit == null,
+        clearPerUserLimit: _hadPerUserLimit && perUserLimit == null,
+        clearExpiresAt: _hadExpiresAt && _expiresAt == null,
+      );
     } else {
       error = await context.read<PromoCubit>().createPromo(
-            code: code,
-            discountType: _discountType,
-            discountValue: discountValue,
-            minOrderValue: minOrder,
-            maxDiscount: maxDiscount,
-            usageLimit: usageLimit,
-            perUserLimit: perUserLimit,
-            isActive: _isActive,
-            expiresAt: _expiresAt,
-          );
+        code: code,
+        discountType: _discountType,
+        discountValue: discountValue,
+        minOrderValue: minOrder,
+        maxDiscount: maxDiscount,
+        usageLimit: usageLimit,
+        perUserLimit: perUserLimit,
+        isActive: _isActive,
+        expiresAt: _expiresAt,
+      );
     }
 
     if (!mounted) return;
@@ -203,10 +212,7 @@ class _PromoFormPageState extends State<PromoFormPage> {
 
     if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error),
-          backgroundColor: AppColors.error,
-        ),
+        SnackBar(content: Text(error), backgroundColor: AppColors.error),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -230,12 +236,52 @@ class _PromoFormPageState extends State<PromoFormPage> {
         title: Text(widget.isEditing ? 'Edit Promo Code' : 'Add Promo Code'),
       ),
       body: BlocConsumer<PromoCubit, PromoState>(
-        listenWhen: (prev, next) =>
-            widget.isEditing &&
-            !_formPopulated &&
-            (next is PromoLoaded || next is PromoError),
-        listener: (context, state) => _loadFromState(),
+        listenWhen: (prev, next) => false,
+        listener: (context, state) {},
         builder: (context, state) {
+          if (_isLoadingPromo) {
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            );
+          }
+
+          if (_loadError != null) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.discount_outlined,
+                      size: 64,
+                      color: AppColors.textSecondary,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Promo code unavailable',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _loadError!,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton.icon(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                      label: const Text('Back to promos'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Center(
@@ -285,9 +331,7 @@ class _PromoFormPageState extends State<PromoFormPage> {
                           // ── Discount type ─────────────────────────────
                           Text(
                             'Discount Type *',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
+                            style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: AppColors.textSecondary),
                           ),
                           const SizedBox(height: 8),
@@ -300,7 +344,10 @@ class _PromoFormPageState extends State<PromoFormPage> {
                               ),
                               ButtonSegment(
                                 value: 'FIXED',
-                                icon: Icon(Icons.attach_money_rounded, size: 16),
+                                icon: Icon(
+                                  Icons.attach_money_rounded,
+                                  size: 16,
+                                ),
                                 label: Text('Fixed Amount'),
                               ),
                             ],
@@ -318,13 +365,17 @@ class _PromoFormPageState extends State<PromoFormPage> {
                               hintText: _discountType == 'PERCENTAGE'
                                   ? '10 (for 10%)'
                                   : '5.00',
-                              prefixText: _discountType == 'FIXED' ? '\$ ' : null,
-                              suffixText:
-                                  _discountType == 'PERCENTAGE' ? '%' : null,
+                              prefixText: _discountType == 'FIXED'
+                                  ? '₹ '
+                                  : null,
+                              suffixText: _discountType == 'PERCENTAGE'
+                                  ? '%'
+                                  : null,
                             ),
                             textInputAction: TextInputAction.next,
                             keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
+                              decimal: true,
+                            ),
                             validator: (v) {
                               if (v == null || v.trim().isEmpty) {
                                 return 'Discount value is required';
@@ -344,9 +395,7 @@ class _PromoFormPageState extends State<PromoFormPage> {
                           // ── Optional fields section ───────────────────
                           Text(
                             'Optional Constraints',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleSmall
+                            style: Theme.of(context).textTheme.titleSmall
                                 ?.copyWith(color: AppColors.textSecondary),
                           ),
                           const SizedBox(height: 12),
@@ -359,14 +408,18 @@ class _PromoFormPageState extends State<PromoFormPage> {
                                   decoration: const InputDecoration(
                                     labelText: 'Min Order Value',
                                     hintText: '50.00',
-                                    prefixText: '\$ ',
+                                    prefixText: '₹ ',
                                     helperText: 'Leave blank for no minimum',
                                   ),
                                   textInputAction: TextInputAction.next,
-                                  keyboardType: const TextInputType.numberWithOptions(
-                                      decimal: true),
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
                                   validator: (v) {
-                                    if (v == null || v.trim().isEmpty) return null;
+                                    if (v == null || v.trim().isEmpty) {
+                                      return null;
+                                    }
                                     if (double.tryParse(v.trim()) == null) {
                                       return 'Invalid amount';
                                     }
@@ -381,14 +434,18 @@ class _PromoFormPageState extends State<PromoFormPage> {
                                   decoration: const InputDecoration(
                                     labelText: 'Max Discount',
                                     hintText: '20.00',
-                                    prefixText: '\$ ',
+                                    prefixText: '₹ ',
                                     helperText: 'Leave blank for no cap',
                                   ),
                                   textInputAction: TextInputAction.next,
-                                  keyboardType: const TextInputType.numberWithOptions(
-                                      decimal: true),
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
                                   validator: (v) {
-                                    if (v == null || v.trim().isEmpty) return null;
+                                    if (v == null || v.trim().isEmpty) {
+                                      return null;
+                                    }
                                     if (double.tryParse(v.trim()) == null) {
                                       return 'Invalid amount';
                                     }
@@ -413,7 +470,9 @@ class _PromoFormPageState extends State<PromoFormPage> {
                                   textInputAction: TextInputAction.next,
                                   keyboardType: TextInputType.number,
                                   validator: (v) {
-                                    if (v == null || v.trim().isEmpty) return null;
+                                    if (v == null || v.trim().isEmpty) {
+                                      return null;
+                                    }
                                     final i = int.tryParse(v.trim());
                                     if (i == null || i <= 0) {
                                       return 'Must be a positive integer';
@@ -434,7 +493,9 @@ class _PromoFormPageState extends State<PromoFormPage> {
                                   textInputAction: TextInputAction.done,
                                   keyboardType: TextInputType.number,
                                   validator: (v) {
-                                    if (v == null || v.trim().isEmpty) return null;
+                                    if (v == null || v.trim().isEmpty) {
+                                      return null;
+                                    }
                                     final i = int.tryParse(v.trim());
                                     if (i == null || i <= 0) {
                                       return 'Must be a positive integer';
@@ -454,8 +515,9 @@ class _PromoFormPageState extends State<PromoFormPage> {
                                 child: OutlinedButton.icon(
                                   onPressed: _pickExpiryDate,
                                   icon: const Icon(
-                                      Icons.calendar_today_outlined,
-                                      size: 16),
+                                    Icons.calendar_today_outlined,
+                                    size: 16,
+                                  ),
                                   label: Text(
                                     _expiresAt != null
                                         ? 'Expires: ${DateFormat('MMM d, y').format(_expiresAt!)}'
@@ -467,8 +529,10 @@ class _PromoFormPageState extends State<PromoFormPage> {
                                 const SizedBox(width: 8),
                                 IconButton(
                                   tooltip: 'Clear expiry',
-                                  icon: const Icon(Icons.clear_rounded,
-                                      size: 18),
+                                  icon: const Icon(
+                                    Icons.clear_rounded,
+                                    size: 18,
+                                  ),
                                   onPressed: () =>
                                       setState(() => _expiresAt = null),
                                 ),
@@ -482,8 +546,7 @@ class _PromoFormPageState extends State<PromoFormPage> {
                             children: [
                               Switch(
                                 value: _isActive,
-                                onChanged: (v) =>
-                                    setState(() => _isActive = v),
+                                onChanged: (v) => setState(() => _isActive = v),
                               ),
                               const SizedBox(width: 8),
                               Text(

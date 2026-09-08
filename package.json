@@ -1,0 +1,39 @@
+{
+  "name": "multi-vendor-e-commerce-web",
+  "private": true,
+  "packageManager": "pnpm@11.18.0",
+  "engines": {
+    "node": ">=24.15.0 <25"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint && eslint playwright.config.ts e2e",
+    "typecheck": "turbo run typecheck && tsc --noEmit -p tsconfig.playwright.json",
+    "test": "turbo run test",
+    "test:e2e": "bash scripts/run-web-e2e.sh",
+    "test:e2e:raw": "playwright test",
+    "source-maps:check": "node tooling/check-dashboard-source-maps.mjs",
+    "deployment:smoke": "node scripts/smoke-deployment.mjs",
+    "api:generate": "npm --prefix backend run openapi:generate && pnpm run api:types:generate",
+    "api:check": "npm --prefix backend run openapi:check && pnpm run api:types:check",
+    "api:types:generate": "node tooling/generate-openapi.mjs",
+    "api:types:check": "node tooling/generate-openapi.mjs --check",
+    "format": "prettier --write .github apps e2e packages tooling README.md *.json *.mjs *.ts *.yaml",
+    "format:check": "prettier --check .github apps e2e packages tooling README.md *.json *.mjs *.ts *.yaml",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
+    "@playwright/test": "1.62.1",
+    "@types/node": "24.13.3",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.1",
+    "openapi-typescript": "7.13.0",
+    "pnpm": "11.18.0",
+    "prettier": "3.8.1",
+    "turbo": "2.10.8",
+    "typescript": "6.0.3",
+    "vitest": "4.1.10"
+  }
+}

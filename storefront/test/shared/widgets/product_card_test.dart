@@ -11,28 +11,39 @@ ProductModel _makeProduct({
   int reviewCount = 100,
   List<String> images = const [],
   List<VariantModel> variants = const [],
-}) =>
-    ProductModel(
-      id: id,
-      name: name,
-      description: 'A test product description',
-      basePrice: basePrice,
-      images: images,
-      tags: const [],
-      isActive: true,
-      avgRating: avgRating,
-      reviewCount: reviewCount,
-      variants: variants,
-      createdAt: DateTime(2024, 1, 1),
-    );
+}) => ProductModel(
+  id: id,
+  name: name,
+  description: 'A test product description',
+  basePrice: basePrice,
+  images: images,
+  tags: const [],
+  isActive: true,
+  avgRating: avgRating,
+  reviewCount: reviewCount,
+  variants: variants,
+  createdAt: DateTime(2024, 1, 1),
+);
 
 void main() {
-  Widget buildCard(ProductModel product, {VoidCallback? onTap}) =>
-      MaterialApp(
-        home: Scaffold(
-          body: ProductCard(product: product, onTap: onTap),
+  Widget buildCard(ProductModel product, {VoidCallback? onTap}) => MaterialApp(
+    home: Scaffold(
+      body: ProductCard(product: product, onTap: onTap),
+    ),
+  );
+
+  Widget buildConstrainedCard(ProductModel product) => MaterialApp(
+    home: Scaffold(
+      body: Align(
+        alignment: Alignment.topLeft,
+        child: SizedBox(
+          width: 160,
+          height: 272,
+          child: ProductCard(product: product),
         ),
-      );
+      ),
+    ),
+  );
 
   group('ProductCard', () {
     testWidgets('renders product name', (tester) async {
@@ -47,7 +58,9 @@ void main() {
       expect(find.text('\$49.99'), findsOneWidget);
     });
 
-    testWidgets('renders lowest variant price as display price', (tester) async {
+    testWidgets('renders lowest variant price as display price', (
+      tester,
+    ) async {
       final product = _makeProduct(
         basePrice: 99.99,
         variants: [
@@ -61,10 +74,12 @@ void main() {
       expect(find.text('\$29.99'), findsOneWidget);
     });
 
-    testWidgets('renders rating and review count when avgRating > 0',
-        (tester) async {
+    testWidgets('renders rating and review count when avgRating > 0', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-          buildCard(_makeProduct(avgRating: 4.3, reviewCount: 82)));
+        buildCard(_makeProduct(avgRating: 4.3, reviewCount: 82)),
+      );
 
       expect(find.text('4.3'), findsOneWidget);
       expect(find.text('(82)'), findsOneWidget);
@@ -72,15 +87,18 @@ void main() {
 
     testWidgets('renders "New" label when avgRating is 0', (tester) async {
       await tester.pumpWidget(
-          buildCard(_makeProduct(avgRating: 0.0, reviewCount: 0)));
+        buildCard(_makeProduct(avgRating: 0.0, reviewCount: 0)),
+      );
 
       expect(find.text('New'), findsOneWidget);
     });
 
-    testWidgets('does not render review count when reviewCount is 0',
-        (tester) async {
+    testWidgets('does not render review count when reviewCount is 0', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-          buildCard(_makeProduct(avgRating: 4.5, reviewCount: 0)));
+        buildCard(_makeProduct(avgRating: 4.5, reviewCount: 0)),
+      );
 
       expect(find.text('(0)'), findsNothing);
     });
@@ -88,17 +106,43 @@ void main() {
     testWidgets('calls onTap callback when tapped', (tester) async {
       var tapped = false;
       await tester.pumpWidget(
-          buildCard(_makeProduct(), onTap: () => tapped = true));
+        buildCard(_makeProduct(), onTap: () => tapped = true),
+      );
 
-      await tester.tap(find.byType(ProductCard));
+      await tester.tap(find.byType(InkWell));
       expect(tapped, isTrue);
     });
 
-    testWidgets('shows ProductPlaceholderImage when images list is empty',
-        (tester) async {
+    testWidgets('shows ProductPlaceholderImage when images list is empty', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildCard(_makeProduct(images: [])));
 
       expect(find.byType(ProductPlaceholderImage), findsOneWidget);
+    });
+
+    testWidgets('does not overflow with a two-line name at carousel size', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildConstrainedCard(_makeProduct(name: 'QA Product REALWORLD 20')),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('QA Product REALWORLD 20'), findsOneWidget);
+      expect(find.text('\$29.99'), findsOneWidget);
+      expect(find.text('4.5'), findsOneWidget);
+    });
+
+    testWidgets('card does not stretch into unused grid-cell height', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildConstrainedCard(_makeProduct(name: 'Short name')),
+      );
+
+      expect(tester.getSize(find.byType(Card)).height, lessThan(272));
+      expect(tester.takeException(), isNull);
     });
   });
 }

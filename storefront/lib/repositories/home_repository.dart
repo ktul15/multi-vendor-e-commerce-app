@@ -29,7 +29,10 @@ class HomeRepository {
   Future<List<ProductModel>> _fetchProducts(
     Map<String, dynamic> queryParameters,
   ) async {
-    final body = await _client.get('/products', queryParameters: queryParameters);
+    final body = await _client.get(
+      '/products',
+      queryParameters: queryParameters,
+    );
     if (body == null ||
         body['data'] is! Map ||
         (body['data'] as Map)['items'] is! List) {

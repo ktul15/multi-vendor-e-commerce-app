@@ -17,25 +17,29 @@ var mockCreate: jest.Mock;
 // eslint-disable-next-line no-var
 var mockRetrieve: jest.Mock;
 // eslint-disable-next-line no-var
+var mockUpdate: jest.Mock;
+// eslint-disable-next-line no-var
 var mockConstructEvent: jest.Mock;
 
 const MOCK_CLIENT_SECRET = 'pi_test_XXXXXXXX_secret_YYYYYYYY';
 const MOCK_INTENT_ID = 'pi_test_XXXXXXXX';
 
 jest.mock('stripe', () => {
-    const create = jest.fn();
-    const retrieve = jest.fn();
-    const constructEvent = jest.fn();
+  const create = jest.fn();
+  const retrieve = jest.fn();
+  const update = jest.fn();
+  const constructEvent = jest.fn();
 
-    // Assign to outer vars so test bodies can configure and inspect them
-    mockCreate = create;
-    mockRetrieve = retrieve;
-    mockConstructEvent = constructEvent;
+  // Assign to outer vars so test bodies can configure and inspect them
+  mockCreate = create;
+  mockRetrieve = retrieve;
+  mockUpdate = update;
+  mockConstructEvent = constructEvent;
 
-    return jest.fn().mockImplementation(() => ({
-        paymentIntents: { create, retrieve },
-        webhooks: { constructEvent },
-    }));
+  return jest.fn().mockImplementation(() => ({
+    paymentIntents: { create, retrieve, update },
+    webhooks: { constructEvent },
+  }));
 });
 
 // ---------------------
@@ -48,282 +52,347 @@ let orderId: string;
 // Setup
 // ---------------------
 beforeAll(async () => {
-    // Clear in FK-safe order
-    await prisma.payment.deleteMany({});
-    await prisma.orderItem.deleteMany({});
-    await prisma.vendorOrder.deleteMany({});
-    await prisma.order.deleteMany({});
-    await prisma.variant.deleteMany({});
-    await prisma.product.deleteMany({});
-    await prisma.category.deleteMany({});
-    await prisma.address.deleteMany({});
+  // Clear in FK-safe order
+  await prisma.payment.deleteMany({});
+  await prisma.orderItem.deleteMany({});
+  await prisma.vendorOrder.deleteMany({});
+  await prisma.order.deleteMany({});
+  await prisma.variant.deleteMany({});
+  await prisma.product.deleteMany({});
+  await prisma.category.deleteMany({});
+  await prisma.address.deleteMany({});
 
-    const password = await bcrypt.hash('test1234', 10);
+  const password = await bcrypt.hash('test1234', 10);
 
-    const vendor = await prisma.user.upsert({
-        where: { email: 'vendor.payment@ecommerce.com' },
-        update: { password, role: 'VENDOR' },
-        create: { name: 'Payment Vendor', email: 'vendor.payment@ecommerce.com', password, role: 'VENDOR', isVerified: true },
-    });
+  const vendor = await prisma.user.upsert({
+    where: { email: 'vendor.payment@ecommerce.com' },
+    update: { password, role: 'VENDOR' },
+    create: {
+      name: 'Payment Vendor',
+      email: 'vendor.payment@ecommerce.com',
+      password,
+      role: 'VENDOR',
+      isVerified: true,
+    },
+  });
 
-    const customer = await prisma.user.upsert({
-        where: { email: 'customer.payment@ecommerce.com' },
-        update: { password, role: 'CUSTOMER' },
-        create: { name: 'Payment Customer', email: 'customer.payment@ecommerce.com', password, role: 'CUSTOMER', isVerified: true },
-    });
+  const customer = await prisma.user.upsert({
+    where: { email: 'customer.payment@ecommerce.com' },
+    update: { password, role: 'CUSTOMER' },
+    create: {
+      name: 'Payment Customer',
+      email: 'customer.payment@ecommerce.com',
+      password,
+      role: 'CUSTOMER',
+      isVerified: true,
+    },
+  });
+  await prisma.vendorProfile.upsert({
+    where: { userId: vendor.id },
+    update: {
+      paymentProvider: 'STRIPE',
+      settlementCountry: 'US',
+      providerAccountId: 'acct_test_payment_integration',
+      paymentOnboardingStatus: 'COMPLETE',
+    },
+    create: {
+      userId: vendor.id,
+      storeName: 'Payment Integration Vendor Store',
+      status: 'APPROVED',
+      paymentProvider: 'STRIPE',
+      settlementCountry: 'US',
+      providerAccountId: 'acct_test_payment_integration',
+      paymentOnboardingStatus: 'COMPLETE',
+    },
+  });
 
-    const category = await prisma.category.create({
-        data: { name: 'Payment Test Category', slug: 'payment-test-category' },
-    });
+  const category = await prisma.category.create({
+    data: { name: 'Payment Test Category', slug: 'payment-test-category' },
+  });
 
-    const product = await prisma.product.create({
-        data: {
-            vendorId: vendor.id,
-            categoryId: category.id,
-            name: 'Payment Test Product',
-            description: 'A product for payment tests',
-            basePrice: 100,
-            images: [],
-            isActive: true,
-        },
-    });
+  const product = await prisma.product.create({
+    data: {
+      vendorId: vendor.id,
+      categoryId: category.id,
+      name: 'Payment Test Product',
+      description: 'A product for payment tests',
+      basePrice: 100,
+      images: [],
+      isActive: true,
+    },
+  });
 
-    const variant = await prisma.variant.create({
-        data: { productId: product.id, size: 'M', color: 'Blue', price: 100, stock: 10, sku: 'PAY-SKU-001' },
-    });
+  const variant = await prisma.variant.create({
+    data: {
+      productId: product.id,
+      size: 'M',
+      color: 'Blue',
+      price: 100,
+      stock: 10,
+      sku: 'PAY-SKU-001',
+    },
+  });
 
-    const address = await prisma.address.create({
-        data: {
-            userId: customer.id,
-            fullName: 'Payment Customer',
-            phone: '555-9999',
-            street: '1 Pay Street',
-            city: 'Paytown',
-            state: 'CA',
-            country: 'US',
-            zipCode: '90210',
-        },
-    });
+  const address = await prisma.address.create({
+    data: {
+      userId: customer.id,
+      fullName: 'Payment Customer',
+      phone: '555-9999',
+      street: '1 Pay Street',
+      city: 'Paytown',
+      state: 'CA',
+      country: 'US',
+      zipCode: '90210',
+    },
+  });
 
-    // Build order directly in DB to isolate payment tests from the order API
-    const order = await prisma.order.create({
-        data: {
-            orderNumber: 'ORD-TEST-PAY-0001',
-            userId: customer.id,
-            addressId: address.id,
-            shippingAddress: {
-                fullName: 'Payment Customer',
-                phone: '555-9999',
-                street: '1 Pay Street',
-                city: 'Paytown',
-                state: 'CA',
-                country: 'US',
-                zipCode: '90210',
-            },
-            subtotal: 100,
-            discount: 0,
-            tax: 0,
-            total: 100,
-        },
-    });
-    orderId = order.id;
+  // Build order directly in DB to isolate payment tests from the order API
+  const order = await prisma.order.create({
+    data: {
+      orderNumber: 'ORD-TEST-PAY-0001',
+      userId: customer.id,
+      addressId: address.id,
+      shippingAddress: {
+        fullName: 'Payment Customer',
+        phone: '555-9999',
+        street: '1 Pay Street',
+        city: 'Paytown',
+        state: 'CA',
+        country: 'US',
+        zipCode: '90210',
+      },
+      subtotal: 100,
+      discount: 0,
+      tax: 0,
+      total: 100,
+      paymentProvider: 'STRIPE',
+    },
+  });
+  orderId = order.id;
 
-    const vendorOrder = await prisma.vendorOrder.create({
-        data: { orderId: order.id, vendorId: vendor.id, subtotal: 100 },
-    });
+  const vendorOrder = await prisma.vendorOrder.create({
+    data: { orderId: order.id, vendorId: vendor.id, subtotal: 100 },
+  });
 
-    await prisma.orderItem.create({
-        data: {
-            vendorOrderId: vendorOrder.id,
-            variantId: variant.id,
-            quantity: 1,
-            unitPrice: 100,
-            totalPrice: 100,
-        },
-    });
+  await prisma.orderItem.create({
+    data: {
+      vendorOrderId: vendorOrder.id,
+      variantId: variant.id,
+      quantity: 1,
+      unitPrice: 100,
+      totalPrice: 100,
+    },
+  });
 
-    // Login
-    const loginRes = await request(app)
-        .post('/api/v1/auth/login')
-        .send({ email: 'customer.payment@ecommerce.com', password: 'test1234' });
-    customerToken = `Bearer ${loginRes.body.data.tokens.accessToken}`;
+  // Login
+  const loginRes = await request(app)
+    .post('/api/v1/auth/login')
+    .send({ email: 'customer.payment@ecommerce.com', password: 'test1234' });
+  customerToken = `Bearer ${loginRes.body.data.tokens.accessToken}`;
 });
 
 afterAll(async () => {
-    await prisma.payment.deleteMany({});
-    await prisma.orderItem.deleteMany({});
-    await prisma.vendorOrder.deleteMany({});
-    await prisma.order.deleteMany({});
-    await prisma.variant.deleteMany({});
-    await prisma.product.deleteMany({});
-    await prisma.category.deleteMany({});
-    await prisma.address.deleteMany({});
-    await prisma.$disconnect();
+  await prisma.paymentWebhookEvent.deleteMany({});
+  await prisma.paymentRefund.deleteMany({});
+  await prisma.vendorEarning.deleteMany({});
+  await prisma.payment.deleteMany({});
+  await prisma.orderItem.deleteMany({});
+  await prisma.vendorOrder.deleteMany({});
+  await prisma.order.deleteMany({});
+  await prisma.variant.deleteMany({});
+  await prisma.product.deleteMany({});
+  await prisma.category.deleteMany({});
+  await prisma.address.deleteMany({});
+  await prisma.$disconnect();
 });
 
 beforeEach(() => {
-    mockCreate.mockClear();
-    mockRetrieve.mockClear();
-    mockConstructEvent.mockClear();
-    mockCreate.mockResolvedValue({ id: MOCK_INTENT_ID, client_secret: MOCK_CLIENT_SECRET });
-    mockRetrieve.mockResolvedValue({
-        id: MOCK_INTENT_ID,
-        client_secret: MOCK_CLIENT_SECRET,
-        status: 'requires_payment_method', // reusable state — intent is still completable
-    });
+  mockCreate.mockClear();
+  mockRetrieve.mockClear();
+  mockUpdate.mockClear();
+  mockConstructEvent.mockClear();
+  mockCreate.mockResolvedValue({
+    id: MOCK_INTENT_ID,
+    client_secret: MOCK_CLIENT_SECRET,
+  });
+  mockRetrieve.mockResolvedValue({
+    id: MOCK_INTENT_ID,
+    client_secret: MOCK_CLIENT_SECRET,
+    status: 'requires_payment_method', // reusable state — intent is still completable
+  });
+  mockUpdate.mockResolvedValue({
+    id: MOCK_INTENT_ID,
+    client_secret: MOCK_CLIENT_SECRET,
+  });
 });
 
 // ---------------------
 // Tests
 // ---------------------
 describe('Payment API (Issue #32)', () => {
-
-    describe('POST /api/v1/payments/create-intent', () => {
-
-        it('should return 401 without auth', async () => {
-            const res = await request(app)
-                .post('/api/v1/payments/create-intent')
-                .send({ orderId });
-            expect(res.status).toBe(401);
-        });
-
-        it('should return 400 for invalid orderId (not a UUID)', async () => {
-            const res = await request(app)
-                .post('/api/v1/payments/create-intent')
-                .set('Authorization', customerToken)
-                .send({ orderId: 'not-a-uuid' });
-            expect(res.status).toBe(400);
-        });
-
-        it('should return 404 for a non-existent orderId', async () => {
-            const res = await request(app)
-                .post('/api/v1/payments/create-intent')
-                .set('Authorization', customerToken)
-                .send({ orderId: '00000000-0000-0000-0000-000000000000' });
-            expect(res.status).toBe(404);
-        });
-
-        it('should create a payment intent and return clientSecret (happy path)', async () => {
-            const res = await request(app)
-                .post('/api/v1/payments/create-intent')
-                .set('Authorization', customerToken)
-                .send({ orderId, currency: 'USD' });
-
-            expect(res.status).toBe(201);
-            expect(res.body.success).toBe(true);
-            expect(res.body.data.clientSecret).toBe(MOCK_CLIENT_SECRET);
-            expect(mockCreate).toHaveBeenCalledWith(
-                expect.objectContaining({ amount: 10000, currency: 'usd' }),
-            );
-
-            const payment = await prisma.payment.findUnique({ where: { orderId } });
-            expect(payment).not.toBeNull();
-            expect(payment!.status).toBe('PROCESSING');
-            expect(payment!.stripePaymentIntentId).toBe(MOCK_INTENT_ID);
-        });
-
-        it('should return existing clientSecret on a second call (idempotency)', async () => {
-            const res = await request(app)
-                .post('/api/v1/payments/create-intent')
-                .set('Authorization', customerToken)
-                .send({ orderId, currency: 'USD' });
-
-            expect(res.status).toBe(201);
-            expect(res.body.data.clientSecret).toBe(MOCK_CLIENT_SECRET);
-            // Should retrieve existing intent, NOT create a new one
-            expect(mockCreate).not.toHaveBeenCalled();
-            expect(mockRetrieve).toHaveBeenCalledWith(MOCK_INTENT_ID);
-        });
+  describe('POST /api/v1/payments/create-intent', () => {
+    it('should return 401 without auth', async () => {
+      const res = await request(app)
+        .post('/api/v1/payments/create-intent')
+        .send({ orderId });
+      expect(res.status).toBe(401);
     });
 
-    describe('POST /api/v1/payments/webhook', () => {
-
-        it('should return 400 when Stripe-Signature header is missing', async () => {
-            const res = await request(app)
-                .post('/api/v1/payments/webhook')
-                .type('json')
-                .send('{}');
-            expect(res.status).toBe(400);
-        });
-
-        it('should return 400 when signature verification fails', async () => {
-            mockConstructEvent.mockImplementationOnce(() => {
-                throw new Error('Webhook signature verification failed');
-            });
-
-            const res = await request(app)
-                .post('/api/v1/payments/webhook')
-                .type('json')
-                .set('stripe-signature', 'invalid-sig')
-                .send('{}');
-            expect(res.status).toBe(400);
-        });
-
-        it('should handle payment_intent.succeeded and mark payment SUCCEEDED', async () => {
-            mockConstructEvent.mockReturnValueOnce({
-                type: 'payment_intent.succeeded',
-                data: {
-                    object: {
-                        id: MOCK_INTENT_ID,
-                        payment_method: 'pm_test_XXXXXX',
-                    },
-                },
-            });
-
-            const res = await request(app)
-                .post('/api/v1/payments/webhook')
-                .type('json')
-                .set('stripe-signature', 'valid-sig-mocked')
-                .send('{}');
-
-            expect(res.status).toBe(200);
-            expect(res.body.received).toBe(true);
-
-            const payment = await prisma.payment.findUnique({ where: { orderId } });
-            expect(payment!.status).toBe('SUCCEEDED');
-            expect(payment!.paidAt).not.toBeNull();
-            expect(payment!.stripePaymentMethodId).toBe('pm_test_XXXXXX');
-
-            // VendorOrders should be atomically confirmed
-            const vendorOrders = await prisma.vendorOrder.findMany({ where: { orderId } });
-            expect(vendorOrders.every((vo) => vo.status === 'CONFIRMED')).toBe(true);
-        });
-
-        it('should handle payment_intent.payment_failed and mark payment FAILED', async () => {
-            // Reset to PROCESSING first so the failed event can be applied
-            await prisma.payment.update({
-                where: { orderId },
-                data: { status: 'PROCESSING', paidAt: null, stripePaymentMethodId: null },
-            });
-
-            mockConstructEvent.mockReturnValueOnce({
-                type: 'payment_intent.payment_failed',
-                data: {
-                    object: { id: MOCK_INTENT_ID },
-                },
-            });
-
-            const res = await request(app)
-                .post('/api/v1/payments/webhook')
-                .type('json')
-                .set('stripe-signature', 'valid-sig-mocked')
-                .send('{}');
-
-            expect(res.status).toBe(200);
-            expect(res.body.received).toBe(true);
-
-            const payment = await prisma.payment.findUnique({ where: { orderId } });
-            expect(payment!.status).toBe('FAILED');
-        });
-
-        it('should return 409 when trying to create intent for a non-PROCESSING payment', async () => {
-            // Payment is currently FAILED from the previous test
-            const res = await request(app)
-                .post('/api/v1/payments/create-intent')
-                .set('Authorization', customerToken)
-                .send({ orderId, currency: 'USD' });
-
-            expect(res.status).toBe(409);
-        });
+    it('should return 400 for invalid orderId (not a UUID)', async () => {
+      const res = await request(app)
+        .post('/api/v1/payments/create-intent')
+        .set('Authorization', customerToken)
+        .send({ orderId: 'not-a-uuid' });
+      expect(res.status).toBe(400);
     });
+
+    it('should return 404 for a non-existent orderId', async () => {
+      const res = await request(app)
+        .post('/api/v1/payments/create-intent')
+        .set('Authorization', customerToken)
+        .send({ orderId: '00000000-0000-0000-0000-000000000000' });
+      expect(res.status).toBe(404);
+    });
+
+    it('should create a payment intent and return clientSecret (happy path)', async () => {
+      const res = await request(app)
+        .post('/api/v1/payments/create-intent')
+        .set('Authorization', customerToken)
+        .send({ orderId, currency: 'INR' });
+
+      expect(res.status).toBe(201);
+      expect(res.headers['ratelimit-limit']).toBeDefined();
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.clientSecret).toBe(MOCK_CLIENT_SECRET);
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 10000, currency: 'inr' }),
+        expect.objectContaining({ idempotencyKey: expect.any(String) })
+      );
+
+      const payment = await prisma.payment.findUnique({ where: { orderId } });
+      expect(payment).not.toBeNull();
+      expect(payment!.status).toBe('PROCESSING');
+      expect(payment!.providerPaymentId).toBe(MOCK_INTENT_ID);
+    });
+
+    it('should return existing clientSecret on a second call (idempotency)', async () => {
+      const res = await request(app)
+        .post('/api/v1/payments/create-intent')
+        .set('Authorization', customerToken)
+        .send({ orderId, currency: 'INR' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.clientSecret).toBe(MOCK_CLIENT_SECRET);
+      // Should retrieve existing intent, NOT create a new one
+      expect(mockCreate).not.toHaveBeenCalled();
+      expect(mockRetrieve).toHaveBeenCalledWith(MOCK_INTENT_ID);
+      expect(mockUpdate).toHaveBeenCalledWith(
+        MOCK_INTENT_ID,
+        expect.objectContaining({
+          description: 'Order ORD-TEST-PAY-0001',
+        })
+      );
+    });
+  });
+
+  describe('POST /api/v1/payments/webhook', () => {
+    it('should return 400 when Stripe-Signature header is missing', async () => {
+      const res = await request(app)
+        .post('/api/v1/payments/webhook')
+        .type('json')
+        .send('{}');
+      expect(res.status).toBe(400);
+    });
+
+    it('should return 400 when signature verification fails', async () => {
+      mockConstructEvent.mockImplementationOnce(() => {
+        throw new Error('Webhook signature verification failed');
+      });
+
+      const res = await request(app)
+        .post('/api/v1/payments/webhook')
+        .type('json')
+        .set('stripe-signature', 'invalid-sig')
+        .send('{}');
+      expect(res.status).toBe(400);
+    });
+
+    it('should handle payment_intent.succeeded and mark payment SUCCEEDED', async () => {
+      mockConstructEvent.mockReturnValueOnce({
+        id: 'evt_integration_succeeded',
+        type: 'payment_intent.succeeded',
+        data: {
+          object: {
+            id: MOCK_INTENT_ID,
+            payment_method: 'pm_test_XXXXXX',
+          },
+        },
+      });
+
+      const res = await request(app)
+        .post('/api/v1/payments/webhook')
+        .type('json')
+        .set('stripe-signature', 'valid-sig-mocked')
+        .send('{}');
+
+      expect(res.status).toBe(200);
+      expect(res.body.received).toBe(true);
+
+      const payment = await prisma.payment.findUnique({ where: { orderId } });
+      expect(payment!.status).toBe('SUCCEEDED');
+      expect(payment!.paidAt).not.toBeNull();
+      expect(payment!.providerPaymentMethodId).toBe('pm_test_XXXXXX');
+
+      // VendorOrders should be atomically confirmed
+      const vendorOrders = await prisma.vendorOrder.findMany({
+        where: { orderId },
+      });
+      expect(vendorOrders.every((vo) => vo.status === 'CONFIRMED')).toBe(true);
+    });
+
+    it('should handle payment_intent.payment_failed and mark payment FAILED', async () => {
+      // Reset to PROCESSING first so the failed event can be applied
+      await prisma.payment.update({
+        where: { orderId },
+        data: {
+          status: 'PROCESSING',
+          paidAt: null,
+          providerPaymentMethodId: null,
+        },
+      });
+
+      mockConstructEvent.mockReturnValueOnce({
+        id: 'evt_integration_failed',
+        type: 'payment_intent.payment_failed',
+        data: {
+          object: { id: MOCK_INTENT_ID },
+        },
+      });
+
+      const res = await request(app)
+        .post('/api/v1/payments/webhook')
+        .type('json')
+        .set('stripe-signature', 'valid-sig-mocked')
+        .send('{}');
+
+      expect(res.status).toBe(200);
+      expect(res.body.received).toBe(true);
+
+      const payment = await prisma.payment.findUnique({ where: { orderId } });
+      expect(payment!.status).toBe('FAILED');
+    });
+
+    it('should return 409 when trying to create intent for a non-PROCESSING payment', async () => {
+      await prisma.payment.update({
+        where: { orderId },
+        data: { status: 'FAILED' },
+      });
+      const res = await request(app)
+        .post('/api/v1/payments/create-intent')
+        .set('Authorization', customerToken)
+        .send({ orderId, currency: 'INR' });
+
+      expect(res.status).toBe(409);
+    });
+  });
 });

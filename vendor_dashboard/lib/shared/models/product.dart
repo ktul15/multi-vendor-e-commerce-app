@@ -27,6 +27,32 @@ class ProductVariant {
   }
 }
 
+class ProductVariantDraft {
+  final String? id;
+  final String sku;
+  final double price;
+  final int stock;
+  final String? size;
+  final String? color;
+
+  const ProductVariantDraft({
+    this.id,
+    required this.sku,
+    required this.price,
+    required this.stock,
+    this.size,
+    this.color,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'sku': sku,
+    'price': price,
+    'stock': stock,
+    if (size != null) 'size': size,
+    if (color != null) 'color': color,
+  };
+}
+
 class Product {
   final String id;
   final String name;

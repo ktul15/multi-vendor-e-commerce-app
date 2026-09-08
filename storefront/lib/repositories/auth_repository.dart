@@ -6,9 +6,11 @@ class AuthRepository {
   final HttpClient _client;
   final TokenStorage _tokenStorage;
 
-  AuthRepository({required HttpClient client, required TokenStorage tokenStorage})
-      : _client = client,
-        _tokenStorage = tokenStorage;
+  AuthRepository({
+    required HttpClient client,
+    required TokenStorage tokenStorage,
+  }) : _client = client,
+       _tokenStorage = tokenStorage;
 
   /// Register a new user.
   Future<Map<String, dynamic>> register({
@@ -58,7 +60,10 @@ class AuthRepository {
     try {
       final refreshToken = await _tokenStorage.getRefreshToken();
       if (refreshToken != null) {
-        await _client.post('/auth/logout', data: {'refreshToken': refreshToken});
+        await _client.post(
+          '/auth/logout',
+          data: {'refreshToken': refreshToken},
+        );
       }
     } catch (_) {
       // Ignore logout API errors — we clear tokens regardless

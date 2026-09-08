@@ -2,17 +2,14 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../shared/widgets/overflow_safe_text.dart';
 import '../../../shared/models/cart_model.dart';
 
 class CartSummaryCard extends StatelessWidget {
   final double subtotal;
   final PromoPreviewModel? promoPreview;
 
-  const CartSummaryCard({
-    super.key,
-    required this.subtotal,
-    this.promoPreview,
-  });
+  const CartSummaryCard({super.key, required this.subtotal, this.promoPreview});
 
   @override
   Widget build(BuildContext context) {
@@ -28,13 +25,13 @@ class CartSummaryCard extends StatelessWidget {
           children: [
             _SummaryRow(
               label: 'Subtotal',
-              value: '\$${subtotal.toStringAsFixed(2)}',
+              value: '₹${subtotal.toStringAsFixed(2)}',
             ),
             if (promoPreview != null) ...[
               const SizedBox(height: AppSpacing.sm),
               _SummaryRow(
                 label: 'Promo (${promoPreview!.code})',
-                value: '-\$${promoPreview!.discountAmount.toStringAsFixed(2)}',
+                value: '-₹${promoPreview!.discountAmount.toStringAsFixed(2)}',
                 valueColor: AppColors.success,
               ),
             ],
@@ -43,7 +40,7 @@ class CartSummaryCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             _SummaryRow(
               label: 'Total',
-              value: '\$${total.toStringAsFixed(2)}',
+              value: '₹${total.toStringAsFixed(2)}',
               bold: true,
             ),
           ],
@@ -72,15 +69,11 @@ class _SummaryRow extends StatelessWidget {
         ? AppTextStyles.body.copyWith(fontWeight: FontWeight.w700)
         : AppTextStyles.body;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: style),
-        Text(
-          value,
-          style: style.copyWith(color: valueColor),
-        ),
-      ],
+    return ResponsiveMetadataRow(
+      label: label,
+      value: value,
+      labelStyle: style,
+      valueStyle: style.copyWith(color: valueColor),
     );
   }
 }

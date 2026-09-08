@@ -1,10 +1,12 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:get_it/get_it.dart';
 import '../network/api_client.dart';
 import '../network/dio_http_client.dart';
 import '../network/http_client.dart';
 import '../network/token_storage.dart';
 import '../storage/recent_searches_storage.dart';
+import '../storage/guest_cart_storage.dart';
 import '../storage/theme_storage.dart';
 import '../../features/settings/bloc/theme_cubit.dart';
 import '../../repositories/auth_repository.dart';
@@ -20,6 +22,7 @@ import '../../repositories/search_repository.dart';
 import '../../repositories/wishlist_repository.dart';
 import '../../features/address_management/bloc/address_management_cubit.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
+import '../../features/auth/bloc/auth_event.dart';
 import '../../features/cart/bloc/cart_cubit.dart';
 import '../../features/checkout/bloc/checkout_bloc.dart';
 import '../../features/notifications/bloc/notification_cubit.dart';
@@ -28,6 +31,9 @@ import '../../features/order_history/bloc/order_list_cubit.dart';
 import '../services/push_notification_service.dart';
 import '../stripe/flutter_stripe_service.dart';
 import '../stripe/stripe_service.dart';
+import '../stripe/unsupported_stripe_service.dart';
+import '../payment/checkout_payment_service.dart';
+import '../payment/flutter_checkout_payment_service.dart';
 import '../../features/home/bloc/home_cubit.dart';
 import '../../features/product_detail/bloc/product_detail_cubit.dart';
 import '../../features/product_list/bloc/product_list_cubit.dart';
@@ -108,7 +114,12 @@ Future<void> initDependencies() async {
   // ── Services ──────────────────────────────
 
   sl.registerLazySingleton<StripeService>(
-    () => const FlutterStripeService(),
+    () => kIsWeb
+        ? const UnsupportedStripeService()
+        : const FlutterStripeService(),
+  );
+  sl.registerLazySingleton<CheckoutPaymentService>(
+    () => FlutterCheckoutPaymentService(stripeService: sl<StripeService>()),
   );
 
   sl.registerLazySingleton<PushNotificationService>(
@@ -122,6 +133,8 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<RecentSearchesStorage>(
     () => RecentSearchesStorage(),
   );
+
+  sl.registerLazySingleton<GuestCartStorage>(() => GuestCartStorage());
 
   // ThemeCubit (singleton — drives the root MaterialApp themeMode, must persist
   // across all routes; same rationale as AuthBloc). loadTheme() is awaited here
@@ -140,6 +153,11 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<AuthBloc>(
     () => AuthBloc(authRepository: sl<AuthRepository>()),
   );
+  ApiClient.onSessionExpired = () async {
+    if (sl.isRegistered<AuthBloc>()) {
+      sl<AuthBloc>().add(AuthSessionExpired());
+    }
+  };
 
   // HomeCubit (factory — new instance per screen visit)
   sl.registerFactory<HomeCubit>(
@@ -158,7 +176,11 @@ Future<void> initDependencies() async {
 
   // CartCubit (lazySingleton — shared global state: home badge, product detail, cart page)
   sl.registerLazySingleton<CartCubit>(
-    () => CartCubit(repository: sl<CartRepository>()),
+    () => CartCubit(
+      repository: sl<CartRepository>(),
+      tokenStorage: sl<TokenStorage>(),
+      guestStorage: sl<GuestCartStorage>(),
+    ),
   );
 
   // NotificationCubit (lazySingleton — shared global state: home badge, notification center)
@@ -202,7 +224,7 @@ Future<void> initDependencies() async {
     () => CheckoutBloc(
       addressRepository: sl<AddressRepository>(),
       orderRepository: sl<OrderRepository>(),
-      stripeService: sl<StripeService>(),
+      paymentService: sl<CheckoutPaymentService>(),
       cartCubit: sl<CartCubit>(),
     ),
   );

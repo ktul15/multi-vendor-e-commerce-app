@@ -35,8 +35,9 @@ class TopProductsTable extends StatelessWidget {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
-                  headingRowColor:
-                      WidgetStateProperty.all(AppColors.background),
+                  headingRowColor: WidgetStateProperty.all(
+                    AppColors.background,
+                  ),
                   columns: const [
                     DataColumn(label: Text('Rank'), numeric: true),
                     DataColumn(label: Text('Product')),
@@ -57,9 +58,7 @@ class TopProductsTable extends StatelessWidget {
                           ),
                         ),
                         DataCell(Text(p.orderCount.toString())),
-                        DataCell(
-                          Text('\$${p.totalRevenue.toStringAsFixed(2)}'),
-                        ),
+                        DataCell(Text('₹${p.totalRevenue.toStringAsFixed(2)}')),
                       ],
                     );
                   }).toList(),

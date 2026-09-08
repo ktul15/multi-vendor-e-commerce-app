@@ -64,10 +64,10 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       _priceRange.start > 0 || _priceRange.end < widget.maxPrice;
 
   void _reset() => setState(() {
-        _priceRange = RangeValues(0, widget.maxPrice);
-        _minRating = null;
-        _inStock = null;
-      });
+    _priceRange = RangeValues(0, widget.maxPrice);
+    _minRating = null;
+    _inStock = null;
+  });
 
   void _apply() {
     Navigator.of(context).pop();
@@ -138,8 +138,8 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                     children: [
                       Text('Price Range', style: AppTextStyles.h6),
                       Text(
-                        '\$${_priceRange.start.toStringAsFixed(0)}'
-                        ' – \$${_priceRange.end.toStringAsFixed(0)}',
+                        '₹${_priceRange.start.toStringAsFixed(0)}'
+                        ' – ₹${_priceRange.end.toStringAsFixed(0)}',
                         style: AppTextStyles.body.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w600,
@@ -171,7 +171,8 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                   Row(
                     children: List.generate(5, (i) {
                       final star = (i + 1).toDouble();
-                      final selected = _minRating != null && _minRating! >= star;
+                      final selected =
+                          _minRating != null && _minRating! >= star;
                       return InkWell(
                         onTap: () => setState(() {
                           _minRating = _minRating == star ? null : star;
@@ -206,7 +207,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                   Text('In Stock Only', style: AppTextStyles.h6),
                   Switch(
                     value: _inStock ?? false,
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                     onChanged: (v) =>
                         setState(() => _inStock = v ? true : null),
                   ),

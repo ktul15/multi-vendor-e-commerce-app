@@ -5,6 +5,7 @@ import '../../../core/config/injection_container.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/services/push_notification_service.dart';
 import '../../../features/notifications/bloc/notification_cubit.dart';
+import '../../../features/cart/bloc/cart_cubit.dart';
 import '../../../features/wishlist/bloc/wishlist_cubit.dart';
 import '../../../repositories/auth_repository.dart';
 import 'auth_event.dart';
@@ -21,9 +22,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthLoginRequested>(_onLoginRequested);
     on<AuthRegisterRequested>(_onRegisterRequested);
     on<AuthLogoutRequested>(_onLogoutRequested);
+    on<AuthSessionExpired>(_onSessionExpired);
   }
 
-  /// Initialize push notifications, notification cubit, and wishlist after authentication.
+  /// Upload the guest cart before publishing the authenticated state so route
+  /// changes cannot race ahead of the server cart.
+  Future<void> _syncCartAfterAuth() async {
+    if (sl.isRegistered<CartCubit>()) {
+      try {
+        await sl<CartCubit>().mergeGuestCart();
+      } catch (e) {
+        debugPrint('Error merging guest cart: $e');
+      }
+    }
+  }
+
+  /// Initialize non-critical services after authentication.
   Future<void> _initPostAuth() async {
     try {
       await sl<PushNotificationService>().initialize();
@@ -42,6 +56,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     sl<PushNotificationService>().dispose();
     sl<NotificationCubit>().reset();
     sl<WishlistCubit>().reset();
+    if (sl.isRegistered<CartCubit>()) sl<CartCubit>().reset();
   }
 
   /// Auto-login: check stored tokens and fetch profile.
@@ -57,6 +72,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         return;
       }
       final user = await _authRepository.getProfile();
+      await _syncCartAfterAuth();
       emit(AuthAuthenticated(user: user));
       unawaited(_initPostAuth());
     } catch (_) {
@@ -75,6 +91,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         email: event.email,
         password: event.password,
       );
+      await _syncCartAfterAuth();
       emit(AuthAuthenticated(user: user));
       unawaited(_initPostAuth());
     } on ApiException catch (e) {
@@ -98,6 +115,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         email: event.email,
         password: event.password,
       );
+      await _syncCartAfterAuth();
       emit(AuthAuthenticated(user: user));
       unawaited(_initPostAuth());
     } on ApiException catch (e) {
@@ -116,6 +134,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     _cleanupOnLogout();
     await _authRepository.logout();
+    emit(AuthUnauthenticated());
+  }
+
+  void _onSessionExpired(AuthSessionExpired event, Emitter<AuthState> emit) {
+    _cleanupOnLogout();
     emit(AuthUnauthenticated());
   }
 }

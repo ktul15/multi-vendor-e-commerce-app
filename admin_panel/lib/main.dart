@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'core/config/app_router.dart';
 import 'core/config/app_env.dart';
 import 'core/config/injection_container.dart';
@@ -7,6 +8,7 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/bloc/auth_cubit.dart';
 
 void main() async {
+  usePathUrlStrategy();
   WidgetsFlutterBinding.ensureInitialized();
   await initDependencies();
 

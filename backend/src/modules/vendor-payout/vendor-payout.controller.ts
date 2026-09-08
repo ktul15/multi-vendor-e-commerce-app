@@ -16,7 +16,7 @@ export class VendorPayoutController {
     const result = await vendorPayoutService.createConnectAccount(
       req.user!.userId
     );
-    ApiResponse.success(res, result, 'Stripe Connect onboarding URL generated');
+    ApiResponse.success(res, result, 'Payment provider onboarding started');
   });
 
   refreshOnboarding = catchAsync(async (req: AuthRequest, res: Response) => {
@@ -27,10 +27,8 @@ export class VendorPayoutController {
   });
 
   connectStatus = catchAsync(async (req: AuthRequest, res: Response) => {
-    const result = await vendorPayoutService.getConnectStatus(
-      req.user!.userId
-    );
-    ApiResponse.success(res, result, 'Connect account status');
+    const result = await vendorPayoutService.getConnectStatus(req.user!.userId);
+    ApiResponse.success(res, result, 'Payment provider account status');
   });
 
   // ─── Earnings & Payouts ───────────────────────────────────────────
@@ -70,12 +68,23 @@ export class VendorPayoutController {
     ApiResponse.success(res, result, 'Commission rate updated');
   });
 
+  updatePaymentProvider = catchAsync(
+    async (req: AuthRequest, res: Response) => {
+      const result = await vendorPayoutService.updatePaymentProvider(
+        req.params.vendorId as string,
+        req.body
+      );
+      ApiResponse.success(res, result, 'Vendor payment provider updated');
+    }
+  );
+
   // ─── Connect Webhook ──────────────────────────────────────────────
 
   webhook = catchAsync(async (req: Request, res: Response) => {
     const signature = req.headers['stripe-signature'] as string;
 
-    if (!signature) throw ApiError.badRequest('Missing Stripe-Signature header');
+    if (!signature)
+      throw ApiError.badRequest('Missing Stripe-Signature header');
     if (!req.rawBody) throw ApiError.badRequest('Raw body unavailable');
 
     await vendorPayoutService.handleConnectWebhook(req.rawBody, signature);

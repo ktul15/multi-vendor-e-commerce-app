@@ -15,14 +15,9 @@ export const getProfile = catchAsync(
 export const updateProfile = catchAsync(
   async (req: AuthRequest, res: Response) => {
     const userId = req.user!.userId;
-    // vendorProfile is attached by requireApprovedVendor middleware
-    const existing = req.vendorProfile!;
-    const files = req.files as
-      | Record<string, { buffer: Buffer }[]>
-      | undefined;
+    const files = req.files as Record<string, { buffer: Buffer }[]> | undefined;
     const updatedProfile = await vendorProfileService.updateProfile(
       userId,
-      existing,
       req.body,
       files
     );

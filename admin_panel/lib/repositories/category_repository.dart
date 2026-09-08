@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
+import 'package:http_parser/http_parser.dart';
 import '../core/network/api_client.dart';
 import '../core/network/api_exception.dart';
 import '../features/categories/models/category_model.dart';
@@ -26,13 +29,32 @@ class CategoryRepository {
   Future<CategoryModel> createCategory({
     required String name,
     String? image,
+    Uint8List? imageBytes,
+    String? imageFilename,
     String? parentId,
   }) async {
     try {
-      final body = <String, dynamic>{'name': name};
-      if (image != null && image.isNotEmpty) body['image'] = image;
-      if (parentId != null) body['parentId'] = parentId;
-      final response = await _dio.post('/categories', data: body);
+      final response = imageBytes == null
+          ? await _dio.post(
+              '/categories',
+              data: {
+                'name': name,
+                if (image != null && image.isNotEmpty) 'image': image,
+                if (parentId != null) 'parentId': parentId,
+              },
+            )
+          : await _dio.post(
+              '/categories',
+              data: FormData.fromMap({
+                'name': name,
+                if (parentId != null) 'parentId': parentId,
+                'image': MultipartFile.fromBytes(
+                  imageBytes,
+                  filename: imageFilename ?? 'category-image',
+                  contentType: _mediaTypeFor(imageFilename),
+                ),
+              }),
+            );
       return CategoryModel.fromJson(
         (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>,
       );
@@ -45,18 +67,35 @@ class CategoryRepository {
     String id, {
     required String name,
     String? image,
+    Uint8List? imageBytes,
+    String? imageFilename,
     String? parentId,
     bool clearParent = false,
   }) async {
     try {
-      final body = <String, dynamic>{'name': name};
-      if (image != null) body['image'] = image.isEmpty ? null : image;
-      if (clearParent) {
-        body['parentId'] = null;
-      } else if (parentId != null) {
-        body['parentId'] = parentId;
-      }
-      final response = await _dio.put('/categories/$id', data: body);
+      final response = imageBytes == null
+          ? await _dio.put(
+              '/categories/$id',
+              data: {
+                'name': name,
+                if (image != null) 'image': image.isEmpty ? null : image,
+                if (clearParent) 'parentId': null,
+                if (!clearParent && parentId != null) 'parentId': parentId,
+              },
+            )
+          : await _dio.put(
+              '/categories/$id',
+              data: FormData.fromMap({
+                'name': name,
+                if (clearParent) 'parentId': '',
+                if (!clearParent && parentId != null) 'parentId': parentId,
+                'image': MultipartFile.fromBytes(
+                  imageBytes,
+                  filename: imageFilename ?? 'category-image',
+                  contentType: _mediaTypeFor(imageFilename),
+                ),
+              }),
+            );
       return CategoryModel.fromJson(
         (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>,
       );
@@ -74,13 +113,16 @@ class CategoryRepository {
   }
 
   String _errorMessage(DioException e) {
-    if (e.response != null) {
-      final data = e.response?.data;
-      if (data is Map && data['message'] != null) {
-        return data['message'] as String;
-      }
-      return 'Request failed (${e.response?.statusCode})';
-    }
-    return e.message ?? 'Network error';
+    return e.errorMessage;
+  }
+
+  MediaType _mediaTypeFor(String? filename) {
+    final extension = filename?.split('.').last.toLowerCase();
+    return switch (extension) {
+      'jpg' || 'jpeg' => MediaType('image', 'jpeg'),
+      'png' => MediaType('image', 'png'),
+      'webp' => MediaType('image', 'webp'),
+      _ => MediaType('image', 'jpeg'),
+    };
   }
 }

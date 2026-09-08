@@ -1,0 +1,77 @@
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { z } from "zod";
+import {
+  applyCookieWrites,
+  requestCredentials,
+  resolveRequestSession,
+  rotateRequestSession,
+  validMutation,
+} from "../../../../../src/lib/session";
+
+const bodySchema = z
+  .object({
+    status: z.enum(["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"]),
+    trackingCarrier: z.string().trim().min(1).max(100).optional(),
+    trackingNumber: z.string().trim().min(1).max(100).optional(),
+  })
+  .refine(
+    (value) => value.status !== "SHIPPED" || Boolean(value.trackingCarrier && value.trackingNumber),
+    { message: "Tracking carrier and number are required for shipped orders" },
+  );
+
+const failure = (message: string, status: number, errors?: unknown) =>
+  NextResponse.json({ errors, message, success: false }, { status });
+
+export async function PUT(
+  request: NextRequest,
+  { params }: Readonly<{ params: Promise<Readonly<{ id: string }>> }>,
+) {
+  if (!validMutation(request)) return failure("Invalid CSRF or request origin", 403);
+  const { id } = await params;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+    return failure("Invalid order ID", 400);
+  }
+  const parsed = bodySchema.safeParse(await request.json().catch(() => undefined));
+  if (!parsed.success) return failure("Validation failed", 400, parsed.error.issues);
+
+  let session: Awaited<ReturnType<typeof resolveRequestSession>>;
+  try {
+    session = await resolveRequestSession(request);
+  } catch {
+    return failure("Session service unavailable", 503);
+  }
+  if (session.kind === "unauthenticated") return failure("Authentication required", 401);
+  if (session.kind === "forbidden") return failure("Vendor access required", 403);
+  const finalize = (response: NextResponse) => {
+    if (session.rotatedTokens)
+      applyCookieWrites(response, rotateRequestSession(request, session.rotatedTokens));
+    return response;
+  };
+  const token = session.rotatedTokens?.accessToken ?? requestCredentials(request).accessToken;
+  const idempotencyKey = request.headers.get("Idempotency-Key");
+  const apiBase = process.env.API_BASE_URL?.replace(/\/$/, "");
+  if (!token || !apiBase) return finalize(failure("Order service unavailable", 503));
+  try {
+    const response = await fetch(`${apiBase}/orders/vendor/${id}/status`, {
+      body: JSON.stringify(parsed.data),
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+      },
+      method: "PUT",
+      redirect: "error",
+      signal: AbortSignal.timeout(5_000),
+    });
+    const payload = await response.json().catch(() => ({}));
+    const result = NextResponse.json(payload, { status: response.status });
+    for (const header of ["Idempotency-Status", "Idempotency-Replayed", "Retry-After"]) {
+      const value = response.headers.get(header);
+      if (value) result.headers.set(header, value);
+    }
+    return finalize(result);
+  } catch {
+    return finalize(failure("Order service unavailable", 503));
+  }
+}

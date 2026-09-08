@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/models/vendor_order.dart';
+import '../../../shared/widgets/overflow_safe_text.dart';
 
 class RecentOrdersTable extends StatelessWidget {
   const RecentOrdersTable({super.key, required this.orders});
@@ -24,15 +25,13 @@ class RecentOrdersTable extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Recent Orders', style: AppTextStyles.h3),
-                TextButton(
-                  onPressed: () => context.go(AppRoutes.orders),
-                  child: const Text('View all'),
-                ),
-              ],
+            ResponsiveActionHeader(
+              title: 'Recent Orders',
+              titleStyle: AppTextStyles.h3,
+              action: TextButton(
+                onPressed: () => context.go(AppRoutes.orders),
+                child: const Text('View all'),
+              ),
             ),
             const SizedBox(height: AppSpacing.sm),
             if (orders.isEmpty)
@@ -44,7 +43,9 @@ class RecentOrdersTable extends StatelessWidget {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
-                  headingRowColor: WidgetStateProperty.all(AppColors.background),
+                  headingRowColor: WidgetStateProperty.all(
+                    AppColors.background,
+                  ),
                   columns: const [
                     DataColumn(label: Text('Order #')),
                     DataColumn(label: Text('Customer')),
@@ -58,7 +59,7 @@ class RecentOrdersTable extends StatelessWidget {
                         DataCell(Text(o.orderNumber)),
                         DataCell(Text(o.customerName ?? '—')),
                         DataCell(_StatusChip(status: o.status)),
-                        DataCell(Text('\$${o.subtotal.toStringAsFixed(2)}')),
+                        DataCell(Text('₹${o.subtotal.toStringAsFixed(2)}')),
                         DataCell(
                           Text(
                             '${o.createdAt.year}-'

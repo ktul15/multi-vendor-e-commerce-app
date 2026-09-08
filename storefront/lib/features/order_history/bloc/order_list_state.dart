@@ -56,13 +56,13 @@ class OrderListLoaded extends OrderListState {
 
   @override
   List<Object?> get props => [
-        orders,
-        total,
-        currentPage,
-        totalPages,
-        activeFilter,
-        isLoadingMore,
-      ];
+    orders,
+    total,
+    currentPage,
+    totalPages,
+    activeFilter,
+    isLoadingMore,
+  ];
 }
 
 class OrderListError extends OrderListState {

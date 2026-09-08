@@ -54,26 +54,23 @@ class OrderItemDetail extends Equatable {
 
   /// Human-readable variant label (e.g. "Red / L").
   String? get variantLabel {
-    final parts = <String>[
-      if (variantColor != null) variantColor!,
-      if (variantSize != null) variantSize!,
-    ];
+    final parts = <String>[?variantColor, ?variantSize];
     return parts.isNotEmpty ? parts.join(' / ') : null;
   }
 
   @override
   List<Object?> get props => [
-        id,
-        quantity,
-        unitPrice,
-        totalPrice,
-        variantSku,
-        variantSize,
-        variantColor,
-        variantPrice,
-        productName,
-        productImages,
-      ];
+    id,
+    quantity,
+    unitPrice,
+    totalPrice,
+    variantSku,
+    variantSize,
+    variantColor,
+    variantPrice,
+    productName,
+    productImages,
+  ];
 }
 
 // ── Vendor order with full items ─────────────────────────────────────────────
@@ -105,9 +102,9 @@ class VendorOrderDetail extends Equatable {
       vendorId: json['vendorId'] as String,
       status: json['status'] as String? ?? 'PENDING',
       subtotal: _toDouble(json['subtotal']),
-      items: itemsList
-              ?.map(
-                  (e) => OrderItemDetail.fromJson(e as Map<String, dynamic>))
+      items:
+          itemsList
+              ?.map((e) => OrderItemDetail.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
       trackingNumber: json['trackingNumber'] as String?,
@@ -116,8 +113,15 @@ class VendorOrderDetail extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [id, vendorId, status, subtotal, items, trackingNumber, createdAt];
+  List<Object?> get props => [
+    id,
+    vendorId,
+    status,
+    subtotal,
+    items,
+    trackingNumber,
+    createdAt,
+  ];
 }
 
 // ── Full payment detail ──────────────────────────────────────────────────────
@@ -128,7 +132,9 @@ class PaymentDetail extends Equatable {
   final String currency;
   final String method;
   final String status;
-  final String? stripePaymentIntentId;
+  final String provider;
+  final String? providerOrderId;
+  final String? providerPaymentId;
   final DateTime? paidAt;
 
   const PaymentDetail({
@@ -137,7 +143,9 @@ class PaymentDetail extends Equatable {
     required this.currency,
     required this.method,
     required this.status,
-    this.stripePaymentIntentId,
+    required this.provider,
+    this.providerOrderId,
+    this.providerPaymentId,
     this.paidAt,
   });
 
@@ -145,10 +153,12 @@ class PaymentDetail extends Equatable {
     return PaymentDetail(
       id: json['id'] as String,
       amount: _toDouble(json['amount']),
-      currency: json['currency'] as String? ?? 'USD',
+      currency: json['currency'] as String? ?? 'INR',
       method: json['method'] as String,
       status: json['status'] as String,
-      stripePaymentIntentId: json['stripePaymentIntentId'] as String?,
+      provider: json['provider'] as String,
+      providerOrderId: json['providerOrderId'] as String?,
+      providerPaymentId: json['providerPaymentId'] as String?,
       paidAt: json['paidAt'] != null
           ? DateTime.parse(json['paidAt'] as String)
           : null,
@@ -157,15 +167,24 @@ class PaymentDetail extends Equatable {
 
   /// Human-readable method label.
   String get methodLabel => switch (method) {
-        'CARD' => 'Credit / Debit Card',
-        'CASH_ON_DELIVERY' => 'Cash on Delivery',
-        'WALLET' => 'Wallet',
-        _ => method,
-      };
+    'CARD' => 'Credit / Debit Card',
+    'CASH_ON_DELIVERY' => 'Cash on Delivery',
+    'WALLET' => 'Wallet',
+    _ => method,
+  };
 
   @override
-  List<Object?> get props =>
-      [id, amount, currency, method, status, stripePaymentIntentId, paidAt];
+  List<Object?> get props => [
+    id,
+    amount,
+    currency,
+    method,
+    status,
+    provider,
+    providerOrderId,
+    providerPaymentId,
+    paidAt,
+  ];
 }
 
 // ── Order detail model ───────────────────────────────────────────────────────
@@ -217,9 +236,11 @@ class OrderDetailModel extends Equatable {
       notes: json['notes'] as String?,
       cancellationReason: json['cancellationReason'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
-      vendorOrders: vendorOrdersList
-              ?.map((e) =>
-                  VendorOrderDetail.fromJson(e as Map<String, dynamic>))
+      vendorOrders:
+          vendorOrdersList
+              ?.map(
+                (e) => VendorOrderDetail.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           const [],
       address: AddressModel.fromJson(addressJson),
@@ -277,19 +298,19 @@ class OrderDetailModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        orderNumber,
-        subtotal,
-        discount,
-        tax,
-        total,
-        notes,
-        cancellationReason,
-        createdAt,
-        vendorOrders,
-        address,
-        payment,
-      ];
+    id,
+    orderNumber,
+    subtotal,
+    discount,
+    tax,
+    total,
+    notes,
+    cancellationReason,
+    createdAt,
+    vendorOrders,
+    address,
+    payment,
+  ];
 }
 
 // ── Helper ───────────────────────────────────────────────────────────────────

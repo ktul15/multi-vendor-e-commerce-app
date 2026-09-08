@@ -8,8 +8,8 @@ class AuthRepository {
   final TokenStorage _tokenStorage;
 
   AuthRepository({required Dio dio, required TokenStorage tokenStorage})
-      : _dio = dio,
-        _tokenStorage = tokenStorage;
+    : _dio = dio,
+      _tokenStorage = tokenStorage;
 
   /// Restore the stored access token to the Dio header.
   /// Called on app start before any authenticated request.
@@ -63,6 +63,30 @@ class AuthRepository {
       return body['data'] as Map<String, dynamic>;
     } on DioException catch (e) {
       throw ApiException(e.errorMessage, statusCode: e.response?.statusCode);
+    }
+  }
+
+  /// Exchange the stored refresh token for a new token pair.
+  Future<bool> refreshTokens() async {
+    final refreshToken = await _tokenStorage.getRefreshToken();
+    if (refreshToken == null) return false;
+
+    try {
+      final response = await _dio.post(
+        '/auth/refresh',
+        data: {'refreshToken': refreshToken},
+        options: Options(extra: {ApiClient.skipAuthRefreshKey: true}),
+      );
+      final body = response.data as Map<String, dynamic>;
+      final tokens = body['data'] as Map<String, dynamic>;
+      await _tokenStorage.saveTokens(
+        accessToken: tokens['accessToken'] as String,
+        refreshToken: tokens['refreshToken'] as String,
+      );
+      ApiClient.setAuthToken(tokens['accessToken'] as String);
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 

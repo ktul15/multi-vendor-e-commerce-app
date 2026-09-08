@@ -34,87 +34,10 @@ class AdminShell extends StatelessWidget {
     return Scaffold(
       body: Row(
         children: [
-          NavigationRail(
+          _AdminSidebar(
             selectedIndex: _selectedIndex,
             onDestinationSelected: (index) => _onNavTap(context, index),
-            labelType: NavigationRailLabelType.all,
-            backgroundColor: AppColors.surface,
-            leading: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.admin_panel_settings_rounded,
-                    color: AppColors.primary,
-                    size: 32,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Admin',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            trailing: Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: IconButton(
-                tooltip: 'Logout',
-                icon: const Icon(Icons.logout_rounded),
-                color: AppColors.textSecondary,
-                onPressed: () => context.read<AuthCubit>().logout(),
-              ),
-            ),
-            destinations: const [
-              NavigationRailDestination(
-                icon: Icon(Icons.dashboard_outlined),
-                selectedIcon: Icon(Icons.dashboard_rounded),
-                label: Text('Dashboard'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.category_outlined),
-                selectedIcon: Icon(Icons.category_rounded),
-                label: Text('Categories'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.people_outline_rounded),
-                selectedIcon: Icon(Icons.people_rounded),
-                label: Text('Users'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.store_outlined),
-                selectedIcon: Icon(Icons.store_rounded),
-                label: Text('Vendors'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.inventory_2_outlined),
-                selectedIcon: Icon(Icons.inventory_2_rounded),
-                label: Text('Products'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.receipt_long_outlined),
-                selectedIcon: Icon(Icons.receipt_long_rounded),
-                label: Text('Orders'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.bar_chart_outlined),
-                selectedIcon: Icon(Icons.bar_chart_rounded),
-                label: Text('Finance'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.image_outlined),
-                selectedIcon: Icon(Icons.image_rounded),
-                label: Text('Banners'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.discount_outlined),
-                selectedIcon: Icon(Icons.discount_rounded),
-                label: Text('Promos'),
-              ),
-            ],
+            onLogout: () => context.read<AuthCubit>().logout(),
           ),
           const VerticalDivider(thickness: 1, width: 1),
           Expanded(child: child),
@@ -145,4 +68,193 @@ class AdminShell extends StatelessWidget {
         context.goNamed(AppRoutes.promosName);
     }
   }
+}
+
+class _AdminSidebar extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onDestinationSelected;
+  final VoidCallback onLogout;
+
+  const _AdminSidebar({
+    required this.selectedIndex,
+    required this.onDestinationSelected,
+    required this.onLogout,
+  });
+
+  static const _items = [
+    _SidebarDestination(
+      label: 'Dashboard',
+      icon: Icons.dashboard_outlined,
+      selectedIcon: Icons.dashboard_rounded,
+    ),
+    _SidebarDestination(
+      label: 'Categories',
+      icon: Icons.category_outlined,
+      selectedIcon: Icons.category_rounded,
+    ),
+    _SidebarDestination(
+      label: 'Users',
+      icon: Icons.people_outline_rounded,
+      selectedIcon: Icons.people_rounded,
+    ),
+    _SidebarDestination(
+      label: 'Vendors',
+      icon: Icons.store_outlined,
+      selectedIcon: Icons.store_rounded,
+    ),
+    _SidebarDestination(
+      label: 'Products',
+      icon: Icons.inventory_2_outlined,
+      selectedIcon: Icons.inventory_2_rounded,
+    ),
+    _SidebarDestination(
+      label: 'Orders',
+      icon: Icons.receipt_long_outlined,
+      selectedIcon: Icons.receipt_long_rounded,
+    ),
+    _SidebarDestination(
+      label: 'Finance',
+      icon: Icons.bar_chart_outlined,
+      selectedIcon: Icons.bar_chart_rounded,
+    ),
+    _SidebarDestination(
+      label: 'Banners',
+      icon: Icons.image_outlined,
+      selectedIcon: Icons.image_rounded,
+    ),
+    _SidebarDestination(
+      label: 'Promos',
+      icon: Icons.discount_outlined,
+      selectedIcon: Icons.discount_rounded,
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 88,
+      child: ColoredBox(
+        color: AppColors.surface,
+        child: SafeArea(
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              Icon(
+                Icons.admin_panel_settings_rounded,
+                color: AppColors.primary,
+                size: 32,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Admin',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Column(
+                    children: [
+                      for (var i = 0; i < _items.length; i++)
+                        _SidebarItem(
+                          destination: _items[i],
+                          selected: i == selectedIndex,
+                          onTap: () => onDestinationSelected(i),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Logout',
+                icon: const Icon(Icons.logout_rounded),
+                color: AppColors.textSecondary,
+                onPressed: onLogout,
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SidebarItem extends StatelessWidget {
+  final _SidebarDestination destination;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _SidebarItem({
+    required this.destination,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? AppColors.primary : AppColors.textPrimary;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      child: Tooltip(
+        message: destination.label,
+        waitDuration: const Duration(milliseconds: 500),
+        child: Material(
+          color: selected
+              ? AppColors.primary.withValues(alpha: 0.12)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(24),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(24),
+            child: SizedBox(
+              height: 64,
+              width: 72,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    selected ? destination.selectedIcon : destination.icon,
+                    size: 26,
+                    color: color,
+                  ),
+                  const SizedBox(height: 5),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: Text(
+                      destination.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: color,
+                        fontWeight: selected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SidebarDestination {
+  final String label;
+  final IconData icon;
+  final IconData selectedIcon;
+
+  const _SidebarDestination({
+    required this.label,
+    required this.icon,
+    required this.selectedIcon,
+  });
 }

@@ -1,7 +1,14 @@
-import { Prisma, EarningStatus } from '../../generated/prisma/client';
+import {
+  Prisma,
+  EarningStatus,
+  OrderStatus,
+  Role,
+  VendorProfileStatus,
+} from '../../generated/prisma/client';
 import { prisma } from '../../config/prisma';
 import { env } from '../../config/env';
 import { ApiError } from '../../utils/apiError';
+import { cleanupMediaBestEffort } from '../../utils/mediaCleanup';
 import {
   ListUsersQueryInput,
   ListVendorsQueryInput,
@@ -31,6 +38,44 @@ const BILLABLE_EARNING_STATUSES: EarningStatus[] = [
   EarningStatus.PENDING,
   EarningStatus.TRANSFERRED,
 ];
+
+const ORDER_STATUS_ORDER: OrderStatus[] = [
+  OrderStatus.PENDING,
+  OrderStatus.CONFIRMED,
+  OrderStatus.PROCESSING,
+  OrderStatus.SHIPPED,
+  OrderStatus.DELIVERED,
+  OrderStatus.CANCELLED,
+  OrderStatus.REFUNDED,
+];
+
+const vendorLifecycleSelect = {
+  id: true,
+  userId: true,
+  storeName: true,
+  status: true,
+} satisfies Prisma.VendorProfileSelect;
+
+const summarizeFulfillmentStatus = (statuses: OrderStatus[]) => {
+  const uniqueStatuses = [...new Set(statuses)].sort(
+    (left, right) =>
+      ORDER_STATUS_ORDER.indexOf(left) - ORDER_STATUS_ORDER.indexOf(right)
+  );
+
+  if (uniqueStatuses.length === 0) {
+    return { kind: 'NONE' as const, status: null, statuses: uniqueStatuses };
+  }
+
+  if (uniqueStatuses.length === 1) {
+    return {
+      kind: 'SINGLE' as const,
+      status: uniqueStatuses[0]!,
+      statuses: uniqueStatuses,
+    };
+  }
+
+  return { kind: 'MIXED' as const, status: null, statuses: uniqueStatuses };
+};
 
 export class AdminService {
   // ---- Dashboard ----
@@ -74,7 +119,9 @@ export class AdminService {
 
   // ---- Users ----
 
-  async listUsers(query: ListUsersQueryInput): Promise<PaginatedResult<unknown>> {
+  async listUsers(
+    query: ListUsersQueryInput
+  ): Promise<PaginatedResult<unknown>> {
     const { page, limit, role, isBanned, search } = query;
     const skip = (page - 1) * limit;
 
@@ -95,7 +142,7 @@ export class AdminService {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         select: {
           id: true,
           name: true,
@@ -113,45 +160,98 @@ export class AdminService {
 
     return {
       items,
-      meta: { total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) },
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
     };
   }
 
-  async banUser(userId: string) {
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw ApiError.notFound('User not found');
-    if (user.role === 'ADMIN') throw ApiError.forbidden('Cannot ban an admin account');
-    if (user.isBanned) throw ApiError.conflict('User is already banned');
-
-    return prisma.user.update({
+  async getUserById(userId: string) {
+    const user = await prisma.user.findUnique({
       where: { id: userId },
-      data: { isBanned: true },
-      select: { id: true, name: true, email: true, isBanned: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        avatar: true,
+        isBanned: true,
+        isVerified: true,
+        createdAt: true,
+        updatedAt: true,
+        vendorProfile: {
+          select: {
+            id: true,
+            userId: true,
+            storeName: true,
+            storeLogo: true,
+            storeBanner: true,
+            description: true,
+            status: true,
+            paymentProvider: true,
+            settlementCountry: true,
+            paymentOnboardingStatus: true,
+            commissionRate: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
+    });
+
+    if (!user) throw ApiError.notFound('User not found');
+    return user;
+  }
+
+  async banUser(userId: string) {
+    return prisma.$transaction(async (tx) => {
+      const user = await this.lockUser(tx, userId);
+      if (!user) throw ApiError.notFound('User not found');
+      if (user.role === 'ADMIN')
+        throw ApiError.forbidden('Cannot ban an admin account');
+      if (user.isBanned) throw ApiError.conflict('User is already banned');
+
+      return tx.user.update({
+        where: { id: userId },
+        data: { isBanned: true },
+        select: { id: true, name: true, email: true, isBanned: true },
+      });
     });
   }
 
   async unbanUser(userId: string) {
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw ApiError.notFound('User not found');
-    if (!user.isBanned) throw ApiError.conflict('User is not currently banned');
+    return prisma.$transaction(async (tx) => {
+      const user = await this.lockUser(tx, userId);
+      if (!user) throw ApiError.notFound('User not found');
+      if (!user.isBanned)
+        throw ApiError.conflict('User is not currently banned');
 
-    return prisma.user.update({
-      where: { id: userId },
-      data: { isBanned: false },
-      select: { id: true, name: true, email: true, isBanned: true },
+      return tx.user.update({
+        where: { id: userId },
+        data: { isBanned: false },
+        select: { id: true, name: true, email: true, isBanned: true },
+      });
     });
   }
 
   // ---- Vendors ----
 
-  async listVendors(query: ListVendorsQueryInput): Promise<PaginatedResult<unknown>> {
+  async listVendors(
+    query: ListVendorsQueryInput
+  ): Promise<PaginatedResult<unknown>> {
     const { page, limit, status, search } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.VendorProfileWhereInput = {
       ...(status && { status }),
       ...(search && {
-        storeName: { contains: search, mode: 'insensitive' },
+        OR: [
+          { storeName: { contains: search, mode: 'insensitive' } },
+          { user: { email: { contains: search, mode: 'insensitive' } } },
+        ],
       }),
     };
 
@@ -161,13 +261,15 @@ export class AdminService {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         select: {
           id: true,
           storeName: true,
           status: true,
           commissionRate: true,
-          stripeOnboardingStatus: true,
+          paymentProvider: true,
+          settlementCountry: true,
+          paymentOnboardingStatus: true,
           createdAt: true,
           user: {
             select: { id: true, name: true, email: true, isBanned: true },
@@ -178,59 +280,106 @@ export class AdminService {
 
     return {
       items,
-      meta: { total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) },
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
     };
   }
 
-  async approveVendor(vendorProfileId: string) {
+  async getVendorById(vendorProfileId: string) {
     const profile = await prisma.vendorProfile.findUnique({
       where: { id: vendorProfileId },
+      select: {
+        id: true,
+        userId: true,
+        storeName: true,
+        storeLogo: true,
+        storeBanner: true,
+        description: true,
+        status: true,
+        paymentProvider: true,
+        settlementCountry: true,
+        paymentOnboardingStatus: true,
+        commissionRate: true,
+        createdAt: true,
+        updatedAt: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatar: true,
+            isBanned: true,
+            isVerified: true,
+            createdAt: true,
+          },
+        },
+      },
     });
-    if (!profile) throw ApiError.notFound('Vendor profile not found');
-    if (profile.status === 'APPROVED') throw ApiError.conflict('Vendor is already approved');
 
-    return prisma.vendorProfile.update({
-      where: { id: vendorProfileId },
-      data: { status: 'APPROVED' },
+    if (!profile) throw ApiError.notFound('Vendor profile not found');
+    return profile;
+  }
+
+  async approveVendor(vendorProfileId: string) {
+    return prisma.$transaction(async (tx) => {
+      const profile = await this.lockVendorProfile(tx, vendorProfileId);
+      if (!profile) throw ApiError.notFound('Vendor profile not found');
+      if (profile.status === 'APPROVED')
+        throw ApiError.conflict('Vendor is already approved');
+
+      return tx.vendorProfile.update({
+        where: { id: vendorProfileId },
+        data: { status: 'APPROVED' },
+        select: vendorLifecycleSelect,
+      });
     });
   }
 
   async rejectVendor(vendorProfileId: string) {
-    const profile = await prisma.vendorProfile.findUnique({
-      where: { id: vendorProfileId },
-    });
-    if (!profile) throw ApiError.notFound('Vendor profile not found');
-    if (profile.status === 'APPROVED') {
-      throw ApiError.conflict(
-        'Cannot reject an already-approved vendor — use suspend instead'
-      );
-    }
-    if (profile.status === 'REJECTED') throw ApiError.conflict('Vendor is already rejected');
+    return prisma.$transaction(async (tx) => {
+      const profile = await this.lockVendorProfile(tx, vendorProfileId);
+      if (!profile) throw ApiError.notFound('Vendor profile not found');
+      if (profile.status === 'APPROVED') {
+        throw ApiError.conflict(
+          'Cannot reject an already-approved vendor — use suspend instead'
+        );
+      }
+      if (profile.status === 'REJECTED')
+        throw ApiError.conflict('Vendor is already rejected');
 
-    return prisma.vendorProfile.update({
-      where: { id: vendorProfileId },
-      data: { status: 'REJECTED' },
+      return tx.vendorProfile.update({
+        where: { id: vendorProfileId },
+        data: { status: 'REJECTED' },
+        select: vendorLifecycleSelect,
+      });
     });
   }
 
   async suspendVendor(vendorProfileId: string) {
-    const profile = await prisma.vendorProfile.findUnique({
-      where: { id: vendorProfileId },
-    });
-    if (!profile) throw ApiError.notFound('Vendor profile not found');
-    if (profile.status !== 'APPROVED') {
-      throw ApiError.badRequest('Only approved vendors can be suspended');
-    }
+    return prisma.$transaction(async (tx) => {
+      const profile = await this.lockVendorProfile(tx, vendorProfileId);
+      if (!profile) throw ApiError.notFound('Vendor profile not found');
+      if (profile.status !== 'APPROVED') {
+        throw ApiError.badRequest('Only approved vendors can be suspended');
+      }
 
-    return prisma.vendorProfile.update({
-      where: { id: vendorProfileId },
-      data: { status: 'SUSPENDED' },
+      return tx.vendorProfile.update({
+        where: { id: vendorProfileId },
+        data: { status: 'SUSPENDED' },
+        select: vendorLifecycleSelect,
+      });
     });
   }
 
   // ---- Products ----
 
-  async listProducts(query: ListProductsQueryInput): Promise<PaginatedResult<unknown>> {
+  async listProducts(
+    query: ListProductsQueryInput
+  ): Promise<PaginatedResult<unknown>> {
     const { page, limit, isActive, vendorId, categoryId, search } = query;
     const skip = (page - 1) * limit;
 
@@ -253,7 +402,7 @@ export class AdminService {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         select: {
           id: true,
           name: true,
@@ -271,40 +420,120 @@ export class AdminService {
 
     return {
       items,
-      meta: { total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) },
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
     };
   }
 
-  async activateProduct(productId: string) {
-    const product = await prisma.product.findUnique({ where: { id: productId } });
-    if (!product) throw ApiError.notFound('Product not found');
-    if (product.isActive) throw ApiError.conflict('Product is already active');
-
-    return prisma.product.update({
+  async getProductById(productId: string) {
+    const product = await prisma.product.findUnique({
       where: { id: productId },
-      data: { isActive: true },
-      select: { id: true, name: true, isActive: true },
+      select: {
+        id: true,
+        vendorId: true,
+        categoryId: true,
+        name: true,
+        description: true,
+        basePrice: true,
+        images: true,
+        media: {
+          orderBy: [{ position: 'asc' }, { id: 'asc' }],
+          select: {
+            id: true,
+            url: true,
+            position: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+        isActive: true,
+        avgRating: true,
+        reviewCount: true,
+        tags: true,
+        createdAt: true,
+        updatedAt: true,
+        vendor: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            vendorProfile: {
+              select: { id: true, storeName: true, status: true },
+            },
+          },
+        },
+        category: {
+          select: { id: true, name: true, slug: true, parentId: true },
+        },
+        variants: {
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          select: {
+            id: true,
+            productId: true,
+            size: true,
+            color: true,
+            price: true,
+            stock: true,
+            sku: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
+    });
+
+    if (!product) throw ApiError.notFound('Product not found');
+    return product;
+  }
+
+  async activateProduct(productId: string) {
+    return prisma.$transaction(async (tx) => {
+      const product = await this.lockProduct(tx, productId);
+      if (!product) throw ApiError.notFound('Product not found');
+      if (product.isActive)
+        throw ApiError.conflict('Product is already active');
+
+      return tx.product.update({
+        where: { id: productId },
+        data: { isActive: true },
+        select: { id: true, name: true, isActive: true },
+      });
     });
   }
 
   async deactivateProduct(productId: string) {
-    const product = await prisma.product.findUnique({ where: { id: productId } });
-    if (!product) throw ApiError.notFound('Product not found');
-    if (!product.isActive) throw ApiError.conflict('Product is already inactive');
+    return prisma.$transaction(async (tx) => {
+      const product = await this.lockProduct(tx, productId);
+      if (!product) throw ApiError.notFound('Product not found');
+      if (!product.isActive)
+        throw ApiError.conflict('Product is already inactive');
 
-    return prisma.product.update({
-      where: { id: productId },
-      data: { isActive: false },
-      select: { id: true, name: true, isActive: true },
+      return tx.product.update({
+        where: { id: productId },
+        data: { isActive: false },
+        select: { id: true, name: true, isActive: true },
+      });
     });
   }
 
   async deleteProduct(productId: string) {
-    const product = await prisma.product.findUnique({ where: { id: productId } });
-    if (!product) throw ApiError.notFound('Product not found');
-
+    let publicIds: string[] = [];
     try {
-      await prisma.product.delete({ where: { id: productId } });
+      await prisma.$transaction(async (tx) => {
+        const product = await this.lockProduct(tx, productId);
+        if (!product) throw ApiError.notFound('Product not found');
+        publicIds = (
+          await tx.productMedia.findMany({
+            where: { productId, publicId: { not: null } },
+            select: { publicId: true },
+          })
+        ).flatMap((item) => (item.publicId ? [item.publicId] : []));
+        await tx.product.delete({ where: { id: productId } });
+      });
     } catch (err) {
       if (
         err instanceof Prisma.PrismaClientKnownRequestError &&
@@ -314,17 +543,46 @@ export class AdminService {
           'Cannot delete a product with existing orders — deactivate it instead'
         );
       }
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2025'
+      ) {
+        throw ApiError.notFound('Product not found');
+      }
       throw err;
     }
+    await Promise.all(
+      publicIds.map((publicId) =>
+        cleanupMediaBestEffort(publicId, 'admin product deletion')
+      )
+    );
   }
 
   // ---- Orders ----
 
-  async listAllOrders(query: ListOrdersQueryInput): Promise<PaginatedResult<unknown>> {
-    const { page, limit, status, userId, vendorId, startDate, endDate } = query;
+  async listAllOrders(
+    query: ListOrdersQueryInput
+  ): Promise<PaginatedResult<unknown>> {
+    const {
+      page,
+      limit,
+      search,
+      status,
+      userId,
+      vendorId,
+      startDate,
+      endDate,
+    } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.OrderWhereInput = {
+      ...(search && {
+        OR: [
+          { orderNumber: { contains: search, mode: 'insensitive' } },
+          { user: { name: { contains: search, mode: 'insensitive' } } },
+          { user: { email: { contains: search, mode: 'insensitive' } } },
+        ],
+      }),
       // Merge status and vendorId into a single vendorOrders.some to avoid
       // object spread overwriting the earlier key when both filters are provided.
       ...((status || vendorId) && {
@@ -351,7 +609,7 @@ export class AdminService {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         select: {
           id: true,
           orderNumber: true,
@@ -362,12 +620,15 @@ export class AdminService {
           createdAt: true,
           user: { select: { id: true, name: true, email: true } },
           vendorOrders: {
+            orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
             select: {
               id: true,
               status: true,
               vendorId: true,
               subtotal: true,
-              vendor: { select: { vendorProfile: { select: { storeName: true } } } },
+              vendor: {
+                select: { vendorProfile: { select: { storeName: true } } },
+              },
             },
           },
           payment: { select: { status: true, method: true } },
@@ -376,8 +637,18 @@ export class AdminService {
     ]);
 
     return {
-      items,
-      meta: { total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) },
+      items: items.map((order) => ({
+        ...order,
+        fulfillmentStatus: summarizeFulfillmentStatus(
+          order.vendorOrders.map((vendorOrder) => vendorOrder.status)
+        ),
+      })),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
     };
   }
 
@@ -392,9 +663,13 @@ export class AdminService {
         tax: true,
         total: true,
         notes: true,
+        cancellationReason: true,
+        shippingAddress: true,
         createdAt: true,
+        updatedAt: true,
         user: { select: { id: true, name: true, email: true } },
         vendorOrders: {
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
           select: {
             id: true,
             status: true,
@@ -403,9 +678,12 @@ export class AdminService {
             trackingCarrier: true,
             vendorId: true,
             vendor: {
-              select: { vendorProfile: { select: { id: true, storeName: true } } },
+              select: {
+                vendorProfile: { select: { id: true, storeName: true } },
+              },
             },
             items: {
+              orderBy: { id: 'asc' },
               select: {
                 id: true,
                 quantity: true,
@@ -426,7 +704,17 @@ export class AdminService {
             },
           },
         },
-        address: true,
+        address: {
+          select: {
+            fullName: true,
+            phone: true,
+            street: true,
+            city: true,
+            state: true,
+            country: true,
+            zipCode: true,
+          },
+        },
         payment: { select: { status: true, method: true, paidAt: true } },
         promoCode: {
           select: { code: true, discountType: true, discountValue: true },
@@ -435,7 +723,12 @@ export class AdminService {
     });
 
     if (!order) throw ApiError.notFound('Order not found');
-    return order;
+    return {
+      ...order,
+      fulfillmentStatus: summarizeFulfillmentStatus(
+        order.vendorOrders.map((vendorOrder) => vendorOrder.status)
+      ),
+    };
   }
 
   // ---- Revenue ----
@@ -455,7 +748,10 @@ export class AdminService {
       : new Date(resolvedEnd.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     // DATE_TRUNC period is validated as a closed enum upstream — safe to inline.
-    const rows = await prisma.$queryRaw<RevenueRow[]>`
+    const range = { gte: resolvedStart, lt: resolvedEnd };
+    const [rows, totals, earningsByStatus, payoutsByStatus, recentPayouts] =
+      await Promise.all([
+        prisma.$queryRaw<RevenueRow[]>`
       SELECT
         DATE_TRUNC(${Prisma.raw(`'${period}'`)}, ve."createdAt") AS "periodStart",
         COUNT(DISTINCT ve."vendorOrderId")::int                   AS "orderCount",
@@ -463,11 +759,59 @@ export class AdminService {
       FROM vendor_earnings ve
       WHERE
         ve.status NOT IN ('FAILED', 'REVERSED')
+        AND ve.currency = 'INR'
         AND ve."createdAt" >= ${resolvedStart}
         AND ve."createdAt" <  ${resolvedEnd}
       GROUP BY 1
       ORDER BY 1 ASC
-    `;
+    `,
+        prisma.vendorEarning.aggregate({
+          where: {
+            createdAt: range,
+            currency: 'INR',
+            status: { in: BILLABLE_EARNING_STATUSES },
+          },
+          _count: { _all: true },
+          _sum: {
+            grossAmount: true,
+            commissionAmount: true,
+            netAmount: true,
+          },
+        }),
+        prisma.vendorEarning.groupBy({
+          by: ['status'],
+          where: { createdAt: range, currency: 'INR' },
+          _count: { _all: true },
+          _sum: {
+            grossAmount: true,
+            commissionAmount: true,
+            netAmount: true,
+          },
+          orderBy: { status: 'asc' },
+        }),
+        prisma.vendorPayout.groupBy({
+          by: ['status'],
+          where: { createdAt: range, currency: 'INR' },
+          _count: { _all: true },
+          _sum: { amount: true },
+          orderBy: { status: 'asc' },
+        }),
+        prisma.vendorPayout.findMany({
+          where: { createdAt: range, currency: 'INR' },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: 10,
+          select: {
+            id: true,
+            amount: true,
+            currency: true,
+            status: true,
+            arrivalDate: true,
+            failureReason: true,
+            createdAt: true,
+            vendorProfile: { select: { id: true, storeName: true } },
+          },
+        }),
+      ]);
 
     const series = rows.map((row) => ({
       periodStart: row.periodStart.toISOString().slice(0, 10),
@@ -478,6 +822,40 @@ export class AdminService {
     return {
       period,
       series,
+      totals: {
+        grossRevenue: parseFloat(
+          totals._sum.grossAmount?.toString() ?? '0'
+        ).toFixed(2),
+        platformCommission: parseFloat(
+          totals._sum.commissionAmount?.toString() ?? '0'
+        ).toFixed(2),
+        vendorEarnings: parseFloat(
+          totals._sum.netAmount?.toString() ?? '0'
+        ).toFixed(2),
+        vendorOrderCount: totals._count._all,
+      },
+      earningsByStatus: earningsByStatus.map((entry) => ({
+        status: entry.status,
+        count: entry._count._all,
+        grossRevenue: parseFloat(
+          entry._sum.grossAmount?.toString() ?? '0'
+        ).toFixed(2),
+        platformCommission: parseFloat(
+          entry._sum.commissionAmount?.toString() ?? '0'
+        ).toFixed(2),
+        vendorEarnings: parseFloat(
+          entry._sum.netAmount?.toString() ?? '0'
+        ).toFixed(2),
+      })),
+      payoutsByStatus: payoutsByStatus.map((entry) => ({
+        status: entry.status,
+        count: entry._count._all,
+        amount: parseFloat(entry._sum.amount?.toString() ?? '0').toFixed(2),
+      })),
+      recentPayouts: recentPayouts.map((payout) => ({
+        ...payout,
+        amount: payout.amount.toFixed(2),
+      })),
       dateRange: {
         startDate: resolvedStart.toISOString(),
         endDate: resolvedEnd.toISOString(),
@@ -527,6 +905,33 @@ export class AdminService {
       data: { commissionRate: rate },
       select: { id: true, storeName: true, commissionRate: true },
     });
+  }
+
+  private async lockUser(tx: Prisma.TransactionClient, userId: string) {
+    const rows = await tx.$queryRaw<
+      Array<{ id: string; role: Role; isBanned: boolean }>
+    >`SELECT "id", "role", "isBanned" FROM "users"
+      WHERE "id" = ${userId} FOR UPDATE`;
+    return rows[0];
+  }
+
+  private async lockVendorProfile(
+    tx: Prisma.TransactionClient,
+    vendorProfileId: string
+  ) {
+    const rows = await tx.$queryRaw<
+      Array<{ id: string; status: VendorProfileStatus }>
+    >`SELECT "id", "status" FROM "vendor_profiles"
+      WHERE "id" = ${vendorProfileId} FOR UPDATE`;
+    return rows[0];
+  }
+
+  private async lockProduct(tx: Prisma.TransactionClient, productId: string) {
+    const rows = await tx.$queryRaw<Array<{ id: string; isActive: boolean }>>`
+      SELECT "id", "isActive" FROM "products"
+      WHERE "id" = ${productId} FOR UPDATE
+    `;
+    return rows[0];
   }
 }
 

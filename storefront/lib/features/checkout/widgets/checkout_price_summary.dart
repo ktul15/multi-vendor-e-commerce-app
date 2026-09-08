@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../shared/widgets/overflow_safe_text.dart';
 import '../../../shared/models/cart_model.dart';
 
 class CheckoutPriceSummary extends StatelessWidget {
@@ -46,7 +47,9 @@ class CheckoutPriceSummary extends StatelessWidget {
           _Row(
             label: 'Total',
             value: total,
-            labelStyle: AppTextStyles.body.copyWith(fontWeight: FontWeight.w700),
+            labelStyle: AppTextStyles.body.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
             valueStyle: AppTextStyles.h5,
           ),
         ],
@@ -73,19 +76,15 @@ class _Row extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sign = value < 0 ? '-' : '';
-    final display = '$sign\$${value.abs().toStringAsFixed(2)}';
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: labelStyle ?? AppTextStyles.body),
-        Text(
-          display,
-          style: (valueStyle ?? AppTextStyles.body).copyWith(
-            color: valueColor,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
+    final display = '$sign₹${value.abs().toStringAsFixed(2)}';
+    return ResponsiveMetadataRow(
+      label: label,
+      value: display,
+      labelStyle: labelStyle ?? AppTextStyles.body,
+      valueStyle: (valueStyle ?? AppTextStyles.body).copyWith(
+        color: valueColor,
+        fontWeight: FontWeight.w600,
+      ),
     );
   }
 }

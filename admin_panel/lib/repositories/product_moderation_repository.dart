@@ -3,13 +3,19 @@ import '../core/network/api_client.dart';
 import '../core/network/api_exception.dart';
 import '../features/products/models/admin_product_model.dart';
 
+int _readInt(dynamic value, {int fallback = 0}) {
+  if (value == null) return fallback;
+  if (value is num) return value.toInt();
+  return int.tryParse(value.toString()) ?? fallback;
+}
+
 class ProductModerationRepository {
   final Dio _dio;
 
   ProductModerationRepository({Dio? dio}) : _dio = dio ?? ApiClient.instance;
 
   Future<({List<AdminProductModel> items, int total, int page, int totalPages})>
-      listProducts({
+  listProducts({
     int page = 1,
     int limit = 15,
     bool? isActive,
@@ -39,9 +45,9 @@ class ProductModerationRepository {
       final meta = data['meta'] as Map<String, dynamic>;
       return (
         items: items,
-        total: meta['total'] as int,
-        page: meta['page'] as int,
-        totalPages: meta['totalPages'] as int,
+        total: _readInt(meta['total']),
+        page: _readInt(meta['page'], fallback: page),
+        totalPages: _readInt(meta['totalPages'], fallback: 1),
       );
     } on DioException catch (e) {
       throw ApiException(e.errorMessage, statusCode: e.response?.statusCode);

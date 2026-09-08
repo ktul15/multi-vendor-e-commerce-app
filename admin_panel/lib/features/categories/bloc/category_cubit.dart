@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../repositories/category_repository.dart';
@@ -8,8 +10,8 @@ class CategoryCubit extends Cubit<CategoryState> {
   final CategoryRepository _repository;
 
   CategoryCubit({required CategoryRepository repository})
-      : _repository = repository,
-        super(const CategoryInitial());
+    : _repository = repository,
+      super(const CategoryInitial());
 
   Future<void> loadCategories() async {
     emit(const CategoryLoading());
@@ -35,13 +37,20 @@ class CategoryCubit extends Cubit<CategoryState> {
   Future<String?> createCategory({
     required String name,
     String? image,
+    Uint8List? imageBytes,
+    String? imageFilename,
     String? parentId,
   }) async {
     final existing = _currentCategories();
     emit(CategoryLoaded(categories: existing, isMutating: true));
     try {
       await _repository.createCategory(
-          name: name, image: image, parentId: parentId);
+        name: name,
+        image: image,
+        imageBytes: imageBytes,
+        imageFilename: imageFilename,
+        parentId: parentId,
+      );
       await _silentRefresh();
       return null;
     } on ApiException catch (e) {
@@ -58,6 +67,8 @@ class CategoryCubit extends Cubit<CategoryState> {
     String id, {
     required String name,
     String? image,
+    Uint8List? imageBytes,
+    String? imageFilename,
     String? parentId,
     bool clearParent = false,
   }) async {
@@ -68,6 +79,8 @@ class CategoryCubit extends Cubit<CategoryState> {
         id,
         name: name,
         image: image,
+        imageBytes: imageBytes,
+        imageFilename: imageFilename,
         parentId: parentId,
         clearParent: clearParent,
       );

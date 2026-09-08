@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/network/error_messages.dart';
 import '../../../repositories/product_repository.dart';
+import '../../../shared/models/product.dart';
 import 'products_state.dart';
 
 class ProductsCubit extends Cubit<ProductsState> {
@@ -12,9 +14,9 @@ class ProductsCubit extends Cubit<ProductsState> {
   ProductsCubit({
     required ProductRepository productRepository,
     required String vendorId,
-  })  : _productRepository = productRepository,
-        _vendorId = vendorId,
-        super(ProductsInitial());
+  }) : _productRepository = productRepository,
+       _vendorId = vendorId,
+       super(ProductsInitial());
 
   Future<void> load() async {
     _currentPage = 1;
@@ -25,13 +27,15 @@ class ProductsCubit extends Cubit<ProductsState> {
         page: 1,
         limit: _pageSize,
       );
-      emit(ProductsLoaded(
-        result.products,
-        total: result.total,
-        hasMore: result.totalPages > 1,
-      ));
+      emit(
+        ProductsLoaded(
+          result.products,
+          total: result.total,
+          hasMore: result.totalPages > 1,
+        ),
+      );
     } catch (e) {
-      emit(ProductsError(e.toString()));
+      emit(ProductsError(userFacingErrorMessage(e)));
     }
   }
 
@@ -46,13 +50,15 @@ class ProductsCubit extends Cubit<ProductsState> {
         limit: _pageSize,
       );
       final merged = [...current.products, ...result.products];
-      emit(ProductsLoaded(
-        merged,
-        total: result.total,
-        hasMore: _currentPage < result.totalPages,
-      ));
+      emit(
+        ProductsLoaded(
+          merged,
+          total: result.total,
+          hasMore: _currentPage < result.totalPages,
+        ),
+      );
     } catch (e) {
-      emit(ProductsError(e.toString()));
+      emit(ProductsError(userFacingErrorMessage(e)));
     }
   }
 
@@ -61,6 +67,7 @@ class ProductsCubit extends Cubit<ProductsState> {
     required String description,
     required double basePrice,
     required String categoryId,
+    required List<ProductVariantDraft> variants,
     bool isActive = true,
   }) async {
     try {
@@ -69,11 +76,12 @@ class ProductsCubit extends Cubit<ProductsState> {
         description: description,
         basePrice: basePrice,
         categoryId: categoryId,
+        variants: variants,
         isActive: isActive,
       );
       await load();
     } catch (e) {
-      emit(ProductsError(e.toString()));
+      emit(ProductsError(userFacingErrorMessage(e)));
     }
   }
 
@@ -83,6 +91,7 @@ class ProductsCubit extends Cubit<ProductsState> {
     String? description,
     double? basePrice,
     bool? isActive,
+    List<ProductVariantDraft>? variants,
   }) async {
     try {
       await _productRepository.updateProduct(
@@ -92,9 +101,16 @@ class ProductsCubit extends Cubit<ProductsState> {
         basePrice: basePrice,
         isActive: isActive,
       );
+      for (final variant in variants ?? const <ProductVariantDraft>[]) {
+        if (variant.id == null) {
+          await _productRepository.addVariant(productId, variant);
+        } else {
+          await _productRepository.updateVariant(productId, variant);
+        }
+      }
       await load();
     } catch (e) {
-      emit(ProductsError(e.toString()));
+      emit(ProductsError(userFacingErrorMessage(e)));
     }
   }
 
@@ -103,7 +119,7 @@ class ProductsCubit extends Cubit<ProductsState> {
       await _productRepository.deleteProduct(productId);
       await load();
     } catch (e) {
-      emit(ProductsError(e.toString()));
+      emit(ProductsError(userFacingErrorMessage(e)));
     }
   }
 }

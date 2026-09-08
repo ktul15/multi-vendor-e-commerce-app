@@ -114,6 +114,7 @@ beforeAll(async () => {
             },
             subtotal: 29.99,
             total: 29.99,
+            paymentProvider: 'STRIPE',
             vendorOrders: {
                 create: {
                     vendorId,
@@ -131,6 +132,7 @@ beforeAll(async () => {
             },
             payment: {
                 create: {
+                    provider: 'STRIPE',
                     amount: 29.99,
                     method: 'CARD',
                     status: 'SUCCEEDED',

@@ -36,6 +36,11 @@ export default [
             ],
             "@typescript-eslint/explicit-function-return-type": "off",
             "@typescript-eslint/no-explicit-any": "warn",
+            "@typescript-eslint/no-namespace": [
+                "error",
+                { allowDeclarations: true },
+            ],
+            "no-undef": "off",
             "no-console": ["warn", { allow: ["warn", "error", "info"] }],
         },
     },

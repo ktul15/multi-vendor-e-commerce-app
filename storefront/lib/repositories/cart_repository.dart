@@ -16,10 +16,10 @@ class CartRepository {
   }
 
   Future<CartModel> addItem(String variantId, int quantity) async {
-    final body = await _client.post('/cart/items', data: {
-      'variantId': variantId,
-      'quantity': quantity,
-    });
+    final body = await _client.post(
+      '/cart/items',
+      data: {'variantId': variantId, 'quantity': quantity},
+    );
     if (body == null || body['data'] is! Map) {
       throw const ApiException('Failed to add item');
     }
@@ -27,8 +27,10 @@ class CartRepository {
   }
 
   Future<CartModel> updateItem(String itemId, int quantity) async {
-    final body =
-        await _client.patch('/cart/items/$itemId', data: {'quantity': quantity});
+    final body = await _client.put(
+      '/cart/items/$itemId',
+      data: {'quantity': quantity},
+    );
     if (body == null || body['data'] is! Map) {
       throw const ApiException('Failed to update item');
     }
@@ -48,8 +50,10 @@ class CartRepository {
   }
 
   Future<PromoPreviewModel> previewPromo(String code) async {
-    final body =
-        await _client.post('/cart/preview-promo', data: {'code': code});
+    final body = await _client.post(
+      '/cart/preview-promo',
+      data: {'code': code},
+    );
     if (body == null || body['data'] is! Map) {
       throw const ApiException('Failed to preview promo');
     }

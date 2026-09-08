@@ -93,14 +93,8 @@ class ReviewTile extends StatelessWidget {
                     if (value == 'delete') onDelete?.call();
                   },
                   itemBuilder: (_) => [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Text('Edit'),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Text('Delete'),
-                    ),
+                    const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                    const PopupMenuItem(value: 'delete', child: Text('Delete')),
                   ],
                 ),
             ],

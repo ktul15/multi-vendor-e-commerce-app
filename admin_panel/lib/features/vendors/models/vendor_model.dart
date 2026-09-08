@@ -1,5 +1,11 @@
 import 'package:equatable/equatable.dart';
 
+double? _readNullableDouble(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value.toString());
+}
+
 class VendorOwnerModel extends Equatable {
   final String id;
   final String name;
@@ -31,7 +37,9 @@ class VendorModel extends Equatable {
   final String storeName;
   final String status;
   final double? commissionRate;
-  final String stripeOnboardingStatus;
+  final String paymentProvider;
+  final String settlementCountry;
+  final String paymentOnboardingStatus;
   final DateTime createdAt;
   final VendorOwnerModel owner;
 
@@ -40,20 +48,24 @@ class VendorModel extends Equatable {
     required this.storeName,
     required this.status,
     this.commissionRate,
-    required this.stripeOnboardingStatus,
+    required this.paymentProvider,
+    required this.settlementCountry,
+    required this.paymentOnboardingStatus,
     required this.createdAt,
     required this.owner,
   });
 
   factory VendorModel.fromJson(Map<String, dynamic> json) {
-    final cr = json['commissionRate'];
     return VendorModel(
       id: json['id'] as String,
       storeName: json['storeName'] as String,
       status: json['status'] as String,
-      commissionRate: cr != null ? (cr as num).toDouble() : null,
-      stripeOnboardingStatus: json['stripeOnboardingStatus'] as String,
-      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+      commissionRate: _readNullableDouble(json['commissionRate']),
+      paymentProvider: json['paymentProvider'] as String,
+      settlementCountry: json['settlementCountry'] as String,
+      paymentOnboardingStatus: json['paymentOnboardingStatus'] as String,
+      createdAt:
+          DateTime.tryParse(json['createdAt'] as String? ?? '') ??
           DateTime.now(),
       owner: VendorOwnerModel.fromJson(json['user'] as Map<String, dynamic>),
     );
@@ -62,8 +74,18 @@ class VendorModel extends Equatable {
   /// Human-readable joined date, e.g. "Apr 7, 2026".
   String get formattedJoinDate {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${months[createdAt.month - 1]} ${createdAt.day}, ${createdAt.year}';
   }
@@ -74,7 +96,9 @@ class VendorModel extends Equatable {
       storeName: storeName,
       status: status ?? this.status,
       commissionRate: commissionRate,
-      stripeOnboardingStatus: stripeOnboardingStatus,
+      paymentProvider: paymentProvider,
+      settlementCountry: settlementCountry,
+      paymentOnboardingStatus: paymentOnboardingStatus,
       createdAt: createdAt,
       owner: owner,
     );
@@ -82,12 +106,14 @@ class VendorModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        storeName,
-        status,
-        commissionRate,
-        stripeOnboardingStatus,
-        createdAt,
-        owner,
-      ];
+    id,
+    storeName,
+    status,
+    commissionRate,
+    paymentProvider,
+    settlementCountry,
+    paymentOnboardingStatus,
+    createdAt,
+    owner,
+  ];
 }

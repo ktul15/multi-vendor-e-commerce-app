@@ -1,6 +1,7 @@
 # Miscellaneous
 *.class
 *.lock
+!pnpm-lock.yaml
 *.log
 *.pyc
 *.swp
@@ -115,12 +116,25 @@ unlinked_spec.ds
 
 # Coverage
 coverage/
+playwright-report/
+test-results/
+blob-report/
 
 # Symbols
 app.*.symbols
 
 # Environment files
 *.env
+!.env.example
+!**/.env.example
+
+# Node.js / Next.js / Turborepo
+node_modules/
+.next/
+.turbo/
+dist/
+out/
+*.tsbuildinfo
 
 # Exceptions to above rules.
 !**/ios/**/default.mode1v3

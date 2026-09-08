@@ -50,9 +50,9 @@ class _CartView extends StatelessWidget {
       builder: (context, state) {
         return switch (state) {
           CartInitial() || CartLoading() => Scaffold(
-              appBar: AppBar(title: const Text('My Cart')),
-              body: SkeletonContainer(child: const CartSkeleton()),
-            ),
+            appBar: AppBar(title: const Text('My Cart')),
+            body: SkeletonContainer(child: const CartSkeleton()),
+          ),
           CartError(:final previousCart, :final message)
               when previousCart == null =>
             Scaffold(
@@ -63,13 +63,13 @@ class _CartView extends StatelessWidget {
               ),
             ),
           CartError(:final previousCart) => _CartScaffold(
-              cart: previousCart!,
-              promoPreview: null,
-              isUpdating: false,
-              isApplyingPromo: false,
-              promoError: null,
-              errorBanner: true,
-            ),
+            cart: previousCart!,
+            promoPreview: null,
+            isUpdating: false,
+            isApplyingPromo: false,
+            promoError: null,
+            errorBanner: true,
+          ),
           CartLoaded(
             :final cart,
             :final promoPreview,
@@ -116,10 +116,7 @@ class _CartScaffold extends StatelessWidget {
       body: cart.isEmpty
           ? CustomScrollView(
               slivers: [
-                const SliverAppBar(
-                  title: Text('My Cart'),
-                  floating: true,
-                ),
+                const SliverAppBar(title: Text('My Cart'), floating: true),
                 const SliverFillRemaining(child: EmptyCartWidget()),
               ],
             )
@@ -131,8 +128,7 @@ class _CartScaffold extends StatelessWidget {
                   bottom: PreferredSize(
                     preferredSize: const Size.fromHeight(20),
                     child: Padding(
-                      padding:
-                          const EdgeInsets.only(bottom: AppSpacing.sm),
+                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                       child: Text(
                         '${cart.itemCount} ${cart.itemCount == 1 ? 'item' : 'items'}',
                         style: AppTextStyles.caption,
@@ -150,14 +146,18 @@ class _CartScaffold extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.warning_amber_rounded,
-                              size: 16, color: AppColors.error),
+                          const Icon(
+                            Icons.warning_amber_rounded,
+                            size: 16,
+                            color: AppColors.error,
+                          ),
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Text(
                               'Failed to update cart. Please try again.',
-                              style: AppTextStyles.caption
-                                  .copyWith(color: AppColors.error),
+                              style: AppTextStyles.caption.copyWith(
+                                color: AppColors.error,
+                              ),
                             ),
                           ),
                         ],
@@ -176,7 +176,8 @@ class _CartScaffold extends StatelessWidget {
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                        vertical: AppSpacing.base),
+                      vertical: AppSpacing.base,
+                    ),
                     child: PromoCodeInput(
                       isApplyingPromo: isApplyingPromo,
                       activePromoCode: promoPreview?.code,
@@ -202,7 +203,8 @@ class _CartScaffold extends StatelessWidget {
                       onPressed: () => context.push(AppRoutes.checkout),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
-                            vertical: AppSpacing.md),
+                          vertical: AppSpacing.md,
+                        ),
                       ),
                       child: const Text('Proceed to Checkout'),
                     ),
@@ -213,4 +215,3 @@ class _CartScaffold extends StatelessWidget {
     );
   }
 }
-

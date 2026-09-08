@@ -23,9 +23,9 @@ class SearchCubit extends Cubit<SearchState> {
   SearchCubit({
     required SearchRepository repository,
     required RecentSearchesStorage storage,
-  })  : _repository = repository,
-        _storage = storage,
-        super(const SearchIdle());
+  }) : _repository = repository,
+       _storage = storage,
+       super(const SearchIdle());
 
   /// Load persisted recent searches on screen open.
   Future<void> init() async {
@@ -62,28 +62,43 @@ class SearchCubit extends Cubit<SearchState> {
         limit: _pageSize,
       );
       if (gen != _generation) return; // superseded by a newer search or clear
-      emit(SearchLoaded(
-        query: query,
-        products: page.items,
-        total: page.total,
-        currentPage: page.page,
-        totalPages: page.totalPages,
-        recentSearches: recentSearches,
-      ));
+      emit(
+        SearchLoaded(
+          query: query,
+          products: page.items,
+          total: page.total,
+          currentPage: page.page,
+          totalPages: page.totalPages,
+          recentSearches: recentSearches,
+        ),
+      );
     } on ApiException catch (e) {
       if (gen != _generation) return;
-      emit(SearchError(
-          query: query, message: e.message, recentSearches: recentSearches));
+      emit(
+        SearchError(
+          query: query,
+          message: e.message,
+          recentSearches: recentSearches,
+        ),
+      );
     } on NetworkException catch (e) {
       if (gen != _generation) return;
-      emit(SearchError(
-          query: query, message: e.message, recentSearches: recentSearches));
+      emit(
+        SearchError(
+          query: query,
+          message: e.message,
+          recentSearches: recentSearches,
+        ),
+      );
     } catch (e) {
       if (gen != _generation) return;
-      emit(SearchError(
+      emit(
+        SearchError(
           query: query,
           message: e.toString(),
-          recentSearches: recentSearches));
+          recentSearches: recentSearches,
+        ),
+      );
     }
   }
 
@@ -100,13 +115,15 @@ class SearchCubit extends Cubit<SearchState> {
         page: current.currentPage + 1,
         limit: _pageSize,
       );
-      emit(current.copyWith(
-        products: [...current.products, ...page.items],
-        currentPage: page.page,
-        totalPages: page.totalPages,
-        total: page.total,
-        isLoadingMore: false,
-      ));
+      emit(
+        current.copyWith(
+          products: [...current.products, ...page.items],
+          currentPage: page.page,
+          totalPages: page.totalPages,
+          total: page.total,
+          isLoadingMore: false,
+        ),
+      );
     } catch (_) {
       emit(current.copyWith(isLoadingMore: false));
     }

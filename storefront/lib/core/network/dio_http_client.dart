@@ -57,7 +57,7 @@ class DioHttpClient implements HttpClient {
   Exception _convert(DioException e) {
     if (e.response != null) {
       return ApiException(
-        e.message ?? 'Request failed',
+        _serverMessage(e) ?? e.message ?? 'Request failed',
         statusCode: e.response!.statusCode,
       );
     }
@@ -65,13 +65,34 @@ class DioHttpClient implements HttpClient {
     return switch (e.type) {
       DioExceptionType.connectionTimeout ||
       DioExceptionType.receiveTimeout ||
-      DioExceptionType.sendTimeout =>
-        const NetworkException(
-            'Connection timed out. Check your internet and try again.'),
-      DioExceptionType.connectionError =>
-        const NetworkException('No internet connection. Please try again.'),
+      DioExceptionType.sendTimeout => const NetworkException(
+        'Connection timed out. Check your internet and try again.',
+      ),
+      DioExceptionType.connectionError => const NetworkException(
+        'No internet connection. Please try again.',
+      ),
       _ => NetworkException(
-          e.message ?? 'Something went wrong. Please try again.'),
+        e.message ?? 'Something went wrong. Please try again.',
+      ),
     };
+  }
+
+  /// Prefer a field-level validation message over a generic server summary
+  /// such as "Validation failed".
+  String? _serverMessage(DioException error) {
+    final data = error.response?.data;
+    if (data is! Map<String, dynamic>) return null;
+
+    final errors = data['errors'];
+    if (errors is List) {
+      for (final fieldError in errors) {
+        if (fieldError is Map && fieldError['message'] is String) {
+          final message = (fieldError['message'] as String).trim();
+          if (message.isNotEmpty) return message;
+        }
+      }
+    }
+
+    return null;
   }
 }

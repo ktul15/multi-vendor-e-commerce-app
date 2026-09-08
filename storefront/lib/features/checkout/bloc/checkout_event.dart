@@ -43,8 +43,15 @@ class CheckoutAddressAdded extends CheckoutEvent {
   });
 
   @override
-  List<Object?> get props =>
-      [fullName, phone, street, city, state, country, zipCode];
+  List<Object?> get props => [
+    fullName,
+    phone,
+    street,
+    city,
+    state,
+    country,
+    zipCode,
+  ];
 }
 
 /// User tapped "Continue" on the address step.

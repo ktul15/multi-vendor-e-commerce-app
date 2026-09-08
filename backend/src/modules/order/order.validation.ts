@@ -43,7 +43,9 @@ export const updateVendorOrderStatusSchema = z.object({
   status: z.enum(['CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED']),
 });
 
-export const getVendorOrdersQuerySchema = getOrdersQuerySchema;
+export const getVendorOrdersQuerySchema = getOrdersQuerySchema.extend({
+  search: z.string().trim().max(100).optional(),
+});
 
 export const vendorOrderIdParamSchema = z.object({
   id: z.string().uuid('Invalid vendor order ID'),
@@ -57,9 +59,11 @@ export const updateVendorOrderStatusWithTrackingSchema =
     })
     .refine(
       (data) =>
-        data.status !== 'SHIPPED' || (data.trackingNumber && data.trackingCarrier),
+        data.status !== 'SHIPPED' ||
+        (data.trackingNumber && data.trackingCarrier),
       {
-        message: 'Tracking number and carrier are required when marking as shipped',
+        message:
+          'Tracking number and carrier are required when marking as shipped',
         path: ['trackingNumber'],
       }
     );

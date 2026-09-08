@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/network/error_messages.dart';
 import '../../../repositories/analytics_repository.dart';
 import '../../../repositories/order_repository.dart';
 import 'dashboard_state.dart';
@@ -10,9 +11,9 @@ class DashboardCubit extends Cubit<DashboardState> {
   DashboardCubit({
     required AnalyticsRepository analyticsRepository,
     required OrderRepository orderRepository,
-  })  : _analyticsRepository = analyticsRepository,
-        _orderRepository = orderRepository,
-        super(DashboardInitial());
+  }) : _analyticsRepository = analyticsRepository,
+       _orderRepository = orderRepository,
+       super(DashboardInitial());
 
   Future<void> load() async {
     emit(DashboardLoading());
@@ -23,13 +24,15 @@ class DashboardCubit extends Cubit<DashboardState> {
         _orderRepository.getVendorOrders(page: 1, limit: 5),
       ).wait;
 
-      emit(DashboardLoaded(
-        summary: summary,
-        salesData: salesData,
-        recentOrders: ordersResult.orders,
-      ));
+      emit(
+        DashboardLoaded(
+          summary: summary,
+          salesData: salesData,
+          recentOrders: ordersResult.orders,
+        ),
+      );
     } catch (e) {
-      emit(DashboardError(e.toString()));
+      emit(DashboardError(userFacingErrorMessage(e)));
     }
   }
 }

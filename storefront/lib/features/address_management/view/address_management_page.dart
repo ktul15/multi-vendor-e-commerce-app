@@ -46,13 +46,14 @@ class _AddressManagementView extends StatelessWidget {
       body: BlocBuilder<AddressManagementCubit, AddressManagementState>(
         builder: (context, state) {
           return switch (state) {
-            AddressManagementLoading() =>
-              SkeletonContainer(child: const AddressSkeleton()),
+            AddressManagementLoading() => SkeletonContainer(
+              child: const AddressSkeleton(),
+            ),
             AddressManagementError(:final message) => ErrorState(
-                message: message,
-                onRetry: () =>
-                    context.read<AddressManagementCubit>().loadAddresses(),
-              ),
+              message: message,
+              onRetry: () =>
+                  context.read<AddressManagementCubit>().loadAddresses(),
+            ),
             AddressManagementLoaded() => _LoadedBody(state: state),
           };
         },
@@ -109,8 +110,7 @@ class _LoadedBody extends StatelessWidget {
                 ),
                 child: Text(
                   state.error!,
-                  style:
-                      AppTextStyles.caption.copyWith(color: AppColors.error),
+                  style: AppTextStyles.caption.copyWith(color: AppColors.error),
                 ),
               ),
             ),
@@ -126,23 +126,22 @@ class _LoadedBody extends StatelessWidget {
           )
         else
           SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (ctx, i) {
-                final addr = state.addresses[i];
-                return AddressCard(
-                  address: addr,
-                  isBusy: state.isBusy,
-                  onSetDefault: addr.isDefault
-                      ? null
-                      : () => ctx
-                          .read<AddressManagementCubit>()
-                          .setDefault(addr.id),
-                  onEdit: () => _openAddressFormSheet(ctx, initial: addr),
-                  onDelete: () => _confirmDelete(ctx, addr),
-                );
-              },
-              childCount: state.addresses.length,
-            ),
+            delegate: SliverChildBuilderDelegate((ctx, i) {
+              final addr = state.addresses[i];
+              return AddressCard(
+                address: addr,
+                isBusy: state.isBusy,
+                onSetDefault: addr.isDefault
+                    ? null
+                    : () => ctx.read<AddressManagementCubit>().setDefault(
+                        addr.id,
+                      ),
+                onEdit: () => _openAddressFormSheet(ctx, initial: addr),
+                onDelete: addr.isDefault
+                    ? null
+                    : () => _confirmDelete(ctx, addr),
+              );
+            }, childCount: state.addresses.length),
           ),
 
         const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
@@ -160,13 +159,6 @@ class _LoadedBody extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Remove "${address.fullName}" at ${address.singleLine}?'),
-            if (address.isDefault) ...[
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                'This is your default address. You will need to set a new default before checking out.',
-                style: AppTextStyles.caption.copyWith(color: AppColors.error),
-              ),
-            ],
           ],
         ),
         actions: [
@@ -188,4 +180,3 @@ class _LoadedBody extends StatelessWidget {
     });
   }
 }
-

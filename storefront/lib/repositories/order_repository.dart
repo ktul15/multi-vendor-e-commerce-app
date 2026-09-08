@@ -3,6 +3,7 @@ import '../core/network/http_client.dart';
 import '../shared/models/order_detail_model.dart';
 import '../shared/models/order_model.dart';
 import '../shared/models/orders_page.dart';
+import '../shared/models/payment_checkout.dart';
 
 class OrderRepository {
   final HttpClient _client;
@@ -30,10 +31,7 @@ class OrderRepository {
     int limit = 10,
     String? status,
   }) async {
-    final queryParams = <String, String>{
-      'page': '$page',
-      'limit': '$limit',
-    };
+    final queryParams = <String, String>{'page': '$page', 'limit': '$limit'};
     if (status != null) queryParams['status'] = status;
 
     final body = await _client.get('/orders', queryParameters: queryParams);
@@ -77,21 +75,37 @@ class OrderRepository {
     return OrderDetailModel.fromJson(body['data'] as Map<String, dynamic>);
   }
 
-  Future<String> createPaymentIntent({
+  Future<PaymentCheckout> createPaymentCheckout({
     required String orderId,
-    String currency = 'USD',
   }) async {
-    final body = await _client.post('/payments/create-intent', data: {
-      'orderId': orderId,
-      'currency': currency,
-    });
+    final body = await _client.post(
+      '/payments/checkout',
+      data: {'orderId': orderId},
+    );
     if (body == null || body['data'] is! Map) {
       throw const ApiException('Failed to create payment intent');
     }
-    final clientSecret = (body['data'] as Map)['clientSecret'];
-    if (clientSecret is! String) {
-      throw const ApiException('Invalid payment intent response');
+    try {
+      return PaymentCheckout.fromJson(
+        Map<String, dynamic>.from(body['data'] as Map),
+      );
+    } on FormatException {
+      throw const ApiException('Invalid payment checkout response');
     }
-    return clientSecret;
+  }
+
+  Future<void> confirmRazorpayPayment({
+    required String orderId,
+    required PaymentCheckoutResult result,
+  }) async {
+    await _client.post(
+      '/payments/razorpay/confirm',
+      data: {
+        'orderId': orderId,
+        'providerOrderId': result.providerOrderId,
+        'providerPaymentId': result.providerPaymentId,
+        'signature': result.signature,
+      },
+    );
   }
 }

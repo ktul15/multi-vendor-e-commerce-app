@@ -40,3 +40,7 @@ class AuthRegisterRequested extends AuthEvent {
 
 /// User taps "Logout".
 class AuthLogoutRequested extends AuthEvent {}
+
+/// The API client determined that the stored session can no longer be
+/// refreshed. Unlike user-initiated logout, no backend logout call is needed.
+class AuthSessionExpired extends AuthEvent {}

@@ -15,6 +15,7 @@ class ApiClient {
 
   static Dio? _dio;
   static TokenStorage _tokenStorage = TokenStorage();
+  static Future<void> Function()? onSessionExpired;
 
   /// Get or create the Dio singleton.
   static Dio get instance {
@@ -33,7 +34,11 @@ class ApiClient {
       BaseOptions(
         baseUrl: AppEnv.apiBaseUrl,
         connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 15),
+        // Payment endpoints call Stripe before responding and can legitimately
+        // take longer than ordinary API requests, especially in development.
+        // Keep connection/send failures fast while allowing the backend enough
+        // time to return the PaymentIntent client secret.
+        receiveTimeout: const Duration(seconds: 45),
         sendTimeout: const Duration(seconds: 15),
         headers: {
           'Content-Type': 'application/json',
@@ -95,6 +100,7 @@ class ApiClient {
         try {
           final refreshToken = await _tokenStorage.getRefreshToken();
           if (refreshToken == null) {
+            await _expireSession();
             return handler.next(error);
           }
 
@@ -130,14 +136,29 @@ class ApiClient {
             final retryResponse = await dio.fetch(retryOptions);
             return handler.resolve(retryResponse);
           }
+          // A successful response without usable tokens is not a valid
+          // refreshed session.
+          await _expireSession();
+        } on DioException catch (refreshError) {
+          final statusCode = refreshError.response?.statusCode;
+          // Only invalidate a session when the server definitively rejects
+          // the refresh token. Preserve tokens on connectivity errors and 5xx
+          // responses so a temporary outage does not log the user out.
+          if (statusCode != null && statusCode >= 400 && statusCode < 500) {
+            await _expireSession();
+          }
         } catch (_) {
-          // Refresh failed — clear tokens (user needs to re-login)
-          await _tokenStorage.clearTokens();
+          // Preserve the session on unexpected local/transport failures.
         }
 
         handler.next(error);
       },
     );
+  }
+
+  static Future<void> _expireSession() async {
+    await _tokenStorage.clearTokens();
+    await onSessionExpired?.call();
   }
 
   /// Error interceptor: extracts API error messages from response body.

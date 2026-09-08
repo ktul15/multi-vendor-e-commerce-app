@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import '../../../core/config/app_router.dart';
+import '../../auth/bloc/auth_bloc.dart';
+import '../../auth/bloc/auth_event.dart';
+import '../../auth/bloc/auth_state.dart';
 import '../bloc/theme_cubit.dart';
 import '../bloc/theme_state.dart';
 
@@ -8,50 +13,103 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: BlocBuilder<ThemeCubit, ThemeState>(
-        builder: (context, state) {
-          final currentMode = (state as ThemeLoaded).mode;
+    return BlocListener<AuthBloc, AuthState>(
+      listenWhen: (_, current) => current is AuthUnauthenticated,
+      listener: (context, _) => context.go(AppRoutes.home),
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Settings')),
+        body: BlocBuilder<ThemeCubit, ThemeState>(
+          builder: (context, state) {
+            final currentMode = (state as ThemeLoaded).mode;
 
-          return ListView(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                child: Text(
-                  'APPEARANCE',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        letterSpacing: 1.2,
-                      ),
+            return ListView(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                  child: Text(
+                    'APPEARANCE',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
                 ),
-              ),
-              _ThemeOptionTile(
-                title: 'System default',
-                subtitle: 'Follow device setting',
-                icon: Icons.brightness_auto_outlined,
-                mode: ThemeMode.system,
-                selected: currentMode == ThemeMode.system,
-              ),
-              _ThemeOptionTile(
-                title: 'Light',
-                subtitle: 'Always use light theme',
-                icon: Icons.light_mode_outlined,
-                mode: ThemeMode.light,
-                selected: currentMode == ThemeMode.light,
-              ),
-              _ThemeOptionTile(
-                title: 'Dark',
-                subtitle: 'Always use dark theme',
-                icon: Icons.dark_mode_outlined,
-                mode: ThemeMode.dark,
-                selected: currentMode == ThemeMode.dark,
-              ),
-            ],
-          );
-        },
+                _ThemeOptionTile(
+                  title: 'System default',
+                  subtitle: 'Follow device setting',
+                  icon: Icons.brightness_auto_outlined,
+                  mode: ThemeMode.system,
+                  selected: currentMode == ThemeMode.system,
+                ),
+                _ThemeOptionTile(
+                  title: 'Light',
+                  subtitle: 'Always use light theme',
+                  icon: Icons.light_mode_outlined,
+                  mode: ThemeMode.light,
+                  selected: currentMode == ThemeMode.light,
+                ),
+                _ThemeOptionTile(
+                  title: 'Dark',
+                  subtitle: 'Always use dark theme',
+                  icon: Icons.dark_mode_outlined,
+                  mode: ThemeMode.dark,
+                  selected: currentMode == ThemeMode.dark,
+                ),
+                const Divider(height: 32),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                  child: Text(
+                    'ACCOUNT',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.logout_rounded,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  title: const Text('Log out'),
+                  subtitle: const Text('Sign out of this account'),
+                  textColor: Theme.of(context).colorScheme.error,
+                  iconColor: Theme.of(context).colorScheme.error,
+                  onTap: () => _confirmLogout(context),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
+  }
+
+  Future<void> _confirmLogout(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Log out?'),
+        content: const Text(
+          'You can continue browsing and sign in again at any time.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Log out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+    final authBloc = context.read<AuthBloc>();
+    context.go(AppRoutes.home);
+    authBloc.add(AuthLogoutRequested());
   }
 }
 

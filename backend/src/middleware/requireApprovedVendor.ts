@@ -58,3 +58,41 @@ export const requireApprovedVendor = async (
     next(error);
   }
 };
+
+/**
+ * Allows vendors with editable application states to update their store
+ * profile. Operational routes should continue to use requireApprovedVendor.
+ */
+export const requireEditableVendorProfile = async (
+  req: AuthRequest,
+  _res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const profile = await prisma.vendorProfile.findUnique({
+      where: { userId: req.user!.userId },
+    });
+
+    if (!profile) {
+      next(ApiError.notFound('Vendor profile not found'));
+      return;
+    }
+
+    if (
+      profile.status === VendorProfileStatus.REJECTED ||
+      profile.status === VendorProfileStatus.SUSPENDED
+    ) {
+      next(
+        ApiError.forbidden(
+          'Vendor profile cannot be edited in its current status'
+        )
+      );
+      return;
+    }
+
+    req.vendorProfile = profile;
+    next();
+  } catch (error) {
+    next(error);
+  }
+};

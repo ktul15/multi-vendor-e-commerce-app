@@ -1,9 +1,8 @@
 #!/bin/sh
 set -e
 
-# Apply any pending migrations non-interactively before starting the server.
-# Use `migrate deploy` (not `migrate dev`) — it never creates new migration files.
-npx prisma migrate deploy
+# Production schema changes run through the separately authorized migration job.
+# Application replicas must never coordinate migrations during startup.
 
 # Replace this shell process with node so that SIGTERM is forwarded correctly
 # to the application (important for graceful shutdown in container orchestrators).

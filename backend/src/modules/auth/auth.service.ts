@@ -1,9 +1,19 @@
 import { prisma } from '../../config/prisma';
 import { hashPassword, comparePassword } from '../../utils/password';
-import { generateTokenPair, verifyRefreshToken } from '../../utils/jwt';
+import {
+  generateTokenPair,
+  verifyRefreshToken,
+  verifyRefreshTokenForRevocation,
+} from '../../utils/jwt';
 import { ApiError } from '../../utils/apiError';
 import { JwtPayload } from '../../types';
-import { blacklistToken, isTokenBlacklisted } from '../../utils/tokenBlacklist';
+import {
+  blacklistToken,
+  getRefreshRotation,
+  rotateRefreshToken,
+  waitForRefreshRotation,
+} from '../../utils/tokenBlacklist';
+import { Prisma } from '../../generated/prisma/client';
 
 interface RegisterInput {
   name: string;
@@ -49,21 +59,40 @@ export const register = async (
 
   // Hash password and create user (+ vendor profile if registering as VENDOR)
   const hashedPassword = await hashPassword(password);
-  const user = await prisma.user.create({
-    data: {
-      name,
-      email,
-      password: hashedPassword,
-      role,
-      ...(role === 'VENDOR' && storeName
-        ? {
-            vendorProfile: {
-              create: { storeName },
-            },
-          }
-        : {}),
-    },
-  });
+  let user;
+  try {
+    user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role,
+        ...(role === 'VENDOR' && storeName
+          ? {
+              vendorProfile: {
+                create: { storeName },
+              },
+            }
+          : {}),
+      },
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      const target = String(error.meta?.target ?? '');
+      if (target.includes('email')) {
+        throw ApiError.conflict('Email is already registered');
+      }
+      if (role === 'VENDOR') {
+        throw ApiError.conflict('A store with this name already exists', [
+          { field: 'storeName', message: 'Store name must be unique' },
+        ]);
+      }
+    }
+    throw error;
+  }
 
   // Generate tokens
   const payload: JwtPayload = {
@@ -138,16 +167,17 @@ export const login = async (
  * Refresh the access token using a valid refresh token.
  */
 export const refreshAccessToken = async (
-  refreshToken: string
+  refreshToken: string,
+  rotationKey?: string
 ): Promise<AuthTokens> => {
-  // Check if the refresh token has been blacklisted (e.g. after logout)
-  const blacklisted = await isTokenBlacklisted(refreshToken);
-  if (blacklisted) {
-    throw ApiError.unauthorized('Refresh token has been revoked');
-  }
+  // A concurrent request may arrive at another API instance just after the
+  // winning request consumed this token. Return the same short-lived rotation
+  // result instead of falsely logging that browser session out.
+  const existingRotation = await getRefreshRotation(refreshToken, rotationKey);
+  if (existingRotation) return existingRotation;
 
   // Verify the refresh token
-  let decoded: { userId: string };
+  let decoded: { userId: string; exp?: number };
   try {
     decoded = verifyRefreshToken(refreshToken);
   } catch (error) {
@@ -175,40 +205,76 @@ export const refreshAccessToken = async (
     throw ApiError.forbidden('Your account has been suspended');
   }
 
-  // Generate new token pair
+  const ttl = (decoded.exp ?? 0) - Math.floor(Date.now() / 1000);
+  if (ttl <= 0) {
+    throw ApiError.unauthorized('Refresh token has been revoked');
+  }
+
+  // Generate the replacement before entering the atomic Redis operation. Redis
+  // either consumes the old token and publishes this exact result, or does
+  // neither, so transient failures cannot split those state changes.
   const payload: JwtPayload = {
     userId: user.id,
     email: user.email,
     role: user.role,
   };
 
-  return generateTokenPair(payload);
+  const tokens = generateTokenPair(payload);
+  const replacement = verifyRefreshToken(tokens.refreshToken) as {
+    userId: string;
+    exp: number;
+  };
+  if (
+    !(await rotateRefreshToken(
+      refreshToken,
+      tokens,
+      decoded.exp as number,
+      replacement.exp,
+      rotationKey
+    ))
+  ) {
+    const concurrentRotation = await waitForRefreshRotation(
+      refreshToken,
+      rotationKey
+    );
+    if (concurrentRotation) return concurrentRotation;
+    throw ApiError.unauthorized('Refresh token has been revoked');
+  }
+
+  // Rotate refresh tokens for both web and Flutter clients. The previous token is
+  // invalid immediately, while the newly generated token has a unique JWT ID.
+  return tokens;
 };
 
 /**
  * Logout — blacklist the refresh token so it can't be reused.
  */
 export const logout = async (refreshToken: string): Promise<void> => {
-  // Verify the token to get its expiry, then blacklist for remaining TTL
+  let decoded: { userId: string; exp: number };
+
+  // Expired credentials may still point to a fresh replacement during the
+  // bounded rotation window. Verify their signature while ignoring expiration
+  // so logout can atomically follow and revoke that link. Invalid signatures
+  // remain an idempotent no-op.
   try {
-    const decoded = verifyRefreshToken(refreshToken) as {
-      userId: string;
-      exp: number;
-    };
-    const now = Math.floor(Date.now() / 1000);
-    const ttl = decoded.exp - now;
-    if (ttl > 0) {
-      await blacklistToken(refreshToken, ttl);
+    decoded = verifyRefreshTokenForRevocation(refreshToken);
+  } catch (error) {
+    if (error instanceof Error && error.name === 'JsonWebTokenError') {
+      return;
     }
-    // Clear FCM token so the device stops receiving push notifications
-    if (decoded.userId) {
-      await prisma.user.update({
-        where: { id: decoded.userId },
-        data: { fcmToken: null },
-      });
-    }
-  } catch {
-    // If token is already expired or invalid, no need to blacklist
+    throw error;
+  }
+
+  await blacklistToken(refreshToken, decoded.exp);
+
+  // An expired credential is accepted only to follow a still-live rotation
+  // link. It must not authorize account/device side effects for a newer session.
+  const isCurrentlyValid = decoded.exp > Math.floor(Date.now() / 1000);
+  if (decoded.userId && isCurrentlyValid) {
+    await prisma.user.update({
+      where: { id: decoded.userId },
+      data: { fcmToken: null },
+    });
   }
 };
 

@@ -59,6 +59,24 @@ enum PaymentMethod {
   WALLET
 }
 
+enum PaymentProvider {
+  STRIPE
+  RAZORPAY
+}
+
+enum RefundStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+enum RefundReversalStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+}
+
 enum DiscountType {
   PERCENTAGE
   FIXED
@@ -124,7 +142,7 @@ model User {
   cart          Cart?
   addresses     Address[]
   orders        Order[]
-  vendorOrders  VendorOrder[]    @relation("VendorOrders")
+  vendorOrders  VendorOrder[]  @relation("VendorOrders")
   notifications Notification[]
   reviews       Review[]
   wishlistItems WishlistItem[]
@@ -139,25 +157,29 @@ model User {
 // ========================
 
 model VendorProfile {
-  id              String              @id @default(uuid())
-  userId          String              @unique
-  storeName       String
-  storeLogo           String?
-  storeLogoPublicId   String?
-  storeBanner         String?
-  storeBannerPublicId String?
-  description     String?
-  status          VendorProfileStatus @default(PENDING)
-  stripeAccountId String?             @unique
-  stripeOnboardingStatus VendorOnboardingStatus @default(NOT_STARTED)
+  id                      String                 @id @default(uuid())
+  userId                  String                 @unique
+  // Uniqueness is enforced case-insensitively on LOWER(BTRIM(storeName)) by
+  // migration 20260804170000_add_normalized_store_name_unique_index.
+  storeName               String
+  storeLogo               String?
+  storeLogoPublicId       String?
+  storeBanner             String?
+  storeBannerPublicId     String?
+  description             String?
+  status                  VendorProfileStatus    @default(PENDING)
+  paymentProvider         PaymentProvider        @default(RAZORPAY)
+  settlementCountry       String                 @default("IN")
+  providerAccountId       String?                @unique
+  paymentOnboardingStatus VendorOnboardingStatus @default(NOT_STARTED)
   // null = use platform default (PLATFORM_COMMISSION_RATE env var)
-  commissionRate  Decimal?            @db.Decimal(5, 2)
+  commissionRate          Decimal?               @db.Decimal(5, 2)
   // Expected shape: { accountHolderName, bankName, accountNumber, routingNumber }
-  bankDetails     Json?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  bankDetails             Json?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
 
-  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   earnings VendorEarning[]
   payouts  VendorPayout[]
 
@@ -170,13 +192,14 @@ model VendorProfile {
 // ========================
 
 model Category {
-  id       String     @id @default(uuid())
-  name     String
-  slug     String     @unique
-  image    String?
-  parentId String?
-  parent   Category?  @relation("Subcategories", fields: [parentId], references: [id])
-  children Category[] @relation("Subcategories")
+  id            String     @id @default(uuid())
+  name          String
+  slug          String     @unique
+  image         String?
+  imagePublicId String?
+  parentId      String?
+  parent        Category?  @relation("Subcategories", fields: [parentId], references: [id])
+  children      Category[] @relation("Subcategories")
 
   products Product[]
 
@@ -187,7 +210,7 @@ model Category {
 }
 
 model Product {
-  id          String  @id @default(uuid())
+  id          String   @id @default(uuid())
   vendorId    String
   categoryId  String
   name        String
@@ -201,9 +224,10 @@ model Product {
   tags        String[]
 
   // Relationships
-  vendor   User      @relation(fields: [vendorId], references: [id])
-  category Category  @relation(fields: [categoryId], references: [id])
+  vendor        User           @relation(fields: [vendorId], references: [id])
+  category      Category       @relation(fields: [categoryId], references: [id])
   variants      Variant[]
+  media         ProductMedia[]
   reviews       Review[]
   wishlistItems WishlistItem[]
 
@@ -216,6 +240,22 @@ model Product {
   @@index([avgRating])
   @@index([reviewCount])
   @@map("products")
+}
+
+model ProductMedia {
+  id        String   @id @default(uuid())
+  productId String
+  url       String
+  // Kept server-side for managed Cloudinary cleanup. Legacy/external URLs are null.
+  publicId  String?
+  position  Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, position])
+  @@index([productId])
+  @@map("product_media")
 }
 
 model Variant {
@@ -298,30 +338,31 @@ model Address {
 // ========================
 
 model Order {
-  id          String  @id @default(uuid())
-  orderNumber String  @unique
-  userId      String
-  addressId   String
-  promoCodeId String?
+  id                 String          @id @default(uuid())
+  orderNumber        String          @unique
+  userId             String
+  addressId          String
+  promoCodeId        String?
   // Snapshot of the shipping address at time of order — prevents stale data if
   // the user edits their address later. addressId FK is kept for reference only.
-  shippingAddress Json
-  subtotal    Decimal @db.Decimal(10, 2)
-  discount    Decimal @default(0) @db.Decimal(10, 2)
-  tax         Decimal @default(0) @db.Decimal(10, 2)
-  total       Decimal @db.Decimal(10, 2)
+  shippingAddress    Json
+  subtotal           Decimal         @db.Decimal(10, 2)
+  discount           Decimal         @default(0) @db.Decimal(10, 2)
+  tax                Decimal         @default(0) @db.Decimal(10, 2)
+  total              Decimal         @db.Decimal(10, 2)
+  paymentProvider    PaymentProvider
   notes              String?
   cancellationReason String?
 
-  user         User          @relation(fields: [userId], references: [id])
+  user           User            @relation(fields: [userId], references: [id])
   // onDelete: Restrict is the default; explicit here to document intent —
   // an address used in an order must not be deleted.
-  address      Address       @relation(fields: [addressId], references: [id], onDelete: Restrict)
-  promoCode    PromoCode?    @relation(fields: [promoCodeId], references: [id])
-  promoUsage      PromoUsage?
-  vendorOrders    VendorOrder[]
-  vendorEarnings  VendorEarning[]
-  payment         Payment?
+  address        Address         @relation(fields: [addressId], references: [id], onDelete: Restrict)
+  promoCode      PromoCode?      @relation(fields: [promoCodeId], references: [id])
+  promoUsage     PromoUsage?
+  vendorOrders   VendorOrder[]
+  vendorEarnings VendorEarning[]
+  payment        Payment?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -335,18 +376,18 @@ model Order {
 // One VendorOrder per vendor per customer Order.
 // Carries its own status so vendors can fulfill independently.
 model VendorOrder {
-  id       String      @id @default(uuid())
-  orderId  String
-  vendorId String
+  id              String      @id @default(uuid())
+  orderId         String
+  vendorId        String
   status          OrderStatus @default(PENDING)
   subtotal        Decimal     @db.Decimal(10, 2)
   trackingNumber  String?
   trackingCarrier String?
 
-  order    Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  vendor   User        @relation("VendorOrders", fields: [vendorId], references: [id])
-  items    OrderItem[]
-  earning  VendorEarning?
+  order   Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  vendor  User           @relation("VendorOrders", fields: [vendorId], references: [id])
+  items   OrderItem[]
+  earning VendorEarning?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -366,8 +407,8 @@ model OrderItem {
   totalPrice    Decimal @db.Decimal(10, 2)
 
   vendorOrder VendorOrder @relation(fields: [vendorOrderId], references: [id], onDelete: Cascade)
-  // onDelete: Restrict — a variant that has been ordered cannot be deleted;
-  // use isActive=false on the Variant for soft-deletion instead.
+  // onDelete: Restrict — a variant that has been ordered cannot be deleted.
+  // The vendor deletion endpoint maps this constraint to a stable 409 response.
   variant     Variant     @relation(fields: [variantId], references: [id], onDelete: Restrict)
 
   createdAt DateTime @default(now())
@@ -383,17 +424,24 @@ model OrderItem {
 // ========================
 
 model Payment {
-  id                    String        @id @default(uuid())
-  orderId               String        @unique
-  amount                Decimal       @db.Decimal(10, 2)
-  currency              Currency      @default(USD)
-  method                PaymentMethod
-  status                PaymentStatus @default(PENDING)
-  stripePaymentIntentId String?       @unique
-  stripePaymentMethodId String?
-  paidAt                DateTime?
+  id                      String          @id @default(uuid())
+  orderId                 String          @unique
+  provider                PaymentProvider
+  amount                  Decimal         @db.Decimal(10, 2)
+  currency                Currency        @default(INR)
+  method                  PaymentMethod
+  status                  PaymentStatus   @default(PENDING)
+  providerOrderId         String?         @unique
+  providerPaymentId       String?         @unique
+  providerPaymentMethodId String?
+  checkoutLeaseExpiresAt  DateTime?
+  checkoutLeaseToken      String?
+  reversalLeaseExpiresAt  DateTime?
+  reversalLeaseToken      String?
+  paidAt                  DateTime?
 
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order   Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  refunds PaymentRefund[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -419,6 +467,7 @@ model PromoCode {
   usageCount    Int          @default(0)
   perUserLimit  Int?
   isActive      Boolean      @default(true)
+  deletedAt     DateTime?
   expiresAt     DateTime?
   orders        Order[]
   usages        PromoUsage[]
@@ -428,6 +477,7 @@ model PromoCode {
 
   // @@index([code]) removed — @unique already creates a B-tree index on code
   @@index([isActive])
+  @@index([deletedAt])
   @@map("promo_codes")
 }
 
@@ -518,20 +568,21 @@ model WishlistItem {
 
 // One earning record per VendorOrder, created when customer payment succeeds
 model VendorEarning {
-  id               String        @id @default(uuid())
-  vendorProfileId  String
-  vendorOrderId    String        @unique
-  orderId          String
-  grossAmount      Decimal       @db.Decimal(10, 2)
-  commissionRate   Decimal       @db.Decimal(5, 2)
-  commissionAmount Decimal       @db.Decimal(10, 2)
-  netAmount        Decimal       @db.Decimal(10, 2)
-  currency         Currency      @default(USD)
-  status           EarningStatus @default(PENDING)
-  stripeTransferId String?       @unique
-  transferredAt    DateTime?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  id                 String        @id @default(uuid())
+  vendorProfileId    String
+  vendorOrderId      String        @unique
+  orderId            String
+  grossAmount        Decimal       @db.Decimal(10, 2)
+  commissionRate     Decimal       @db.Decimal(5, 2)
+  commissionAmount   Decimal       @db.Decimal(10, 2)
+  netAmount          Decimal       @db.Decimal(10, 2)
+  currency           Currency      @default(INR)
+  status             EarningStatus @default(PENDING)
+  providerTransferId String?       @unique
+  reversedAmount     Decimal       @default(0) @db.Decimal(10, 2)
+  transferredAt      DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
   vendorProfile VendorProfile @relation(fields: [vendorProfileId], references: [id])
   vendorOrder   VendorOrder   @relation(fields: [vendorOrderId], references: [id])
@@ -543,18 +594,19 @@ model VendorEarning {
   @@map("vendor_earnings")
 }
 
-// Tracks Stripe payouts from vendor Connect accounts to their bank accounts
+// Tracks provider settlement/payout records for vendor accounts.
 model VendorPayout {
-  id              String       @id @default(uuid())
-  vendorProfileId String
-  stripePayoutId  String       @unique
-  amount          Decimal      @db.Decimal(10, 2)
-  currency        Currency     @default(USD)
-  status          PayoutStatus @default(PENDING)
-  arrivalDate     DateTime?
-  failureReason   String?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  id               String          @id @default(uuid())
+  vendorProfileId  String
+  provider         PaymentProvider
+  providerPayoutId String          @unique
+  amount           Decimal         @db.Decimal(10, 2)
+  currency         Currency        @default(INR)
+  status           PayoutStatus    @default(PENDING)
+  arrivalDate      DateTime?
+  failureReason    String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   vendorProfile VendorProfile @relation(fields: [vendorProfileId], references: [id])
 
@@ -563,12 +615,48 @@ model VendorPayout {
   @@map("vendor_payouts")
 }
 
+model PaymentRefund {
+  id                     String               @id @default(uuid())
+  paymentId              String
+  provider               PaymentProvider
+  providerRefundId       String?              @unique
+  amount                 Decimal              @db.Decimal(10, 2)
+  status                 RefundStatus         @default(PENDING)
+  providerLeaseExpiresAt DateTime?
+  providerLeaseToken     String?
+  reversalStatus         RefundReversalStatus @default(PENDING)
+  reversalLeaseExpiresAt DateTime?
+  reversalAttempts       Int                  @default(0)
+  reason                 String?
+  failureReason          String?
+  reversalFailureReason  String?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId, status])
+  @@map("payment_refunds")
+}
+
+model PaymentWebhookEvent {
+  id          String          @id @default(uuid())
+  provider    PaymentProvider
+  eventId     String
+  eventType   String
+  processedAt DateTime        @default(now())
+
+  @@unique([provider, eventId])
+  @@index([processedAt])
+  @@map("payment_webhook_events")
+}
+
 // Storefront promotional banners managed by admin
 model Banner {
   id            String   @id @default(uuid())
   title         String
   imageUrl      String
-  imagePublicId String?  // Cloudinary public ID for deletion; null if image is an external URL
+  imagePublicId String? // Cloudinary public ID for deletion; null if image is an external URL
   linkUrl       String?
   position      Int      @default(0)
   isActive      Boolean  @default(true)
@@ -588,4 +676,27 @@ model PlatformSetting {
   updatedAt DateTime @updatedAt
 
   @@map("platform_settings")
+}
+
+// Scoped replay ledger for mutation requests that require retry safety.
+// Records are intentionally independent of domain rows so all API instances
+// coordinate through the same unique (scope, key) claim.
+model IdempotencyRecord {
+  id             String    @id @default(uuid())
+  scope          String
+  key            String
+  operation      String
+  requestHash    String
+  state          String    @default("IN_PROGRESS")
+  responseStatus Int?
+  responseBody   Json?
+  reconciliation Json?
+  createdAt      DateTime  @default(now())
+  leaseExpiresAt DateTime
+  completedAt    DateTime?
+  expiresAt      DateTime
+
+  @@unique([scope, key])
+  @@index([state, expiresAt])
+  @@map("idempotency_records")
 }

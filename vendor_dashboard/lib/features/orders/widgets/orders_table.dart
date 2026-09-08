@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/vendor_order.dart';
+import '../../../shared/widgets/overflow_safe_text.dart';
 
 class OrdersTable extends StatelessWidget {
   const OrdersTable({
@@ -42,18 +43,17 @@ class OrdersTable extends StatelessWidget {
           final canUpdate = !_terminalStatuses.contains(o.status);
           return DataRow(
             cells: [
-              DataCell(Text(o.orderNumber)),
+              DataCell(TableCellText(o.orderNumber, maxWidth: 160)),
               DataCell(
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 160),
-                  child: Text(
+                  child: SingleLineText(
                     o.customerName ?? o.customerEmail ?? '—',
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
               DataCell(Text(o.items.length.toString())),
-              DataCell(Text('\$${o.subtotal.toStringAsFixed(2)}')),
+              DataCell(Text('₹${o.subtotal.toStringAsFixed(2)}')),
               DataCell(_StatusChip(status: o.status)),
               DataCell(
                 Text(
@@ -68,7 +68,10 @@ class OrdersTable extends StatelessWidget {
                         onPressed: () => onUpdateStatus(o),
                         child: const Text('Update Status'),
                       )
-                    : const Text('—', style: TextStyle(color: AppColors.textSecondary)),
+                    : const Text(
+                        '—',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
               ),
             ],
           );

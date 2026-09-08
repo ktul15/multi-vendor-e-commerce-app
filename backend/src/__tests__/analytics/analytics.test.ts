@@ -67,6 +67,7 @@ async function createVendorOrder(opts: {
       discount: 0,
       tax: 0,
       total,
+      paymentProvider: 'STRIPE',
       ...(createdAt && { createdAt }),
     },
   });
@@ -103,7 +104,7 @@ async function createVendorOrder(opts: {
         commissionAmount: commission,
         netAmount: gross - commission,
         commissionRate: 10,
-        currency: 'USD',
+        currency: 'INR',
         status: 'TRANSFERRED',
         ...(createdAt && { createdAt }),
       },

@@ -10,12 +10,14 @@ import '../../../shared/widgets/product_card.dart';
 
 class ProductSection extends StatelessWidget {
   final String title;
+  final IconData? leadingIcon;
   final List<ProductModel> products;
   final VoidCallback? onSeeAll;
 
   const ProductSection({
     super.key,
     required this.title,
+    this.leadingIcon,
     required this.products,
     this.onSeeAll,
   });
@@ -32,7 +34,25 @@ class ProductSection extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: AppTextStyles.h5),
+              Expanded(
+                child: Row(
+                  children: [
+                    if (leadingIcon != null) ...[
+                      Icon(leadingIcon, size: 20, color: AppColors.primary),
+                      const SizedBox(width: AppSpacing.sm),
+                    ],
+                    Flexible(
+                      child: Text(
+                        title,
+                        style: AppTextStyles.h5,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
               if (onSeeAll != null)
                 TextButton(
                   onPressed: onSeeAll,

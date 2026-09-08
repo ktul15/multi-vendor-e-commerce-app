@@ -47,6 +47,9 @@ beforeAll(async () => {
 
     // Clear in FK-safe order
     await prisma.promoUsage.deleteMany({});
+    await prisma.paymentWebhookEvent.deleteMany({});
+    await prisma.paymentRefund.deleteMany({});
+    await prisma.vendorEarning.deleteMany({});
     await prisma.orderItem.deleteMany({});
     await prisma.vendorOrder.deleteMany({});
     await prisma.payment.deleteMany({});
@@ -74,6 +77,16 @@ beforeAll(async () => {
         create: { name: 'Order Unit Vendor 2', email: 'vendor2.order.unit@ecommerce.com', password, role: 'VENDOR', isVerified: true },
     });
     vendor2Id = vendor2.id;
+    await prisma.vendorProfile.upsert({
+        where: { userId: vendor.id },
+        update: { paymentProvider: 'STRIPE', settlementCountry: 'US' },
+        create: { userId: vendor.id, storeName: 'Order Unit Store 1', status: 'APPROVED', paymentProvider: 'STRIPE', settlementCountry: 'US' },
+    });
+    await prisma.vendorProfile.upsert({
+        where: { userId: vendor2.id },
+        update: { paymentProvider: 'STRIPE', settlementCountry: 'US' },
+        create: { userId: vendor2.id, storeName: 'Order Unit Store 2', status: 'APPROVED', paymentProvider: 'STRIPE', settlementCountry: 'US' },
+    });
 
     const customer = await prisma.user.upsert({
         where: { email: 'customer.order.unit@ecommerce.com' },
@@ -136,7 +149,7 @@ beforeEach(() => {
     mockCancel.mockResolvedValue({});
     mockRefundsCreate.mockResolvedValue({ id: 're_test' });
     jest.spyOn(NotificationService.prototype, 'createAndSend').mockResolvedValue(undefined as any);
-    jest.spyOn(vendorPayoutService, 'reverseEarningsForOrder').mockResolvedValue(undefined as any);
+    jest.spyOn(vendorPayoutService, 'reverseEarningsForOrder').mockResolvedValue(true);
 });
 
 // ---------------------
@@ -167,6 +180,9 @@ async function seedCart(qty = 2) {
 
 async function cleanOrders() {
     await prisma.promoUsage.deleteMany({});
+    await prisma.paymentWebhookEvent.deleteMany({});
+    await prisma.paymentRefund.deleteMany({});
+    await prisma.vendorEarning.deleteMany({});
     await prisma.orderItem.deleteMany({});
     await prisma.vendorOrder.deleteMany({});
     await prisma.payment.deleteMany({});
@@ -303,6 +319,28 @@ describe('OrderService — createOrder()', () => {
         const vendorIds = order.vendorOrders.map((vo) => vo.vendorId).sort();
         expect(vendorIds).toContain(vendorId);
         expect(vendorIds).toContain(vendor2Id);
+    });
+
+    it('rejects a cart assigned to both Stripe and Razorpay', async () => {
+        const cart = await prisma.cart.findUniqueOrThrow({ where: { userId: customerId } });
+        await prisma.cartItem.create({
+            data: { cartId: cart.id, variantId: variant2Id, quantity: 1 },
+        });
+        await prisma.vendorProfile.update({
+            where: { userId: vendor2Id },
+            data: { paymentProvider: 'RAZORPAY', settlementCountry: 'IN' },
+        });
+
+        try {
+            await expect(orderService.createOrder(customerId, { addressId }))
+                .rejects.toMatchObject({ statusCode: 400 });
+            expect(await prisma.order.count({ where: { userId: customerId } })).toBe(0);
+        } finally {
+            await prisma.vendorProfile.update({
+                where: { userId: vendor2Id },
+                data: { paymentProvider: 'STRIPE', settlementCountry: 'US' },
+            });
+        }
     });
 
     it('should increment promo usageCount atomically inside the transaction', async () => {
@@ -453,7 +491,7 @@ describe('OrderService — cancelOrder()', () => {
         const order = await createPendingOrder();
 
         await prisma.payment.create({
-            data: { orderId: order.id, amount: 50, currency: 'USD', method: 'CARD', status: 'PROCESSING', stripePaymentIntentId: 'pi_unit_cancel_test' },
+            data: { orderId: order.id, provider: 'STRIPE', amount: 50, currency: 'INR', method: 'CARD', status: 'PROCESSING', providerPaymentId: 'pi_unit_cancel_test' },
         });
 
         await orderService.cancelOrder(customerId, order.id, {});
@@ -465,12 +503,15 @@ describe('OrderService — cancelOrder()', () => {
         const order = await createPendingOrder();
 
         await prisma.payment.create({
-            data: { orderId: order.id, amount: 50, currency: 'USD', method: 'CARD', status: 'SUCCEEDED', stripePaymentIntentId: 'pi_unit_refund_test', paidAt: new Date() },
+            data: { orderId: order.id, provider: 'STRIPE', amount: 50, currency: 'INR', method: 'CARD', status: 'SUCCEEDED', providerPaymentId: 'pi_unit_refund_test', paidAt: new Date() },
         });
 
         await orderService.cancelOrder(customerId, order.id, {});
 
-        expect(mockRefundsCreate).toHaveBeenCalledWith({ payment_intent: 'pi_unit_refund_test' });
+        expect(mockRefundsCreate).toHaveBeenCalledWith(
+            expect.objectContaining({ payment_intent: 'pi_unit_refund_test', amount: 5000 }),
+            expect.objectContaining({ idempotencyKey: expect.any(String) }),
+        );
     });
 
     it('should throw 404 when orderId does not exist', async () => {

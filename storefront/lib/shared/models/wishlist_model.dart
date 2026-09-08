@@ -38,8 +38,16 @@ class WishlistProduct extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [id, name, basePrice, images, isActive, avgRating, reviewCount, vendorName];
+  List<Object?> get props => [
+    id,
+    name,
+    basePrice,
+    images,
+    isActive,
+    avgRating,
+    reviewCount,
+    vendorName,
+  ];
 }
 
 class WishlistItemModel extends Equatable {
@@ -63,8 +71,9 @@ class WishlistItemModel extends Equatable {
       userId: json['userId'] as String,
       productId: json['productId'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String),
-      product:
-          WishlistProduct.fromJson(json['product'] as Map<String, dynamic>),
+      product: WishlistProduct.fromJson(
+        json['product'] as Map<String, dynamic>,
+      ),
     );
   }
 

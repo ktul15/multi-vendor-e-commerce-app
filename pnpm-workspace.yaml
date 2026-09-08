@@ -1,0 +1,18 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "tooling/*"
+
+linkWorkspacePackages: true
+
+overrides:
+  "nanoid@3.3.16": "3.3.18"
+
+allowBuilds:
+  msw: true
+  sharp: true
+  unrs-resolver: true
+
+peerDependencyRules:
+  allowedVersions:
+    "openapi-typescript>typescript": "6"

@@ -5,11 +5,7 @@ class ReviewUser extends Equatable {
   final String name;
   final String? avatar;
 
-  const ReviewUser({
-    required this.id,
-    required this.name,
-    this.avatar,
-  });
+  const ReviewUser({required this.id, required this.name, this.avatar});
 
   factory ReviewUser.fromJson(Map<String, dynamic> json) {
     return ReviewUser(
@@ -93,8 +89,17 @@ class ReviewModel extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [id, userId, productId, rating, comment, createdAt, updatedAt, user, product];
+  List<Object?> get props => [
+    id,
+    userId,
+    productId,
+    rating,
+    comment,
+    createdAt,
+    updatedAt,
+    user,
+    product,
+  ];
 }
 
 class ReviewsPageData {

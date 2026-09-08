@@ -14,6 +14,9 @@ export async function cleanDatabase() {
     //   vendorEarning → vendorOrder (Restrict) — vendorEarning before vendorOrder
     //   vendorPayout → vendorProfile (Restrict) — vendorPayout before vendorProfile
 
+    await prisma.idempotencyRecord.deleteMany();
+    await prisma.paymentWebhookEvent.deleteMany();
+    await prisma.paymentRefund.deleteMany();
     await prisma.vendorPayout.deleteMany();
     await prisma.vendorEarning.deleteMany();
     await prisma.orderItem.deleteMany();
@@ -26,6 +29,7 @@ export async function cleanDatabase() {
     await prisma.review.deleteMany();
     await prisma.wishlistItem.deleteMany();
     await prisma.notification.deleteMany();
+    await prisma.productMedia.deleteMany();
     await prisma.variant.deleteMany();
     await prisma.product.deleteMany();
     await prisma.banner.deleteMany();

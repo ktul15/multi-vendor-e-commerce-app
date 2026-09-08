@@ -1,14 +1,15 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../repositories/promo_repository.dart';
+import '../models/promo_model.dart';
 import 'promo_state.dart';
 
 class PromoCubit extends Cubit<PromoState> {
   final PromoRepository _repository;
 
   PromoCubit({required PromoRepository repository})
-      : _repository = repository,
-        super(const PromoInitial());
+    : _repository = repository,
+      super(const PromoInitial());
 
   // ── Initial load ──────────────────────────────────────────────────────────
 
@@ -31,6 +32,10 @@ class PromoCubit extends Cubit<PromoState> {
   Future<void> ensureLoaded() async {
     if (state is PromoLoaded || state is PromoLoading) return;
     await load();
+  }
+
+  Future<PromoModel> getPromoById(String id) {
+    return _repository.getPromoById(id);
   }
 
   // ── Filter / page ──────────────────────────────────────────────────────────
@@ -307,17 +312,19 @@ class PromoCubit extends Cubit<PromoState> {
       final s = state;
       if (s is! PromoLoaded) return null;
 
-      emit(s.copyWith(
-        items: result.items,
-        meta: result.meta,
-        isActiveFilter: newIsActive,
-        clearIsActiveFilter: newIsActive == null,
-        searchQuery: newSearch,
-        clearSearchQuery: newSearch == null,
-        discountTypeFilter: newDiscountType,
-        clearDiscountTypeFilter: newDiscountType == null,
-        isRefreshing: false,
-      ));
+      emit(
+        s.copyWith(
+          items: result.items,
+          meta: result.meta,
+          isActiveFilter: newIsActive,
+          clearIsActiveFilter: newIsActive == null,
+          searchQuery: newSearch,
+          clearSearchQuery: newSearch == null,
+          discountTypeFilter: newDiscountType,
+          clearDiscountTypeFilter: newDiscountType == null,
+          isRefreshing: false,
+        ),
+      );
       return null;
     } on ApiException catch (e) {
       final s = state;
@@ -341,11 +348,13 @@ class PromoCubit extends Cubit<PromoState> {
       );
       final s = state;
       if (s is PromoLoaded) {
-        emit(s.copyWith(
-          items: result.items,
-          meta: result.meta,
-          isSubmitting: false,
-        ));
+        emit(
+          s.copyWith(
+            items: result.items,
+            meta: result.meta,
+            isSubmitting: false,
+          ),
+        );
       }
     } on ApiException catch (e) {
       final s = state;
@@ -355,10 +364,12 @@ class PromoCubit extends Cubit<PromoState> {
     } catch (_) {
       final s = state;
       if (s is PromoLoaded) {
-        emit(s.copyWith(
-          isSubmitting: false,
-          transientError: 'Something went wrong. Please try again.',
-        ));
+        emit(
+          s.copyWith(
+            isSubmitting: false,
+            transientError: 'Something went wrong. Please try again.',
+          ),
+        );
       }
     }
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -50,16 +51,16 @@ class _AddAddressSheetState extends State<AddAddressSheet> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _hasSubmitted = true);
     context.read<CheckoutBloc>().add(
-          CheckoutAddressAdded(
-            fullName: _fullNameCtrl.text.trim(),
-            phone: _phoneCtrl.text.trim(),
-            street: _streetCtrl.text.trim(),
-            city: _cityCtrl.text.trim(),
-            state: _stateCtrl.text.trim(),
-            country: _countryCtrl.text.trim().toUpperCase(),
-            zipCode: _zipCodeCtrl.text.trim(),
-          ),
-        );
+      CheckoutAddressAdded(
+        fullName: _fullNameCtrl.text.trim(),
+        phone: _phoneCtrl.text.trim(),
+        street: _streetCtrl.text.trim(),
+        city: _cityCtrl.text.trim(),
+        state: _stateCtrl.text.trim(),
+        country: _countryCtrl.text.trim().toUpperCase(),
+        zipCode: _zipCodeCtrl.text.trim(),
+      ),
+    );
   }
 
   @override
@@ -82,7 +83,9 @@ class _AddAddressSheetState extends State<AddAddressSheet> {
       },
       builder: (context, state) {
         final isLoading =
-            _hasSubmitted && state is CheckoutAddressStep && state.isAddingAddress;
+            _hasSubmitted &&
+            state is CheckoutAddressStep &&
+            state.isAddingAddress;
         final error = (!isLoading && state is CheckoutAddressStep)
             ? state.error
             : null;
@@ -123,8 +126,9 @@ class _AddAddressSheetState extends State<AddAddressSheet> {
                     ),
                     child: Text(
                       error,
-                      style:
-                          AppTextStyles.caption.copyWith(color: AppColors.error),
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.error,
+                      ),
                     ),
                   ),
                 ],
@@ -140,9 +144,15 @@ class _AddAddressSheetState extends State<AddAddressSheet> {
                   controller: _phoneCtrl,
                   label: 'Phone',
                   keyboardType: TextInputType.phone,
+                  inputFormatters: _phoneInputFormatters,
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Required';
-                    if (v.trim().length < 7) return 'At least 7 digits';
+                    if (v.trim().length > 20) {
+                      return 'Phone must be at most 20 characters';
+                    }
+                    if (!RegExp(r'^\+?[\d\s\-]{7,}$').hasMatch(v.trim())) {
+                      return 'Enter a valid phone number';
+                    }
                     return null;
                   },
                 ),
@@ -161,6 +171,7 @@ class _AddAddressSheetState extends State<AddAddressSheet> {
                         controller: _cityCtrl,
                         label: 'City',
                         capitalization: TextCapitalization.words,
+                        inputFormatters: [_noDigitsFormatter],
                         validator: _required,
                       ),
                     ),
@@ -170,6 +181,7 @@ class _AddAddressSheetState extends State<AddAddressSheet> {
                         controller: _stateCtrl,
                         label: 'State',
                         capitalization: TextCapitalization.words,
+                        inputFormatters: [_noDigitsFormatter],
                         validator: _required,
                       ),
                     ),
@@ -182,9 +194,13 @@ class _AddAddressSheetState extends State<AddAddressSheet> {
                       child: _field(
                         controller: _countryCtrl,
                         label: 'Country (2-letter)',
-                        // No word-capitalization — the .toUpperCase() call on
-                        // submit handles this; auto-cap would conflict with
-                        // numeric/special keyboards on some platforms.
+                        capitalization: TextCapitalization.characters,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'[a-zA-Z]'),
+                          ),
+                          LengthLimitingTextInputFormatter(2),
+                        ],
                         validator: (v) {
                           if (v == null || v.trim().isEmpty) return 'Required';
                           if (!RegExp(r'^[a-zA-Z]{2}$').hasMatch(v.trim())) {
@@ -200,7 +216,7 @@ class _AddAddressSheetState extends State<AddAddressSheet> {
                         controller: _zipCodeCtrl,
                         label: 'Zip Code',
                         keyboardType: TextInputType.number,
-                        validator: _required,
+                        validator: _zipCode,
                       ),
                     ),
                   ],
@@ -229,12 +245,14 @@ class _AddAddressSheetState extends State<AddAddressSheet> {
     required String label,
     TextInputType? keyboardType,
     TextCapitalization capitalization = TextCapitalization.none,
+    List<TextInputFormatter>? inputFormatters,
     String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       textCapitalization: capitalization,
+      inputFormatters: inputFormatters,
       decoration: InputDecoration(labelText: label),
       validator: validator,
     );
@@ -242,4 +260,25 @@ class _AddAddressSheetState extends State<AddAddressSheet> {
 
   String? _required(String? v) =>
       (v == null || v.trim().isEmpty) ? 'Required' : null;
+
+  String? _zipCode(String? value) {
+    final zipCode = value?.trim() ?? '';
+    if (zipCode.isEmpty) return 'Required';
+    if (zipCode.length < 3) {
+      return 'Zip code must be at least 3 characters';
+    }
+    if (zipCode.length > 10) {
+      return 'Zip code must be at most 10 characters';
+    }
+    return null;
+  }
+
+  static final _noDigitsFormatter = FilteringTextInputFormatter.deny(
+    RegExp(r'[0-9]'),
+  );
+
+  static final _phoneInputFormatters = <TextInputFormatter>[
+    FilteringTextInputFormatter.allow(RegExp(r'[0-9+\s-]')),
+    LengthLimitingTextInputFormatter(20),
+  ];
 }

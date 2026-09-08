@@ -32,7 +32,7 @@ class BannerListPage extends StatelessWidget {
               return FilledButton.icon(
                 onPressed: (state is BannerLoaded && state.isSubmitting)
                     ? null
-                    : () => context.pushNamed(AppRoutes.bannerCreateName),
+                    : () => context.goNamed(AppRoutes.bannerCreateName),
                 icon: const Icon(Icons.add_rounded, size: 18),
                 label: const Text('Add Banner'),
               );
@@ -43,8 +43,7 @@ class BannerListPage extends StatelessWidget {
       ),
       body: BlocConsumer<BannerCubit, BannerState>(
         listenWhen: (p, n) =>
-            n is BannerLoaded && n.transientError != null ||
-            n is BannerError,
+            n is BannerLoaded && n.transientError != null || n is BannerError,
         listener: (context, state) {
           if (state is BannerLoaded && state.transientError != null) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -111,10 +110,9 @@ class _LoadedView extends StatelessWidget {
             children: [
               Text(
                 'Filter:',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: AppColors.textSecondary),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
               ),
               const SizedBox(width: 8),
               _FilterChip(
@@ -163,9 +161,8 @@ class _LoadedView extends StatelessWidget {
                   if (newIndex > oldIndex) newIndex--;
                   _doWithSnackbar(
                     context,
-                    () => context
-                        .read<BannerCubit>()
-                        .reorder(oldIndex, newIndex),
+                    () =>
+                        context.read<BannerCubit>().reorder(oldIndex, newIndex),
                   );
                 },
                 itemBuilder: (context, index) {
@@ -177,7 +174,7 @@ class _LoadedView extends StatelessWidget {
                     isDisabled: loaded.isSubmitting,
                     onPreview: () =>
                         showBannerPreviewDialog(context, banner: banner),
-                    onEdit: () => context.pushNamed(
+                    onEdit: () => context.goNamed(
                       AppRoutes.bannerEditName,
                       pathParameters: {'id': banner.id},
                     ),
@@ -202,18 +199,17 @@ class _LoadedView extends StatelessWidget {
   Future<void> _onDelete(BuildContext context, BannerModel banner) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Banner'),
         content: Text('Delete "${banner.title}"? This cannot be undone.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(
-                backgroundColor: AppColors.error),
-            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text('Delete'),
           ),
         ],
@@ -236,15 +232,12 @@ class _LoadedView extends StatelessWidget {
     if (!context.mounted) return;
     if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error),
-          backgroundColor: AppColors.error,
-        ),
+        SnackBar(content: Text(error), backgroundColor: AppColors.error),
       );
     } else if (successMessage != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(successMessage)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(successMessage)));
     }
   }
 }
@@ -297,13 +290,8 @@ class _BannerRow extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
       ),
       subtitle: Text(
-        banner.linkUrl?.isNotEmpty == true
-            ? banner.linkUrl!
-            : 'No link',
-        style: TextStyle(
-          color: AppColors.textSecondary,
-          fontSize: 12,
-        ),
+        banner.linkUrl?.isNotEmpty == true ? banner.linkUrl! : 'No link',
+        style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
         overflow: TextOverflow.ellipsis,
       ),
       trailing: Row(
@@ -323,8 +311,7 @@ class _BannerRow extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color:
-                    banner.isActive ? AppColors.success : AppColors.error,
+                color: banner.isActive ? AppColors.success : AppColors.error,
               ),
             ),
           ),
@@ -332,10 +319,7 @@ class _BannerRow extends StatelessWidget {
           // Position chip
           Text(
             '#${banner.position}',
-            style: TextStyle(
-              fontSize: 12,
-              color: AppColors.textSecondary,
-            ),
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
           const SizedBox(width: 8),
           IconButton(
@@ -359,8 +343,10 @@ class _BannerRow extends StatelessWidget {
           ),
           ReorderableDragStartListener(
             index: index,
-            child: const Icon(Icons.drag_handle_rounded,
-                color: AppColors.textSecondary),
+            child: const Icon(
+              Icons.drag_handle_rounded,
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),
@@ -382,10 +368,9 @@ class _PaginationBar extends StatelessWidget {
       children: [
         Text(
           '${loaded.fromItem}–${loaded.toItem} of ${loaded.meta.total}',
-          style: Theme.of(context)
-              .textTheme
-              .bodySmall
-              ?.copyWith(color: AppColors.textSecondary),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
         ),
         const SizedBox(width: 16),
         IconButton(
@@ -393,9 +378,9 @@ class _PaginationBar extends StatelessWidget {
           icon: const Icon(Icons.chevron_left_rounded),
           onPressed: loaded.hasPrevPage && !loaded.isRefreshing
               ? () => _doWithSnackbar(
-                    context,
-                    () => context.read<BannerCubit>().prevPage(),
-                  )
+                  context,
+                  () => context.read<BannerCubit>().prevPage(),
+                )
               : null,
         ),
         Text(
@@ -407,9 +392,9 @@ class _PaginationBar extends StatelessWidget {
           icon: const Icon(Icons.chevron_right_rounded),
           onPressed: loaded.hasNextPage && !loaded.isRefreshing
               ? () => _doWithSnackbar(
-                    context,
-                    () => context.read<BannerCubit>().nextPage(),
-                  )
+                  context,
+                  () => context.read<BannerCubit>().nextPage(),
+                )
               : null,
         ),
       ],
@@ -423,10 +408,7 @@ class _PaginationBar extends StatelessWidget {
     final error = await action();
     if (!context.mounted || error == null) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(error),
-        backgroundColor: AppColors.error,
-      ),
+      SnackBar(content: Text(error), backgroundColor: AppColors.error),
     );
   }
 }
@@ -454,4 +436,3 @@ class _FilterChip extends StatelessWidget {
     );
   }
 }
-

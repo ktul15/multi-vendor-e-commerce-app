@@ -1,0 +1,25 @@
+{
+  "name": "@repo/query",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src test vitest.config.ts",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run",
+    "clean": "rm -rf .turbo *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "5.101.4",
+    "react": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "vitest": "4.1.10"
+  }
+}

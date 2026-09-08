@@ -47,13 +47,17 @@ class _UpdateStatusDialogState extends State<UpdateStatusDialog> {
     if (_formKey.currentState!.validate() && _selectedStatus != null) {
       final trackingNumber = _trackingNumberCtrl.text.trim();
       final trackingCarrier = _trackingCarrierCtrl.text.trim();
-      Navigator.of(context).pop(StatusUpdateResult(
-        status: _selectedStatus!,
-        trackingNumber:
-            (_requiresTracking && trackingNumber.isNotEmpty) ? trackingNumber : null,
-        trackingCarrier:
-            (_requiresTracking && trackingCarrier.isNotEmpty) ? trackingCarrier : null,
-      ));
+      Navigator.of(context).pop(
+        StatusUpdateResult(
+          status: _selectedStatus!,
+          trackingNumber: (_requiresTracking && trackingNumber.isNotEmpty)
+              ? trackingNumber
+              : null,
+          trackingCarrier: (_requiresTracking && trackingCarrier.isNotEmpty)
+              ? trackingCarrier
+              : null,
+        ),
+      );
     }
   }
 
@@ -84,32 +88,39 @@ class _UpdateStatusDialogState extends State<UpdateStatusDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              DropdownButtonFormField<String>(
-                initialValue: _selectedStatus,
-                decoration: const InputDecoration(labelText: 'New Status'),
-                items: _nextStatuses
-                    .map(
-                      (s) => DropdownMenuItem(value: s, child: Text(s)),
-                    )
-                    .toList(),
-                onChanged: (v) => setState(() => _selectedStatus = v),
+              InputDecorator(
+                decoration: const InputDecoration(labelText: 'Next Status'),
+                child: Row(
+                  children: [
+                    const Icon(Icons.arrow_forward_rounded, size: 18),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text(
+                      _selectedStatus!,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
               ),
               if (_requiresTracking) ...[
                 const SizedBox(height: AppSpacing.md),
                 TextFormField(
                   controller: _trackingNumberCtrl,
-                  decoration:
-                      const InputDecoration(labelText: 'Tracking Number'),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Required for SHIPPED' : null,
+                  decoration: const InputDecoration(
+                    labelText: 'Tracking Number',
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Required for SHIPPED'
+                      : null,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 TextFormField(
                   controller: _trackingCarrierCtrl,
-                  decoration:
-                      const InputDecoration(labelText: 'Carrier (e.g. FedEx)'),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Required for SHIPPED' : null,
+                  decoration: const InputDecoration(
+                    labelText: 'Carrier (e.g. FedEx)',
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Required for SHIPPED'
+                      : null,
                 ),
               ],
             ],
@@ -121,10 +132,7 @@ class _UpdateStatusDialogState extends State<UpdateStatusDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
-        FilledButton(
-          onPressed: _submit,
-          child: const Text('Update'),
-        ),
+        FilledButton(onPressed: _submit, child: const Text('Update')),
       ],
     );
   }

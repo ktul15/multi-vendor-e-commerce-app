@@ -58,7 +58,7 @@ class ProductListItem extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                '\$${product.displayPrice.toStringAsFixed(2)}',
+                                '₹${product.displayPrice.toStringAsFixed(2)}',
                                 style: AppTextStyles.body.copyWith(
                                   color: AppColors.primary,
                                   fontWeight: FontWeight.w700,
@@ -72,8 +72,9 @@ class ProductListItem extends StatelessWidget {
                                   ),
                                   decoration: BoxDecoration(
                                     color: AppColors.error.withAlpha(26),
-                                    borderRadius:
-                                        BorderRadius.circular(AppRadius.full),
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadius.full,
+                                    ),
                                   ),
                                   child: Text(
                                     'Out of stock',
@@ -97,4 +98,3 @@ class ProductListItem extends StatelessWidget {
     );
   }
 }
-

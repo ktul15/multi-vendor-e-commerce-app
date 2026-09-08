@@ -1,5 +1,17 @@
 import 'package:equatable/equatable.dart';
 
+double _readDouble(dynamic value, {double fallback = 0}) {
+  if (value == null) return fallback;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value.toString()) ?? fallback;
+}
+
+int _readInt(dynamic value, {int fallback = 0}) {
+  if (value == null) return fallback;
+  if (value is num) return value.toInt();
+  return int.tryParse(value.toString()) ?? fallback;
+}
+
 class VariantModel extends Equatable {
   final String id;
   final String? size;
@@ -22,8 +34,8 @@ class VariantModel extends Equatable {
       id: json['id'] as String,
       size: json['size'] as String?,
       color: json['color'] as String?,
-      price: (json['price'] as num).toDouble(),
-      stock: json['stock'] as int,
+      price: _readDouble(json['price']),
+      stock: _readInt(json['stock']),
       sku: json['sku'] as String,
     );
   }
@@ -75,7 +87,9 @@ class ProductModel extends Equatable {
     return variants.map((v) => v.price).reduce((a, b) => a < b ? a : b);
   }
 
-  bool get isInStock => variants.isEmpty || variants.any((v) => v.stock > 0);
+  // Cart items require a concrete variant ID. A product without variants is
+  // therefore not purchasable, even if it has a base price.
+  bool get isInStock => variants.any((v) => v.stock > 0);
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     final vendor = json['vendor'] as Map<String, dynamic>?;
@@ -84,12 +98,12 @@ class ProductModel extends Equatable {
       id: json['id'] as String,
       name: json['name'] as String,
       description: json['description'] as String,
-      basePrice: (json['basePrice'] as num).toDouble(),
+      basePrice: _readDouble(json['basePrice']),
       images: List<String>.from(json['images'] as List? ?? []),
       tags: List<String>.from(json['tags'] as List? ?? []),
       isActive: json['isActive'] as bool? ?? true,
-      avgRating: (json['avgRating'] as num? ?? 0).toDouble(),
-      reviewCount: json['reviewCount'] as int? ?? 0,
+      avgRating: _readDouble(json['avgRating']),
+      reviewCount: _readInt(json['reviewCount']),
       categoryId: json['categoryId'] as String?,
       categoryName: category?['name'] as String?,
       vendorId: json['vendorId'] as String?,
@@ -103,20 +117,20 @@ class ProductModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        description,
-        basePrice,
-        images,
-        tags,
-        isActive,
-        avgRating,
-        reviewCount,
-        categoryId,
-        categoryName,
-        vendorId,
-        vendorName,
-        variants,
-        createdAt,
-      ];
+    id,
+    name,
+    description,
+    basePrice,
+    images,
+    tags,
+    isActive,
+    avgRating,
+    reviewCount,
+    categoryId,
+    categoryName,
+    vendorId,
+    vendorName,
+    variants,
+    createdAt,
+  ];
 }

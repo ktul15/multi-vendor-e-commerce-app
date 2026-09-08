@@ -83,8 +83,9 @@ Future<void> initDependencies() async {
     () => AuthCubit(authRepository: sl<AuthRepository>()),
   );
 
-  // Wire the 401 interceptor to the AuthCubit so a mid-session token expiry
-  // triggers a full logout without needing a page refresh.
+  // Wire the 401 interceptor so access-token expiry refreshes and retries once.
+  // If refresh fails, fall back to a full logout and router redirect.
+  ApiClient.refreshAuthToken = () => sl<AuthRepository>().refreshTokens();
   ApiClient.onUnauthenticated = () => sl<AuthCubit>().logout();
 
   // CategoryCubit — lazySingleton (not factory) because the router uses
@@ -116,8 +117,7 @@ Future<void> initDependencies() async {
   // ProductModerationCubit — lazySingleton so the list and detail pages share
   // the same live cubit instance via BlocProvider.value in the router.
   sl.registerLazySingleton<ProductModerationCubit>(
-    () => ProductModerationCubit(
-        repository: sl<ProductModerationRepository>()),
+    () => ProductModerationCubit(repository: sl<ProductModerationRepository>()),
   );
 
   // AdminOrderCubit — lazySingleton so the list and detail pages share

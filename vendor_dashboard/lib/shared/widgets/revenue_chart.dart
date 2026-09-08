@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import 'overflow_safe_text.dart';
 import '../models/sales_point.dart';
 
 /// Unified revenue line chart used by both Dashboard and Earnings pages.
@@ -41,28 +42,30 @@ class RevenueChart extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(title, style: AppTextStyles.h3),
-                if (hasPeriodToggle)
-                  SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(value: 'day', label: Text('Daily')),
-                      ButtonSegment(value: 'week', label: Text('Weekly')),
-                      ButtonSegment(value: 'month', label: Text('Monthly')),
-                    ],
-                    selected: {period!},
-                    onSelectionChanged: (s) => onPeriodChanged!(s.first),
-                  ),
-              ],
+            ResponsiveActionHeader(
+              title: title,
+              titleStyle: AppTextStyles.h3,
+              action: hasPeriodToggle
+                  ? SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'day', label: Text('Daily')),
+                        ButtonSegment(value: 'week', label: Text('Weekly')),
+                        ButtonSegment(value: 'month', label: Text('Monthly')),
+                      ],
+                      selected: {period!},
+                      onSelectionChanged: (s) => onPeriodChanged!(s.first),
+                    )
+                  : null,
             ),
             const SizedBox(height: AppSpacing.md),
             SizedBox(
               height: 200,
               child: series.isEmpty
                   ? const Center(child: Text('No data for this period.'))
-                  : _RevenueLineChart(series: series, showDots: series.length <= 14),
+                  : _RevenueLineChart(
+                      series: series,
+                      showDots: series.length <= 14,
+                    ),
             ),
           ],
         ),
@@ -94,10 +97,8 @@ class _RevenueLineChart extends StatelessWidget {
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          getDrawingHorizontalLine: (_) => const FlLine(
-            color: AppColors.border,
-            strokeWidth: 1,
-          ),
+          getDrawingHorizontalLine: (_) =>
+              const FlLine(color: AppColors.border, strokeWidth: 1),
         ),
         borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
@@ -106,9 +107,10 @@ class _RevenueLineChart extends StatelessWidget {
               showTitles: true,
               reservedSize: 52,
               getTitlesWidget: (value, meta) => Text(
-                '\$${value.toStringAsFixed(0)}',
-                style: AppTextStyles.caption
-                    .copyWith(color: AppColors.textSecondary),
+                '₹${value.toStringAsFixed(0)}',
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
             ),
           ),
@@ -124,8 +126,9 @@ class _RevenueLineChart extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     label,
-                    style: AppTextStyles.caption
-                        .copyWith(color: AppColors.textSecondary),
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 );
               },
@@ -164,7 +167,7 @@ class _RevenueLineChart extends StatelessWidget {
             getTooltipItems: (touchedSpots) => touchedSpots.map((s) {
               final point = series[s.spotIndex];
               return LineTooltipItem(
-                '${point.periodStart}\n\$${point.revenue.toStringAsFixed(2)}',
+                '${point.periodStart}\n₹${point.revenue.toStringAsFixed(2)}',
                 AppTextStyles.caption.copyWith(color: Colors.white),
               );
             }).toList(),

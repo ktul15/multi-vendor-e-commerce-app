@@ -10,6 +10,7 @@ import '../bloc/product_moderation_state.dart';
 import '../models/admin_product_model.dart';
 import '../../../shared/widgets/skeleton_box.dart';
 import '../../../shared/widgets/error_state.dart';
+import '../../../shared/widgets/overflow_safe_text.dart';
 import '../widgets/product_moderation_skeleton.dart';
 import '../widgets/product_status_badge.dart';
 
@@ -21,8 +22,7 @@ class ProductModerationListPage extends StatefulWidget {
       _ProductModerationListPageState();
 }
 
-class _ProductModerationListPageState
-    extends State<ProductModerationListPage> {
+class _ProductModerationListPageState extends State<ProductModerationListPage> {
   final _searchController = TextEditingController();
   Timer? _debounce;
 
@@ -38,7 +38,8 @@ class _ProductModerationListPageState
     _debounce = Timer(const Duration(milliseconds: 500), () {
       if (!mounted) return;
       _doWithSnackbar(
-          () => context.read<ProductModerationCubit>().search(value));
+        () => context.read<ProductModerationCubit>().search(value),
+      );
     });
   }
 
@@ -46,10 +47,7 @@ class _ProductModerationListPageState
     final error = await action();
     if (error != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error),
-          backgroundColor: AppColors.error,
-        ),
+        SnackBar(content: Text(error), backgroundColor: AppColors.error),
       );
     }
   }
@@ -62,20 +60,18 @@ class _ProductModerationListPageState
       body: BlocBuilder<ProductModerationCubit, ProductModerationState>(
         builder: (context, state) {
           return switch (state) {
-            ProductModerationInitial() ||
-            ProductModerationLoading() =>
+            ProductModerationInitial() || ProductModerationLoading() =>
               const SkeletonContainer(child: ProductModerationSkeleton()),
             ProductModerationError(:final message) => ErrorState(
-                message: message,
-                onRetry: () =>
-                    context.read<ProductModerationCubit>().load(),
-              ),
+              message: message,
+              onRetry: () => context.read<ProductModerationCubit>().load(),
+            ),
             ProductModerationLoaded() => _LoadedBody(
-                state: state,
-                searchController: _searchController,
-                onSearchChanged: _onSearchChanged,
-                onDoWithSnackbar: _doWithSnackbar,
-              ),
+              state: state,
+              searchController: _searchController,
+              onSearchChanged: _onSearchChanged,
+              onDoWithSnackbar: _doWithSnackbar,
+            ),
           };
         },
       ),
@@ -119,16 +115,13 @@ class _LoadedBody extends StatelessWidget {
                 _StatusFilterBar(
                   statusFilter: state.statusFilter,
                   onFilterChanged: (isActive) => onDoWithSnackbar(
-                    () => context
-                        .read<ProductModerationCubit>()
-                        .filterByStatus(isActive),
+                    () => context.read<ProductModerationCubit>().filterByStatus(
+                      isActive,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                _ProductTable(
-                  state: state,
-                  onDoWithSnackbar: onDoWithSnackbar,
-                ),
+                _ProductTable(state: state, onDoWithSnackbar: onDoWithSnackbar),
                 const SizedBox(height: 12),
                 _PaginationBar(
                   state: state,
@@ -259,10 +252,7 @@ class _ProductTable extends StatelessWidget {
   final ProductModerationLoaded state;
   final Future<void> Function(Future<String?> Function()) onDoWithSnackbar;
 
-  const _ProductTable({
-    required this.state,
-    required this.onDoWithSnackbar,
-  });
+  const _ProductTable({required this.state, required this.onDoWithSnackbar});
 
   @override
   Widget build(BuildContext context) {
@@ -282,8 +272,8 @@ class _ProductTable extends StatelessWidget {
                 Text(
                   'No products found',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -292,124 +282,146 @@ class _ProductTable extends StatelessWidget {
       );
     }
 
-    return Card(
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          columnSpacing: 28,
-          headingRowColor: WidgetStateProperty.all(AppColors.background),
-          columns: const [
-            DataColumn(label: Text('Name')),
-            DataColumn(label: Text('Vendor')),
-            DataColumn(label: Text('Category')),
-            DataColumn(label: Text('Price')),
-            DataColumn(label: Text('Status')),
-            DataColumn(label: Text('Rating')),
-            DataColumn(label: Text('Created')),
-            DataColumn(label: Text('Actions')),
-          ],
-          rows: state.items.map((product) {
-            final isActioning = state.actioningIds.contains(product.id);
-            return DataRow(
-              cells: [
-                // Product name — tappable to open detail
-                DataCell(
-                  InkWell(
-                    onTap: () => context.goNamed(
-                      AppRoutes.productDetailName,
-                      pathParameters: {'id': product.id},
-                    ),
-                    child: Text(
-                      product.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
-                        decoration: TextDecoration.underline,
-                        decorationColor: AppColors.primary,
-                      ),
-                    ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final tableMinWidth = constraints.hasBoundedWidth
+            ? constraints.maxWidth
+            : 0.0;
+
+        return SizedBox(
+          width: double.infinity,
+          child: Card(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minWidth: tableMinWidth),
+                child: DataTable(
+                  columnSpacing: 28,
+                  headingRowColor: WidgetStateProperty.all(
+                    AppColors.background,
                   ),
-                ),
-                // Vendor
-                DataCell(
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        product.vendor.name,
-                        style: const TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                      Text(
-                        product.vendor.email,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Category
-                DataCell(Text(product.category.name)),
-                // Price
-                DataCell(
-                  Text(
-                    product.formattedPrice,
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                ),
-                // Status badge
-                DataCell(ProductStatusBadge(isActive: product.isActive)),
-                // Rating
-                DataCell(
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.star_rounded,
-                        size: 14,
-                        color: AppColors.warning,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        product.avgRating.toStringAsFixed(1),
-                        style: const TextStyle(fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ),
-                // Created date
-                DataCell(
-                  Text(
-                    product.formattedDate,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-                // Action buttons
-                DataCell(
-                  isActioning
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.primary,
+                  columns: const [
+                    DataColumn(label: Text('Name')),
+                    DataColumn(label: Text('Vendor')),
+                    DataColumn(label: Text('Category')),
+                    DataColumn(label: Text('Price')),
+                    DataColumn(label: Text('Status')),
+                    DataColumn(label: Text('Rating')),
+                    DataColumn(label: Text('Created')),
+                    DataColumn(label: Text('Actions')),
+                  ],
+                  rows: state.items.map((product) {
+                    final isActioning = state.actioningIds.contains(product.id);
+                    return DataRow(
+                      cells: [
+                        // Product name — tappable to open detail
+                        DataCell(
+                          InkWell(
+                            onTap: () => context.goNamed(
+                              AppRoutes.productDetailName,
+                              pathParameters: {'id': product.id},
+                            ),
+                            child: TableCellText(
+                              product.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                                decoration: TextDecoration.underline,
+                                decorationColor: AppColors.primary,
+                              ),
+                            ),
                           ),
-                        )
-                      : _ActionButtons(
-                          product: product,
-                          onDoWithSnackbar: onDoWithSnackbar,
                         ),
+                        // Vendor
+                        DataCell(
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              TableCellText(
+                                product.vendor.name,
+                                maxWidth: 180,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              TableCellText(
+                                product.vendor.email,
+                                maxWidth: 180,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Category
+                        DataCell(TableCellText(product.category.name)),
+                        // Price
+                        DataCell(
+                          Text(
+                            product.formattedPrice,
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                        // Status badge
+                        DataCell(
+                          ProductStatusBadge(isActive: product.isActive),
+                        ),
+                        // Rating
+                        DataCell(
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.star_rounded,
+                                size: 14,
+                                color: AppColors.warning,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                product.avgRating.toStringAsFixed(1),
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Created date
+                        DataCell(
+                          Text(
+                            product.formattedDate,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                        // Action buttons
+                        DataCell(
+                          isActioning
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.primary,
+                                  ),
+                                )
+                              : _ActionButtons(
+                                  product: product,
+                                  onDoWithSnackbar: onDoWithSnackbar,
+                                ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
                 ),
-              ],
-            );
-          }).toList(),
-        ),
-      ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -420,10 +432,7 @@ class _ActionButtons extends StatelessWidget {
   final AdminProductModel product;
   final Future<void> Function(Future<String?> Function()) onDoWithSnackbar;
 
-  const _ActionButtons({
-    required this.product,
-    required this.onDoWithSnackbar,
-  });
+  const _ActionButtons({required this.product, required this.onDoWithSnackbar});
 
   @override
   Widget build(BuildContext context) {
@@ -437,13 +446,12 @@ class _ActionButtons extends StatelessWidget {
             onTap: () => _confirm(
               context,
               action: 'Activate',
-              body:
-                  '"${product.name}" will be made visible to customers.',
+              body: '"${product.name}" will be made visible to customers.',
               actionColor: AppColors.success,
               onConfirm: () => onDoWithSnackbar(
-                () => context
-                    .read<ProductModerationCubit>()
-                    .activateProduct(product),
+                () => context.read<ProductModerationCubit>().activateProduct(
+                  product,
+                ),
               ),
             ),
           ),
@@ -456,13 +464,12 @@ class _ActionButtons extends StatelessWidget {
             onTap: () => _confirm(
               context,
               action: 'Deactivate',
-              body:
-                  '"${product.name}" will be hidden from customers.',
+              body: '"${product.name}" will be hidden from customers.',
               actionColor: AppColors.warning,
               onConfirm: () => onDoWithSnackbar(
-                () => context
-                    .read<ProductModerationCubit>()
-                    .deactivateProduct(product),
+                () => context.read<ProductModerationCubit>().deactivateProduct(
+                  product,
+                ),
               ),
             ),
           ),
@@ -478,9 +485,8 @@ class _ActionButtons extends StatelessWidget {
                 '"${product.name}" will be permanently deleted. This cannot be undone. Products with existing orders cannot be deleted.',
             actionColor: AppColors.error,
             onConfirm: () => onDoWithSnackbar(
-              () => context
-                  .read<ProductModerationCubit>()
-                  .deleteProduct(product),
+              () =>
+                  context.read<ProductModerationCubit>().deleteProduct(product),
             ),
           ),
         ),
@@ -544,10 +550,7 @@ class _PaginationBar extends StatelessWidget {
   final ProductModerationLoaded state;
   final Future<void> Function(Future<String?> Function()) onDoWithSnackbar;
 
-  const _PaginationBar({
-    required this.state,
-    required this.onDoWithSnackbar,
-  });
+  const _PaginationBar({required this.state, required this.onDoWithSnackbar});
 
   @override
   Widget build(BuildContext context) {
@@ -558,9 +561,9 @@ class _PaginationBar extends StatelessWidget {
       children: [
         Text(
           'Showing ${state.fromItem}–${state.toItem} of ${state.total}',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
         ),
         const SizedBox(width: 16),
         IconButton(
@@ -568,8 +571,8 @@ class _PaginationBar extends StatelessWidget {
           icon: const Icon(Icons.chevron_left_rounded),
           onPressed: state.hasPrevPage && !state.isRefreshing
               ? () => onDoWithSnackbar(
-                    () => context.read<ProductModerationCubit>().prevPage(),
-                  )
+                  () => context.read<ProductModerationCubit>().prevPage(),
+                )
               : null,
         ),
         Text(
@@ -581,8 +584,8 @@ class _PaginationBar extends StatelessWidget {
           icon: const Icon(Icons.chevron_right_rounded),
           onPressed: state.hasNextPage && !state.isRefreshing
               ? () => onDoWithSnackbar(
-                    () => context.read<ProductModerationCubit>().nextPage(),
-                  )
+                  () => context.read<ProductModerationCubit>().nextPage(),
+                )
               : null,
         ),
       ],
@@ -624,4 +627,3 @@ class _ConfirmDialog extends StatelessWidget {
     );
   }
 }
-

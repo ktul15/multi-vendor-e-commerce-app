@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../config/app_env.dart';
+import 'error_messages.dart';
 import 'token_storage.dart';
 
 /// Centralized API client with interceptors for Vendor Dashboard.
@@ -113,11 +114,7 @@ class ApiClient {
   static InterceptorsWrapper _errorInterceptor() {
     return InterceptorsWrapper(
       onError: (error, handler) {
-        if (error.response?.data is Map<String, dynamic>) {
-          final data = error.response!.data as Map<String, dynamic>;
-          final message = data['message'] as String? ?? 'Something went wrong';
-          error = error.copyWith(message: message);
-        }
+        error = error.copyWith(message: userFacingDioErrorMessage(error));
         handler.next(error);
       },
     );

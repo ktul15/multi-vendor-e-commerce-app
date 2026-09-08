@@ -96,8 +96,12 @@ class _VariantSelectorState extends State<VariantSelector> {
 
   bool _isVariantInStock(String? size, String? color) {
     return widget.variants.any((v) {
-      final sizeMatch = !_hasSizes || v.size == size;
-      final colorMatch = !_hasColors || v.color == color;
+      // A null argument means that dimension has not been selected yet, so
+      // check stock across every value in that dimension. Treating null as an
+      // exact match incorrectly disabled both chips for an in-stock variant
+      // such as M + Blue.
+      final sizeMatch = size == null || v.size == size;
+      final colorMatch = color == null || v.color == color;
       return sizeMatch && colorMatch && v.stock > 0;
     });
   }
@@ -136,20 +140,21 @@ class _VariantSelectorState extends State<VariantSelector> {
   }
 
   void _notifyParent() {
-    final sizeReady = !_hasSizes || _selectedSize != null;
-    final colorReady = !_hasColors || _selectedColor != null;
-
-    if (!sizeReady || !colorReady) {
+    if (_selectedSize == null && _selectedColor == null) {
       widget.onSelect(null);
       return;
     }
 
     final matches = widget.variants.where((v) {
-      final sizeMatch = !_hasSizes || v.size == _selectedSize;
-      final colorMatch = !_hasColors || v.color == _selectedColor;
+      final sizeMatch = _selectedSize == null || v.size == _selectedSize;
+      final colorMatch = _selectedColor == null || v.color == _selectedColor;
       return sizeMatch && colorMatch;
-    });
-    widget.onSelect(matches.isEmpty ? null : matches.first);
+    }).toList();
+
+    // A single matching variant is an unambiguous selection even when that
+    // variant does not use every dimension, or when choosing one option also
+    // determines the other (for example, M is available only in Blue).
+    widget.onSelect(matches.length == 1 ? matches.first : null);
   }
 
   @override
@@ -172,7 +177,9 @@ class _VariantSelectorState extends State<VariantSelector> {
               final isSelected = _selectedSize == size;
               final isAvailable = availableSizes.contains(size);
               final inStock = _isVariantInStock(
-                  size, _hasColors ? _selectedColor : null);
+                size,
+                _hasColors ? _selectedColor : null,
+              );
               return _VariantChip(
                 label: size,
                 isSelected: isSelected,
@@ -194,7 +201,9 @@ class _VariantSelectorState extends State<VariantSelector> {
               final isSelected = _selectedColor == color;
               final isAvailable = availableColors.contains(color);
               final inStock = _isVariantInStock(
-                  _hasSizes ? _selectedSize : null, color);
+                _hasSizes ? _selectedSize : null,
+                color,
+              );
               return _VariantChip(
                 label: color,
                 isSelected: isSelected,
@@ -244,8 +253,8 @@ class _VariantChip extends StatelessWidget {
             color: isSelected
                 ? AppColors.primary
                 : isEnabled
-                    ? AppColors.border
-                    : AppColors.border.withAlpha(80),
+                ? AppColors.border
+                : AppColors.border.withAlpha(80),
           ),
           borderRadius: BorderRadius.circular(AppRadius.sm),
         ),
@@ -258,10 +267,9 @@ class _VariantChip extends StatelessWidget {
                 color: isSelected
                     ? Colors.white
                     : isEnabled
-                        ? AppColors.textPrimary
-                        : AppColors.textSecondary.withAlpha(100),
-                fontWeight:
-                    isSelected ? FontWeight.w600 : FontWeight.w400,
+                    ? AppColors.textPrimary
+                    : AppColors.textSecondary.withAlpha(100),
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
               ),
             ),
             // Strike-through for out-of-stock chips

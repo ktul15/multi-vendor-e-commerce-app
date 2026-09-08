@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -21,6 +23,7 @@ class PromoListPage extends StatefulWidget {
 
 class _PromoListPageState extends State<PromoListPage> {
   final _searchController = TextEditingController();
+  Timer? _debounce;
   bool _searchInitialized = false;
 
   @override
@@ -38,8 +41,26 @@ class _PromoListPageState extends State<PromoListPage> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
+      _doWithSnackbar(() => context.read<PromoCubit>().search(value));
+    });
+  }
+
+  Future<void> _doWithSnackbar(Future<String?> Function() action) async {
+    final error = await action();
+    if (error != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error), backgroundColor: AppColors.error),
+      );
+    }
   }
 
   @override
@@ -59,7 +80,7 @@ class _PromoListPageState extends State<PromoListPage> {
               return FilledButton.icon(
                 onPressed: (state is PromoLoaded && state.isSubmitting)
                     ? null
-                    : () => context.pushNamed(AppRoutes.promoCreateName),
+                    : () => context.goNamed(AppRoutes.promoCreateName),
                 icon: const Icon(Icons.add_rounded, size: 18),
                 label: const Text('Add Promo'),
               );
@@ -128,6 +149,7 @@ class _PromoListPageState extends State<PromoListPage> {
             return _LoadedView(
               loaded: state,
               searchController: _searchController,
+              onSearchChanged: _onSearchChanged,
             );
           }
 
@@ -143,10 +165,12 @@ class _PromoListPageState extends State<PromoListPage> {
 class _LoadedView extends StatelessWidget {
   final PromoLoaded loaded;
   final TextEditingController searchController;
+  final ValueChanged<String> onSearchChanged;
 
   const _LoadedView({
     required this.loaded,
     required this.searchController,
+    required this.onSearchChanged,
   });
 
   @override
@@ -163,22 +187,25 @@ class _LoadedView extends StatelessWidget {
                 width: 220,
                 child: TextField(
                   controller: searchController,
+                  onChanged: onSearchChanged,
                   decoration: InputDecoration(
                     hintText: 'Search code…',
                     prefixIcon: const Icon(Icons.search_rounded, size: 18),
                     isDense: true,
-                    suffixIcon: searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear_rounded, size: 16),
-                            onPressed: () {
-                              searchController.clear();
-                              context.read<PromoCubit>().search(null);
-                            },
-                          )
-                        : null,
+                    suffixIcon: ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: searchController,
+                      builder: (context, value, child) {
+                        if (value.text.isEmpty) return const SizedBox.shrink();
+                        return IconButton(
+                          icon: const Icon(Icons.clear_rounded, size: 16),
+                          onPressed: () {
+                            searchController.clear();
+                            onSearchChanged('');
+                          },
+                        );
+                      },
+                    ),
                   ),
-                  onSubmitted: (v) =>
-                      context.read<PromoCubit>().search(v.isEmpty ? null : v),
                   textInputAction: TextInputAction.search,
                 ),
               ),
@@ -209,17 +236,17 @@ class _LoadedView extends StatelessWidget {
               _FilterChip(
                 label: '%',
                 selected: loaded.discountTypeFilter == 'PERCENTAGE',
-                onSelected: (sel) => context.read<PromoCubit>().filterByDiscountType(
-                      sel ? 'PERCENTAGE' : null,
-                    ),
+                onSelected: (sel) => context
+                    .read<PromoCubit>()
+                    .filterByDiscountType(sel ? 'PERCENTAGE' : null),
               ),
               const SizedBox(width: 6),
               _FilterChip(
                 label: 'Fixed',
                 selected: loaded.discountTypeFilter == 'FIXED',
-                onSelected: (sel) => context.read<PromoCubit>().filterByDiscountType(
-                      sel ? 'FIXED' : null,
-                    ),
+                onSelected: (sel) => context
+                    .read<PromoCubit>()
+                    .filterByDiscountType(sel ? 'FIXED' : null),
               ),
               const Spacer(),
               if (loaded.isRefreshing || loaded.isSubmitting)
@@ -241,10 +268,9 @@ class _LoadedView extends StatelessWidget {
               ? Center(
                   child: Text(
                     'No promo codes match your filters.',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: AppColors.textSecondary),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 )
               : SingleChildScrollView(
@@ -264,64 +290,69 @@ class _LoadedView extends StatelessWidget {
                           DataColumn(label: Text('Actions')),
                         ],
                         rows: loaded.items.map((promo) {
-                          return DataRow(cells: [
-                            // Code
-                            DataCell(
-                              Text(
-                                promo.code,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontFamily: 'monospace',
+                          return DataRow(
+                            cells: [
+                              // Code
+                              DataCell(
+                                Text(
+                                  promo.code,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontFamily: 'monospace',
+                                  ),
                                 ),
                               ),
-                            ),
-                            // Discount
-                            DataCell(Text(promo.formattedDiscount)),
-                            // Min order
-                            DataCell(
-                              Text(
-                                promo.minOrderValue != null
-                                    ? '\$${promo.minOrderValue!.toStringAsFixed(2)}'
-                                    : '—',
-                                style: TextStyle(
+                              // Discount
+                              DataCell(Text(promo.formattedDiscount)),
+                              // Min order
+                              DataCell(
+                                Text(
+                                  promo.minOrderValue != null
+                                      ? '₹${promo.minOrderValue!.toStringAsFixed(2)}'
+                                      : '—',
+                                  style: TextStyle(
                                     color: promo.minOrderValue == null
                                         ? AppColors.textSecondary
-                                        : null),
-                              ),
-                            ),
-                            // Usage
-                            DataCell(
-                              Text(
-                                promo.usageLimit != null
-                                    ? '${promo.usageCount} / ${promo.usageLimit}'
-                                    : '${promo.usageCount} / ∞',
-                              ),
-                            ),
-                            // Expires
-                            DataCell(
-                              Text(
-                                promo.expiresAt != null
-                                    ? DateFormat('MMM d, y')
-                                        .format(promo.expiresAt!.toLocal())
-                                    : 'Never',
-                                style: TextStyle(
-                                  color: promo.expiresAt != null &&
-                                          promo.expiresAt!
-                                              .isBefore(DateTime.now())
-                                      ? AppColors.error
-                                      : promo.expiresAt == null
-                                          ? AppColors.textSecondary
-                                          : null,
+                                        : null,
+                                  ),
                                 ),
                               ),
-                            ),
-                            // Active toggle
-                            DataCell(
-                              Switch(
-                                value: promo.isActive,
-                                onChanged: loaded.isSubmitting
-                                    ? null
-                                    : (v) => _doWithSnackbar(
+                              // Usage
+                              DataCell(
+                                Text(
+                                  promo.usageLimit != null
+                                      ? '${promo.usageCount} / ${promo.usageLimit}'
+                                      : '${promo.usageCount} / ∞',
+                                ),
+                              ),
+                              // Expires
+                              DataCell(
+                                Text(
+                                  promo.expiresAt != null
+                                      ? DateFormat(
+                                          'MMM d, y',
+                                        ).format(promo.expiresAt!.toLocal())
+                                      : 'Never',
+                                  style: TextStyle(
+                                    color:
+                                        promo.expiresAt != null &&
+                                            promo.expiresAt!.isBefore(
+                                              DateTime.now(),
+                                            )
+                                        ? AppColors.error
+                                        : promo.expiresAt == null
+                                        ? AppColors.textSecondary
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                              // Active toggle
+                              DataCell(
+                                Switch(
+                                  value: promo.isActive,
+                                  onChanged: loaded.isSubmitting
+                                      ? null
+                                      : (v) => _doWithSnackbar(
                                           context,
                                           () => context
                                               .read<PromoCubit>()
@@ -330,43 +361,44 @@ class _LoadedView extends StatelessWidget {
                                                 newIsActive: v,
                                               ),
                                         ),
+                                ),
                               ),
-                            ),
-                            // Actions
-                            DataCell(
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    tooltip: 'Edit',
-                                    icon: const Icon(Icons.edit_outlined,
-                                        size: 18),
-                                    onPressed: loaded.isSubmitting
-                                        ? null
-                                        : () => context.pushNamed(
-                                              AppRoutes.promoEditName,
-                                              pathParameters: {
-                                                'id': promo.id
-                                              },
-                                            ),
-                                  ),
-                                  IconButton(
-                                    tooltip: 'Delete',
-                                    icon: Icon(
-                                      Icons.delete_outline_rounded,
-                                      size: 18,
-                                      color: loaded.isSubmitting
+                              // Actions
+                              DataCell(
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      tooltip: 'Edit',
+                                      icon: const Icon(
+                                        Icons.edit_outlined,
+                                        size: 18,
+                                      ),
+                                      onPressed: loaded.isSubmitting
                                           ? null
-                                          : AppColors.error,
+                                          : () => context.goNamed(
+                                              AppRoutes.promoEditName,
+                                              pathParameters: {'id': promo.id},
+                                            ),
                                     ),
-                                    onPressed: loaded.isSubmitting
-                                        ? null
-                                        : () => _onDelete(context, promo),
-                                  ),
-                                ],
+                                    IconButton(
+                                      tooltip: 'Delete',
+                                      icon: Icon(
+                                        Icons.delete_outline_rounded,
+                                        size: 18,
+                                        color: loaded.isSubmitting
+                                            ? null
+                                            : AppColors.error,
+                                      ),
+                                      onPressed: loaded.isSubmitting
+                                          ? null
+                                          : () => _onDelete(context, promo),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ]);
+                            ],
+                          );
                         }).toList(),
                       ),
                     ),
@@ -387,19 +419,19 @@ class _LoadedView extends StatelessWidget {
   Future<void> _onDelete(BuildContext context, PromoModel promo) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Promo Code'),
         content: Text(
           'Delete promo code "${promo.code}"?\n\nNote: codes with order history are soft-deleted (deactivated).',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
             child: const Text('Cancel'),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text('Delete'),
           ),
         ],
@@ -422,15 +454,12 @@ class _LoadedView extends StatelessWidget {
     if (!context.mounted) return;
     if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error),
-          backgroundColor: AppColors.error,
-        ),
+        SnackBar(content: Text(error), backgroundColor: AppColors.error),
       );
     } else if (successMessage != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(successMessage)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(successMessage)));
     }
   }
 }
@@ -449,10 +478,9 @@ class _PaginationBar extends StatelessWidget {
       children: [
         Text(
           '${loaded.fromItem}–${loaded.toItem} of ${loaded.meta.total}',
-          style: Theme.of(context)
-              .textTheme
-              .bodySmall
-              ?.copyWith(color: AppColors.textSecondary),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
         ),
         const SizedBox(width: 16),
         IconButton(
@@ -460,9 +488,9 @@ class _PaginationBar extends StatelessWidget {
           icon: const Icon(Icons.chevron_left_rounded),
           onPressed: loaded.hasPrevPage && !loaded.isRefreshing
               ? () => _doWithSnackbar(
-                    context,
-                    () => context.read<PromoCubit>().prevPage(),
-                  )
+                  context,
+                  () => context.read<PromoCubit>().prevPage(),
+                )
               : null,
         ),
         Text(
@@ -474,9 +502,9 @@ class _PaginationBar extends StatelessWidget {
           icon: const Icon(Icons.chevron_right_rounded),
           onPressed: loaded.hasNextPage && !loaded.isRefreshing
               ? () => _doWithSnackbar(
-                    context,
-                    () => context.read<PromoCubit>().nextPage(),
-                  )
+                  context,
+                  () => context.read<PromoCubit>().nextPage(),
+                )
               : null,
         ),
       ],
@@ -490,10 +518,7 @@ class _PaginationBar extends StatelessWidget {
     final error = await action();
     if (!context.mounted || error == null) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(error),
-        backgroundColor: AppColors.error,
-      ),
+      SnackBar(content: Text(error), backgroundColor: AppColors.error),
     );
   }
 }
@@ -521,4 +546,3 @@ class _FilterChip extends StatelessWidget {
     );
   }
 }
-

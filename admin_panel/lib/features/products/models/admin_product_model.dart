@@ -1,5 +1,17 @@
 import 'package:equatable/equatable.dart';
 
+double _readDouble(dynamic value, {double fallback = 0}) {
+  if (value == null) return fallback;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value.toString()) ?? fallback;
+}
+
+int _readInt(dynamic value, {int fallback = 0}) {
+  if (value == null) return fallback;
+  if (value is num) return value.toInt();
+  return int.tryParse(value.toString()) ?? fallback;
+}
+
 class AdminProductVendorModel extends Equatable {
   final String id;
   final String name;
@@ -70,28 +82,39 @@ class AdminProductModel extends Equatable {
     return AdminProductModel(
       id: json['id'] as String,
       name: json['name'] as String,
-      basePrice: (json['basePrice'] as num).toDouble(),
-      isActive: json['isActive'] as bool,
-      avgRating: (json['avgRating'] as num).toDouble(),
-      reviewCount: json['reviewCount'] as int,
-      variantCount: count != null ? (count['variants'] as int? ?? 0) : 0,
+      basePrice: _readDouble(json['basePrice']),
+      isActive: json['isActive'] as bool? ?? true,
+      avgRating: _readDouble(json['avgRating']),
+      reviewCount: _readInt(json['reviewCount']),
+      variantCount: count != null ? _readInt(count['variants']) : 0,
       createdAt: DateTime.parse(json['createdAt'] as String),
       vendor: AdminProductVendorModel.fromJson(
-          json['vendor'] as Map<String, dynamic>),
+        json['vendor'] as Map<String, dynamic>,
+      ),
       category: AdminProductCategoryModel.fromJson(
-          json['category'] as Map<String, dynamic>),
+        json['category'] as Map<String, dynamic>,
+      ),
     );
   }
 
-  /// e.g. "$12.99"
-  String get formattedPrice =>
-      '\$${basePrice.toStringAsFixed(2)}';
+  /// e.g. "₹12.99"
+  String get formattedPrice => '₹${basePrice.toStringAsFixed(2)}';
 
   /// e.g. "Apr 7, 2026"
   String get formattedDate {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${months[createdAt.month - 1]} ${createdAt.day}, ${createdAt.year}';
   }
@@ -113,15 +136,15 @@ class AdminProductModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        basePrice,
-        isActive,
-        avgRating,
-        reviewCount,
-        variantCount,
-        createdAt,
-        vendor,
-        category,
-      ];
+    id,
+    name,
+    basePrice,
+    isActive,
+    avgRating,
+    reviewCount,
+    variantCount,
+    createdAt,
+    vendor,
+    category,
+  ];
 }

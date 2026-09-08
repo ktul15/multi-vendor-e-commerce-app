@@ -3,13 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../shared/widgets/overflow_safe_text.dart';
 import '../models/revenue_model.dart';
 
-const _periods = [
-  ('day', 'Daily'),
-  ('week', 'Weekly'),
-  ('month', 'Monthly'),
-];
+const _periods = [('day', 'Daily'), ('week', 'Weekly'), ('month', 'Monthly')];
 
 class RevenueChart extends StatelessWidget {
   final RevenueModel revenue;
@@ -39,38 +36,34 @@ class RevenueChart extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Revenue',
-                  style: AppTextStyles.h6.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                _PeriodToggle(
-                  selected: selectedPeriod,
-                  onChanged: onPeriodChanged,
-                ),
-              ],
+            ResponsiveActionHeader(
+              title: 'Revenue',
+              titleStyle: AppTextStyles.h6.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+              action: _PeriodToggle(
+                selected: selectedPeriod,
+                onChanged: onPeriodChanged,
+              ),
             ),
             const SizedBox(height: AppSpacing.base),
             SizedBox(
               height: 180,
               child: isLoading
                   ? const Center(
-                      child: CircularProgressIndicator(strokeWidth: 2))
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                   : revenue.series.isEmpty
-                      ? Center(
-                          child: Text(
-                            'No data for this period',
-                            style: AppTextStyles.body.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        )
-                      : _LineChart(series: revenue.series),
+                  ? Center(
+                      child: Text(
+                        'No data for this period',
+                        style: AppTextStyles.body.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    )
+                  : _LineChart(series: revenue.series),
             ),
           ],
         ),
@@ -104,22 +97,16 @@ class _PeriodToggle extends StatelessWidget {
             onTap: () => onChanged(p.$1),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color:
-                    isSelected ? AppColors.primary : Colors.transparent,
+                color: isSelected ? AppColors.primary : Colors.transparent,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
                 p.$2,
                 style: AppTextStyles.caption.copyWith(
-                  color: isSelected
-                      ? Colors.white
-                      : AppColors.textSecondary,
-                  fontWeight: isSelected
-                      ? FontWeight.w600
-                      : FontWeight.w400,
+                  color: isSelected ? Colors.white : AppColors.textSecondary,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),
             ),
@@ -155,10 +142,8 @@ class _LineChart extends StatelessWidget {
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          getDrawingHorizontalLine: (_) => const FlLine(
-            color: AppColors.divider,
-            strokeWidth: 1,
-          ),
+          getDrawingHorizontalLine: (_) =>
+              const FlLine(color: AppColors.divider, strokeWidth: 1),
         ),
         borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
@@ -171,7 +156,7 @@ class _LineChart extends StatelessWidget {
                   return const SizedBox.shrink();
                 }
                 return Text(
-                  '\$${value.toInt()}',
+                  '₹${value.toInt()}',
                   style: AppTextStyles.caption.copyWith(
                     color: AppColors.textSecondary,
                     fontSize: 10,
@@ -183,9 +168,10 @@ class _LineChart extends StatelessWidget {
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              interval: (series.length / 4)
-                  .ceilToDouble()
-                  .clamp(1, double.infinity),
+              interval: (series.length / 4).ceilToDouble().clamp(
+                1,
+                double.infinity,
+              ),
               getTitlesWidget: (value, meta) {
                 final idx = value.toInt();
                 if (idx < 0 || idx >= series.length) {
@@ -207,20 +193,24 @@ class _LineChart extends StatelessWidget {
             ),
           ),
           rightTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false)),
+            sideTitles: SideTitles(showTitles: false),
+          ),
           topTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false)),
+            sideTitles: SideTitles(showTitles: false),
+          ),
         ),
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
             getTooltipItems: (spots) => spots
-                .map((s) => LineTooltipItem(
-                      '\$${s.y.toStringAsFixed(2)}',
-                      AppTextStyles.caption.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ))
+                .map(
+                  (s) => LineTooltipItem(
+                    '₹${s.y.toStringAsFixed(2)}',
+                    AppTextStyles.caption.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                )
                 .toList(),
           ),
         ),

@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import '../../../core/config/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+
+final _emailRegExp = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
 
 /// Vendor Login Page
 /// Allows vendors to log into the dashboard.
@@ -47,12 +51,14 @@ class _VendorLoginPageState extends State<VendorLoginPage> {
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: AppColors.error,
-              ),
-            );
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: AppColors.error,
+                ),
+              );
           }
         },
         child: Center(
@@ -95,10 +101,11 @@ class _VendorLoginPageState extends State<VendorLoginPage> {
                           prefixIcon: Icon(Icons.email_outlined),
                         ),
                         validator: (value) {
-                          if (value == null || value.isEmpty) {
+                          final email = value?.trim() ?? '';
+                          if (email.isEmpty) {
                             return 'Please enter your email';
                           }
-                          if (!value.contains('@')) {
+                          if (!_emailRegExp.hasMatch(email)) {
                             return 'Please enter a valid email';
                           }
                           return null;
@@ -156,6 +163,21 @@ class _VendorLoginPageState extends State<VendorLoginPage> {
                         },
                       ),
                       const SizedBox(height: AppSpacing.lg),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'New vendor? ',
+                            style: AppTextStyles.body2.copyWith(
+                              color: AppColors.neutral500,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => context.go(AppRoutes.register),
+                            child: const Text('Apply to sell'),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),

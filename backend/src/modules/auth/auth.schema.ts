@@ -21,8 +21,12 @@ export const registerSchema = z
       .optional(),
   })
   .refine(
-    (data) => data.role !== 'VENDOR' || (data.storeName && data.storeName.length > 0),
-    { message: 'Store name is required for vendor registration', path: ['storeName'] }
+    (data) =>
+      data.role !== 'VENDOR' || (data.storeName && data.storeName.length > 0),
+    {
+      message: 'Store name is required for vendor registration',
+      path: ['storeName'],
+    }
   );
 
 export const loginSchema = z.object({
@@ -30,9 +34,11 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
-export const refreshSchema = z.object({
-  refreshToken: z.string().min(1, 'Refresh token is required'),
-});
+export const refreshSchema = z
+  .object({
+    refreshToken: z.string().min(1, 'Refresh token is required').optional(),
+  })
+  .default({});
 
 // Type inference — use these in controllers for type safety
 export type RegisterInput = z.infer<typeof registerSchema>;

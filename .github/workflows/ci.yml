@@ -6,9 +6,16 @@ on:
       - dev
       - main
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  ci:
-    name: Lint → Test → Build
+  backend:
+    name: Backend quality gates
     runs-on: ubuntu-latest
 
     services:
@@ -41,12 +48,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: '20'
+          node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: backend/package-lock.json
 
@@ -59,6 +66,9 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Check OpenAPI snapshot
+        run: npm run openapi:check
 
       - name: Apply migrations and run tests
         env:
@@ -74,3 +84,138 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  web:
+    name: Web quality gates
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: testdb
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_USER: testuser
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U testuser -d testdb"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        with:
+          version: 11.18.0
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Restore Turborepo cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .turbo
+          key: web-turbo-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            web-turbo-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install backend dependencies
+        run: npm --prefix backend ci
+
+      - name: Prepare end-to-end database
+        env:
+          DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb
+        working-directory: backend
+        run: |
+          npm exec prisma generate
+          npm exec prisma migrate deploy
+
+      - name: Check formatting
+        run: pnpm run format:check
+
+      - name: Check generated API types
+        run: pnpm run api:types:check
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Type-check
+        run: pnpm run typecheck
+
+      - name: Run critical vendor regressions
+        run: pnpm --filter @repo/vendor-dashboard run test:critical
+
+      - name: Run critical admin regressions
+        run: pnpm --filter @repo/admin-panel run test:critical
+
+      - name: Run unit tests
+        run: pnpm run test
+
+      - name: Build production applications
+        run: pnpm run build
+
+      - name: Verify production source maps are private
+        run: pnpm run source-maps:check
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run dashboard end-to-end tests
+        env:
+          DASHBOARD_BFF_SECRET: issue-99-ci-bff-secret
+          DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb
+          JWT_ACCESS_SECRET: issue-99-ci-access-secret
+          JWT_REFRESH_SECRET: issue-99-ci-refresh-secret
+          PLAYWRIGHT_START_BACKEND: "1"
+          REDIS_URL: redis://localhost:6379/15
+          WEB_E2E_RESET_CONFIRMATION: DELETE_E2E_DATA
+        run: pnpm run test:e2e
+
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          if-no-files-found: ignore
+          name: playwright-failure-artifacts
+          path: |
+            playwright-report/
+            test-results/playwright/
+          retention-days: 14
+
+      - name: Clean up end-to-end database
+        if: always()
+        env:
+          DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb
+          WEB_E2E_RESET_CONFIRMATION: DELETE_E2E_DATA
+        working-directory: backend
+        run: npm run db:e2e:cleanup
+
+      - name: Clean up end-to-end cache
+        if: always()
+        env:
+          REDIS_URL: redis://localhost:6379/15
+          WEB_E2E_RESET_CONFIRMATION: DELETE_E2E_DATA
+        working-directory: backend
+        run: npm run cache:e2e:cleanup

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/network/error_messages.dart';
 import '../../../repositories/auth_repository.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
@@ -13,6 +14,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       super(AuthInitial()) {
     on<AuthCheckRequested>(_onAuthCheckRequested);
     on<AuthLoginRequested>(_onAuthLoginRequested);
+    on<AuthRegisterRequested>(_onAuthRegisterRequested);
     on<AuthLogoutRequested>(_onAuthLogoutRequested);
   }
 
@@ -48,13 +50,42 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       );
       emit(AuthAuthenticated(user: user));
     } on DioException catch (e) {
-      final message =
-          e.response?.data is Map<String, dynamic> &&
-              e.response?.data['message'] != null
-          ? e.response?.data['message'] as String
-          : e.message ?? 'Login failed. Please try again.';
-      emit(AuthError(message: message));
-    } catch (e) {
+      emit(
+        AuthError(
+          message: userFacingDioErrorMessage(
+            e,
+            fallback: 'Login failed. Please try again.',
+          ),
+        ),
+      );
+    } catch (_) {
+      emit(AuthError(message: 'An unexpected error occurred.'));
+    }
+  }
+
+  Future<void> _onAuthRegisterRequested(
+    AuthRegisterRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    try {
+      final user = await _authRepository.registerVendor(
+        name: event.name,
+        email: event.email,
+        password: event.password,
+        storeName: event.storeName,
+      );
+      emit(AuthAuthenticated(user: user));
+    } on DioException catch (e) {
+      emit(
+        AuthError(
+          message: userFacingDioErrorMessage(
+            e,
+            fallback: 'Registration failed. Please try again.',
+          ),
+        ),
+      );
+    } catch (_) {
       emit(AuthError(message: 'An unexpected error occurred.'));
     }
   }

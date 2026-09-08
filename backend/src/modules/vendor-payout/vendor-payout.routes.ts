@@ -10,6 +10,7 @@ import {
   getEarningsQuerySchema,
   getPayoutsQuerySchema,
   updateCommissionRateSchema,
+  updatePaymentProviderSchema,
   vendorIdParamSchema,
 } from './vendor-payout.validation';
 import { VendorPayoutController } from './vendor-payout.controller';
@@ -53,18 +54,36 @@ const router = Router();
  * /vendor-payouts/connect/onboard:
  *   post:
  *     tags: [Vendor Payouts]
- *     summary: Start Stripe Connect onboarding (approved Vendors only)
- *     description: Generates a Stripe Connect onboarding URL. The vendor is redirected to Stripe to complete account setup.
+ *     summary: Start payment-provider onboarding (approved Vendors only)
+ *     description: Uses the vendor's persisted provider. Stripe returns a single-use hosted onboarding URL using backend-configured return and refresh URLs that browser clients cannot override; Razorpay sandbox deterministically completes mock linked-account onboarding without a redirect.
  *     responses:
  *       200:
- *         description: Onboarding URL
+ *         description: Provider-discriminated onboarding result
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               message: Onboarding link generated
- *               data:
- *                 url: "https://connect.stripe.com/setup/s/..."
+ *             schema:
+ *               oneOf:
+ *                 - type: object
+ *                   properties:
+ *                     success: { type: boolean, example: true }
+ *                     message: { type: string }
+ *                     data:
+ *                       type: object
+ *                       required: [url]
+ *                       properties:
+ *                         url: { type: string, format: uri }
+ *                 - type: object
+ *                   properties:
+ *                     success: { type: boolean, example: true }
+ *                     message: { type: string }
+ *                     data:
+ *                       type: object
+ *                       required: [provider, accountId, onboardingStatus, sandbox]
+ *                       properties:
+ *                         provider: { type: string, enum: [RAZORPAY] }
+ *                         accountId: { type: string }
+ *                         onboardingStatus: { type: string, enum: [COMPLETE] }
+ *                         sandbox: { type: boolean, enum: [true] }
  *       401:
  *         description: Unauthorized
  *       403:
@@ -86,8 +105,8 @@ router.post(
  * /vendor-payouts/connect/onboard/refresh:
  *   get:
  *     tags: [Vendor Payouts]
- *     summary: Refresh the Stripe Connect onboarding link (approved Vendors only)
- *     description: Returns a fresh onboarding URL if the previous one expired.
+ *     summary: Refresh payment-provider onboarding (approved Vendors only)
+ *     description: Refreshes onboarding for the vendor's persisted payment provider. Clients never request input or supply account IDs or redirects. Stripe returns a fresh single-use URL; Razorpay sandbox completes deterministic mock onboarding.
  *     responses:
  *       200:
  *         description: Refreshed onboarding URL
@@ -115,8 +134,8 @@ router.get(
  * /vendor-payouts/connect/status:
  *   get:
  *     tags: [Vendor Payouts]
- *     summary: Get Stripe Connect account status (Vendor only)
- *     description: Returns whether the vendor's Stripe Connect account is fully onboarded and enabled for payouts.
+ *     summary: Get payment-provider account status (Vendor only)
+ *     description: Returns the persisted provider and authoritative onboarding, charge, payout, and details-submitted state. Browser return query parameters are not proof of completion; Stripe state is retrieved server-side.
  *     responses:
  *       200:
  *         description: Connect account status
@@ -126,9 +145,11 @@ router.get(
  *               success: true
  *               message: Connect status fetched
  *               data:
- *                 connected: true
+ *                 provider: STRIPE
+ *                 onboardingStatus: COMPLETE
  *                 chargesEnabled: true
  *                 payoutsEnabled: true
+ *                 detailsSubmitted: true
  *       401:
  *         description: Unauthorized
  *       403:
@@ -193,19 +214,14 @@ router.get(
  *   get:
  *     tags: [Vendor Payouts]
  *     summary: Get earnings summary (approved Vendors only)
- *     description: Returns total lifetime earnings, pending balance, and transferred amount.
+ *     description: Returns count, gross, commission, and net aggregates for every earning status.
  *     responses:
  *       200:
  *         description: Earnings summary
  *         content:
  *           application/json:
- *             example:
- *               success: true
- *               message: Earnings summary fetched
- *               data:
- *                 totalEarnings: 1500.00
- *                 pendingBalance: 200.00
- *                 transferred: 1300.00
+ *             schema:
+ *               $ref: '#/components/schemas/ApiSuccess'
  *       401:
  *         description: Unauthorized
  *       403:
@@ -306,6 +322,15 @@ router.patch(
   validateParams(vendorIdParamSchema),
   validate(updateCommissionRateSchema),
   controller.updateCommissionRate
+);
+
+router.patch(
+  '/admin/provider/:vendorId',
+  authenticate,
+  authorize('ADMIN'),
+  validateParams(vendorIdParamSchema),
+  validate(updatePaymentProviderSchema),
+  controller.updatePaymentProvider
 );
 
 export default router;

@@ -386,6 +386,20 @@ describe('Address API (Issue #30)', () => {
             expect(res.status).toBe(404);
         });
 
+        it('should reject deleting the default address', async () => {
+            const res = await request(app)
+                .delete(`/api/v1/addresses/${defaultAddressId}`)
+                .set('Authorization', customerToken);
+
+            expect(res.status).toBe(400);
+            expect(res.body.message).toBe('Default address cannot be deleted. Set another address as default first.');
+
+            const address = await prisma.address.findUnique({
+                where: { id: defaultAddressId },
+            });
+            expect(address?.isDefault).toBe(true);
+        });
+
         it('should return 401 without auth', async () => {
             const res = await request(app).delete(`/api/v1/addresses/${defaultAddressId}`);
             expect(res.status).toBe(401);

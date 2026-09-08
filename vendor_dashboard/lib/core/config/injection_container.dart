@@ -5,6 +5,7 @@ import '../network/api_client.dart';
 import '../network/token_storage.dart';
 import '../../repositories/analytics_repository.dart';
 import '../../repositories/auth_repository.dart';
+import '../../repositories/category_repository.dart';
 import '../../repositories/order_repository.dart';
 import '../../repositories/product_repository.dart';
 import '../../repositories/vendor_profile_repository.dart';
@@ -50,6 +51,10 @@ Future<void> initDependencies() async {
 
   sl.registerLazySingleton<OrderRepository>(
     () => OrderRepository(dio: sl<Dio>()),
+  );
+
+  sl.registerLazySingleton<CategoryRepository>(
+    () => CategoryRepository(dio: sl<Dio>()),
   );
 
   sl.registerLazySingleton<ProductRepository>(

@@ -18,7 +18,11 @@ class OrderDetailSkeleton extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       children: [
         // Status timeline placeholder
-        const SkeletonBox(width: double.infinity, height: 56, radius: AppRadius.md),
+        const SkeletonBox(
+          width: double.infinity,
+          height: 56,
+          radius: AppRadius.md,
+        ),
         const SizedBox(height: AppSpacing.base),
 
         // Items section

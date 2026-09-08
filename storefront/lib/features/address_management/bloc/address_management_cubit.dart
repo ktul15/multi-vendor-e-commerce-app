@@ -7,8 +7,8 @@ class AddressManagementCubit extends Cubit<AddressManagementState> {
   final AddressRepository _repository;
 
   AddressManagementCubit({required AddressRepository repository})
-      : _repository = repository,
-        super(const AddressManagementLoading());
+    : _repository = repository,
+      super(const AddressManagementLoading());
 
   // ── Load ──────────────────────────────────────────────────────────────────
 
@@ -56,10 +56,7 @@ class AddressManagementCubit extends Cubit<AddressManagementState> {
       final existing = created.isDefault
           ? current.addresses.map((a) => a.copyWith(isDefault: false)).toList()
           : current.addresses;
-      emit(current.copyWith(
-        addresses: [created, ...existing],
-        isBusy: false,
-      ));
+      emit(current.copyWith(addresses: [created, ...existing], isBusy: false));
     } on ApiException catch (e) {
       emit(current.copyWith(isBusy: false, error: e.message));
     } on NetworkException catch (e) {

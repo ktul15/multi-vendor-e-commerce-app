@@ -52,12 +52,12 @@ class PromoModel extends Equatable {
     );
   }
 
-  /// Human-readable discount: "10%" or "$5.00".
+  /// Human-readable discount: "10%" or "₹5.00".
   String get formattedDiscount {
     final formatted = discountValue % 1 == 0
         ? discountValue.toStringAsFixed(0)
         : discountValue.toStringAsFixed(2);
-    return discountType == 'PERCENTAGE' ? '$formatted%' : '\$$formatted';
+    return discountType == 'PERCENTAGE' ? '$formatted%' : '₹$formatted';
   }
 
   PromoModel copyWith({
@@ -84,11 +84,15 @@ class PromoModel extends Equatable {
       code: code ?? this.code,
       discountType: discountType ?? this.discountType,
       discountValue: discountValue ?? this.discountValue,
-      minOrderValue: clearMinOrderValue ? null : (minOrderValue ?? this.minOrderValue),
+      minOrderValue: clearMinOrderValue
+          ? null
+          : (minOrderValue ?? this.minOrderValue),
       maxDiscount: clearMaxDiscount ? null : (maxDiscount ?? this.maxDiscount),
       usageLimit: clearUsageLimit ? null : (usageLimit ?? this.usageLimit),
       usageCount: usageCount ?? this.usageCount,
-      perUserLimit: clearPerUserLimit ? null : (perUserLimit ?? this.perUserLimit),
+      perUserLimit: clearPerUserLimit
+          ? null
+          : (perUserLimit ?? this.perUserLimit),
       isActive: isActive ?? this.isActive,
       expiresAt: clearExpiresAt ? null : (expiresAt ?? this.expiresAt),
       createdAt: createdAt ?? this.createdAt,
@@ -97,17 +101,17 @@ class PromoModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        code,
-        discountType,
-        discountValue,
-        minOrderValue,
-        maxDiscount,
-        usageLimit,
-        usageCount,
-        perUserLimit,
-        isActive,
-        expiresAt,
-        createdAt,
-      ];
+    id,
+    code,
+    discountType,
+    discountValue,
+    minOrderValue,
+    maxDiscount,
+    usageLimit,
+    usageCount,
+    perUserLimit,
+    isActive,
+    expiresAt,
+    createdAt,
+  ];
 }

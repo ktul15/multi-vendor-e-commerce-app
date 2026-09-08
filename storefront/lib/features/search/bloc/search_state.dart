@@ -69,14 +69,14 @@ class SearchLoaded extends SearchState {
 
   @override
   List<Object?> get props => [
-        query,
-        products,
-        total,
-        currentPage,
-        totalPages,
-        isLoadingMore,
-        recentSearches,
-      ];
+    query,
+    products,
+    total,
+    currentPage,
+    totalPages,
+    isLoadingMore,
+    recentSearches,
+  ];
 }
 
 /// Search request failed.

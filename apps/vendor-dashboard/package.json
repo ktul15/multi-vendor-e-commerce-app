@@ -1,0 +1,45 @@
+{
+  "name": "@repo/vendor-dashboard",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 3001",
+    "build": "next build",
+    "bundle:check": "node ../../tooling/check-vendor-bundle-budget.mjs",
+    "start": "next start --port 3001",
+    "lint": "eslint .",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "test:performance": "pnpm run build && pnpm run bundle:check",
+    "test:critical": "vitest run test/api-behavior-msw.test.tsx test/proxy.test.ts test/vendor-auth-routes.test.ts test/vendor-product-routes.test.ts test/vendor-order-route.test.ts test/vendor-profile-route.test.ts test/connect-onboarding-routes.test.ts test/product-form.test.tsx test/product-media-manager.test.tsx test/product-inventory.test.tsx test/vendor-orders.test.tsx test/store-profile-form.test.tsx",
+    "clean": "rm -rf .next .turbo"
+  },
+  "dependencies": {
+    "@repo/api-client": "workspace:*",
+    "@repo/auth": "workspace:*",
+    "@repo/config": "workspace:*",
+    "@repo/observability": "workspace:*",
+    "@repo/query": "workspace:*",
+    "@repo/schemas": "workspace:*",
+    "@repo/ui": "workspace:*",
+    "@hookform/resolvers": "5.7.1",
+    "@tanstack/react-query": "5.101.4",
+    "@tanstack/react-table": "8.21.3",
+    "next": "16.3.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-hook-form": "7.84.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@repo/test-utils": "workspace:*",
+    "@testing-library/jest-dom": "7.0.0",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "jsdom": "30.0.1",
+    "msw": "2.15.0"
+  }
+}

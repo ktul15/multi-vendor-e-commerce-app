@@ -1,0 +1,33 @@
+{
+  "policyVersion": 1,
+  "baselineMigration": "20260818090000_add_idempotency_records",
+  "legacyMigrations": {
+    "20260301043431_init_user_model": "d48793053ff576c62d75bf36207841c11f6c3c61be6cda2dc862d4416e2a34a3",
+    "20260306022935_add_category_product_variant": "5a8fa4de108fb659ea478b07624aba6b332350962a98d92e0d547c6c15cc8b0e",
+    "20260307141821_add_rating_review_indexes": "b7d73cb1da0e3430b55353c69bbf16fc41cbbd046f7a653865a3474cc9d043e8",
+    "20260314061814_add_cart_address_order_payment_promo": "388b8aaa2cd098b672e9b23e0e020f266cf5c444c118470312ed01952d84128a",
+    "20260314070000_refactor_orders_decimal_currency_vendor_split": "f85d136755206e0f139087f64daa4b8c1207d0b63cee35de05b5b156bee493d0",
+    "20260317000000_add_order_number_to_orders": "e836047c6934e703d2eb1226d7cfaa815748fa2b4b6eec0390b059cfc1d350c8",
+    "20260329030230_add_review_wishlist_models": "824c03496c053add565f60f888f91169d1c83992f8a78e61c81a5ba93d7acc4e",
+    "20260329030535_review_rating_constraint_and_indexes": "248f2cf70e6f568f7279e2078d2152b906279fc488b38f0a15a979dbe9d4c899",
+    "20260331011346_add_vendor_profile": "554b985a45293cee8a22cadb29c48d5387621f49ad1eeae738df476f95acb628",
+    "20260331020000_vendor_profile_refinements": "49332e4741c54983d0452eca0f6f259aaeb756fb18a19e17590eaa31160af4dd",
+    "20260401024832_add_vendor_profile_public_ids": "94b5cac337c8d197211125461c0a42f67894fb5143ae36255d493130ad9c4b5e",
+    "20260402022702_add_vendor_order_tracking": "91b76abf411b073b11697c8d3093bd0a574a792da1cdba09ecbf34ea5eb5b23b",
+    "20260404105908_add_platform_settings": "cf0f3a31ba1756a72977d3e2792afae01414553de29147a6c5a678da015d5d90",
+    "20260405013250_add_banner_model": "4bc90f49bba3be5da1aa3127aa8bd2c705a338642a6a5b45ee7935a4916760b1",
+    "20260530000000_add_promo_deleted_at": "f30491de57977b7939ae4a853102eb7dc62c9781510a0f503f4fc28b50fb6d4d",
+    "20260724090000_make_platform_currency_inr": "bacccc512229caacf46642b6752d695e63970755673c57b4f8c5e7f4928573f6",
+    "20260804170000_add_normalized_store_name_unique_index": "1f63a80e0c3a8d2cdae21a8fa542443f8587930c9747ee90b24778ca6ecd3049",
+    "20260805090000_add_category_image_public_id": "ca621ae74c670c6799caf608d749dec7bcb6c7c89bb86f31f69b77f614fad75a",
+    "20260808050000_add_product_media": "a70e27e6bec0ceba2a5f8a7ab1b2fdeed502d1bd8728f5699cea2cc342210fc1",
+    "20260818090000_add_idempotency_records": "ff89c85c3cda55aaa8b38870c3c185747be6cea704f03747e0a8a2a475469480"
+  },
+  "migrations": {
+    "20260826090000_add_hybrid_payment_providers": {
+      "phase": "contract",
+      "changeTicket": "#139",
+      "compatibilityEvidence": "The migration renames provider-specific columns in place, preserving all Stripe identifiers and backfilling provider enums before enforcing required values. Backend, Flutter, dashboard, OpenAPI, and migration-safety tests move atomically with this sandbox-only release."
+    }
+  }
+}

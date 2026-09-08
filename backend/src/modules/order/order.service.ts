@@ -1,11 +1,11 @@
 import { randomBytes } from 'crypto';
 import { prisma } from '../../config/prisma';
-import { stripe } from '../../config/stripe';
 import { ApiError } from '../../utils/apiError';
 import {
   DiscountType,
   NotificationType,
   OrderStatus,
+  PaymentProvider,
   Prisma,
 } from '../../generated/prisma/client';
 import {
@@ -19,7 +19,7 @@ import {
 import { sendEmail, escapeHtml } from '../../utils/email';
 import { logger } from '../../utils/logger';
 import { NotificationService } from '../notification/notification.service';
-import { vendorPayoutService } from '../vendor-payout/vendor-payout.service';
+import { paymentService } from '../payment/payment.service';
 
 const notificationService = new NotificationService();
 
@@ -30,6 +30,13 @@ const ALLOWED_TRANSITIONS: Record<string, OrderStatus[]> = {
   PROCESSING: ['SHIPPED'],
   SHIPPED: ['DELIVERED'],
 };
+
+const withAllowedNextStatuses = <T extends { status: OrderStatus }>(
+  order: T
+) => ({
+  ...order,
+  allowedNextStatuses: ALLOWED_TRANSITIONS[order.status] ?? [],
+});
 
 /** Human-readable notification titles per status. */
 const STATUS_TITLES: Record<string, string> = {
@@ -57,6 +64,38 @@ const STATUS_TO_NOTIFICATION_TYPE: Record<string, NotificationType> = {
 
 const CANCELLABLE_STATUSES: OrderStatus[] = ['PENDING', 'CONFIRMED'];
 
+const paymentProviderForItems = (
+  items: ReadonlyArray<{
+    variant: {
+      product: {
+        vendorId: string;
+        vendor: {
+          vendorProfile: { paymentProvider: PaymentProvider } | null;
+        };
+      };
+    };
+  }>
+): PaymentProvider => {
+  const providers = new Set<PaymentProvider>();
+  for (const item of items) {
+    const profile = item.variant.product.vendor.vendorProfile;
+    if (!profile) {
+      throw ApiError.conflict(
+        `Vendor ${item.variant.product.vendorId} has no payment configuration`
+      );
+    }
+    providers.add(profile.paymentProvider);
+  }
+  if (providers.size > 1) {
+    throw ApiError.badRequest(
+      'A cart cannot mix Stripe and Razorpay vendors; place separate orders'
+    );
+  }
+  const provider = providers.values().next().value;
+  if (!provider) throw ApiError.badRequest('Unable to select payment provider');
+  return provider;
+};
+
 function generateOrderNumber(): string {
   const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   // 4 random bytes → 8 hex chars → uppercase (16^8 = ~4.3B combos/day, cryptographically random)
@@ -79,7 +118,16 @@ export class OrderService {
             variant: {
               include: {
                 product: {
-                  select: { vendorId: true, isActive: true, name: true },
+                  select: {
+                    vendorId: true,
+                    isActive: true,
+                    name: true,
+                    vendor: {
+                      select: {
+                        vendorProfile: { select: { paymentProvider: true } },
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -91,6 +139,7 @@ export class OrderService {
     if (!cart || cart.items.length === 0) {
       throw ApiError.badRequest('Your cart is empty');
     }
+    paymentProviderForItems(cart.items);
 
     // 2. Validate address belongs to user
     const address = await prisma.address.findFirst({
@@ -154,7 +203,16 @@ export class OrderService {
               variant: {
                 include: {
                   product: {
-                    select: { vendorId: true, isActive: true, name: true },
+                    select: {
+                      vendorId: true,
+                      isActive: true,
+                      name: true,
+                      vendor: {
+                        select: {
+                          vendorProfile: { select: { paymentProvider: true } },
+                        },
+                      },
+                    },
                   },
                 },
               },
@@ -166,6 +224,7 @@ export class OrderService {
       if (!freshCart || freshCart.items.length === 0) {
         throw ApiError.badRequest('Your cart is empty');
       }
+      const paymentProvider = paymentProviderForItems(freshCart.items);
 
       // 2. Validate each item
       for (const item of freshCart.items) {
@@ -269,6 +328,7 @@ export class OrderService {
           discount,
           tax,
           total,
+          paymentProvider,
           notes: notes ?? null,
         },
       });
@@ -476,98 +536,65 @@ export class OrderService {
   }
 
   async cancelOrder(userId: string, orderId: string, input: CancelOrderInput) {
-    // Two-phase approach: DB transaction first, then Stripe calls after commit.
-    // This prevents the scenario where Stripe refund succeeds but the DB
-    // transaction rolls back, leaving money refunded with no DB record.
+    // Two-phase approach: DB transaction first, then provider calls after commit.
+    // A failed provider call remains auditable through PaymentRefund and can be
+    // reconciled without rolling stock/order state back to an ambiguous state.
 
-    const { paymentIntentId, previousPaymentStatus } =
-      await prisma.$transaction(async (tx) => {
-        // 1. Fetch order inside the transaction to prevent TOCTOU race conditions
-        const order = await tx.order.findFirst({
-          where: { id: orderId, userId },
-          include: {
-            vendorOrders: { include: { items: true } },
-            payment: true,
-          },
-        });
-
-        if (!order) {
-          throw ApiError.notFound('Order not found');
-        }
-
-        // 2. Verify all vendor orders are in a cancellable state
-        const nonCancellable = order.vendorOrders.find(
-          (vo) => !CANCELLABLE_STATUSES.includes(vo.status)
-        );
-        if (nonCancellable) {
-          throw ApiError.badRequest(
-            `Order cannot be cancelled — vendor order ${nonCancellable.id} is already ${nonCancellable.status}`
-          );
-        }
-
-        // 3. Update all vendor orders to CANCELLED
-        await tx.vendorOrder.updateMany({
-          where: { orderId },
-          data: { status: 'CANCELLED' },
-        });
-
-        // 4. Restore stock for every item
-        for (const vo of order.vendorOrders) {
-          for (const item of vo.items) {
-            await tx.variant.update({
-              where: { id: item.variantId },
-              data: { stock: { increment: item.quantity } },
-            });
-          }
-        }
-
-        // 5. Store cancellation reason in dedicated field (preserves original notes)
-        if (input.reason) {
-          await tx.order.update({
-            where: { id: orderId },
-            data: { cancellationReason: input.reason },
-          });
-        }
-
-        // 6. Mark payment with transitional status for Stripe processing after commit
-        let intentId: string | null = null;
-        let prevStatus: string | null = null;
-
-        if (order.payment?.stripePaymentIntentId) {
-          intentId = order.payment.stripePaymentIntentId;
-          prevStatus = order.payment.status;
-
-          if (order.payment.status === 'SUCCEEDED') {
-            await tx.payment.update({
-              where: { orderId },
-              data: { status: 'REFUNDED' },
-            });
-          } else if (order.payment.status === 'PROCESSING') {
-            await tx.payment.update({
-              where: { orderId },
-              data: { status: 'CANCELLED' },
-            });
-          }
-        }
-
-        return { paymentIntentId: intentId, previousPaymentStatus: prevStatus };
+    const previousPaymentStatus = await prisma.$transaction(async (tx) => {
+      // 1. Fetch order inside the transaction to prevent TOCTOU race conditions
+      const order = await tx.order.findFirst({
+        where: { id: orderId, userId },
+        include: {
+          vendorOrders: { include: { items: true } },
+          payment: true,
+        },
       });
 
-    // Phase 2: Call Stripe after DB transaction has committed successfully.
-    // If Stripe fails, the DB already reflects the cancellation — a background
-    // job or manual intervention can retry the refund.
-    if (paymentIntentId) {
-      if (previousPaymentStatus === 'SUCCEEDED') {
-        await stripe.refunds.create({ payment_intent: paymentIntentId });
-        // Reverse any vendor earnings/transfers for this order
-        await vendorPayoutService
-          .reverseEarningsForOrder(orderId)
-          .catch((err) =>
-            logger.error('Failed to reverse vendor earnings:', err)
-          );
-      } else if (previousPaymentStatus === 'PROCESSING') {
-        await stripe.paymentIntents.cancel(paymentIntentId);
+      if (!order) {
+        throw ApiError.notFound('Order not found');
       }
+
+      // 2. Verify all vendor orders are in a cancellable state
+      const nonCancellable = order.vendorOrders.find(
+        (vo) => !CANCELLABLE_STATUSES.includes(vo.status)
+      );
+      if (nonCancellable) {
+        throw ApiError.badRequest(
+          `Order cannot be cancelled — vendor order ${nonCancellable.id} is already ${nonCancellable.status}`
+        );
+      }
+
+      // 3. Update all vendor orders to CANCELLED
+      await tx.vendorOrder.updateMany({
+        where: { orderId },
+        data: { status: 'CANCELLED' },
+      });
+
+      // 4. Restore stock for every item
+      for (const vo of order.vendorOrders) {
+        for (const item of vo.items) {
+          await tx.variant.update({
+            where: { id: item.variantId },
+            data: { stock: { increment: item.quantity } },
+          });
+        }
+      }
+
+      // 5. Store cancellation reason in dedicated field (preserves original notes)
+      if (input.reason) {
+        await tx.order.update({
+          where: { id: orderId },
+          data: { cancellationReason: input.reason },
+        });
+      }
+
+      return order.payment?.status ?? null;
+    });
+
+    if (previousPaymentStatus === 'SUCCEEDED') {
+      await paymentService.refundOrder(orderId, undefined, input.reason);
+    } else if (previousPaymentStatus === 'PROCESSING') {
+      await paymentService.cancelProcessingPayment(orderId);
     }
 
     // Return the updated order
@@ -655,12 +682,28 @@ export class OrderService {
   }
 
   async getVendorOrders(vendorId: string, query: GetVendorOrdersQueryInput) {
-    const { page, limit, status } = query;
+    const { page, limit, status, search } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.VendorOrderWhereInput = {
       vendorId,
       ...(status && { status }),
+      ...(search && {
+        OR: [
+          { order: { orderNumber: { contains: search, mode: 'insensitive' } } },
+          {
+            order: {
+              user: { name: { contains: search, mode: 'insensitive' } },
+            },
+          },
+          {
+            order: {
+              user: { email: { contains: search, mode: 'insensitive' } },
+            },
+          },
+          { trackingNumber: { contains: search, mode: 'insensitive' } },
+        ],
+      }),
     };
 
     const [total, vendorOrders] = await Promise.all([
@@ -675,21 +718,28 @@ export class OrderService {
             include: {
               variant: {
                 select: {
+                  id: true,
                   sku: true,
                   size: true,
                   color: true,
                   price: true,
-                  product: { select: { name: true, images: true } },
+                  product: { select: { id: true, name: true, images: true } },
                 },
               },
             },
           },
           order: {
             select: {
+              id: true,
               orderNumber: true,
               shippingAddress: true,
+              notes: true,
               createdAt: true,
-              user: { select: { name: true, email: true } },
+              updatedAt: true,
+              user: { select: { id: true, name: true, email: true } },
+              payment: {
+                select: { status: true, method: true, paidAt: true },
+              },
             },
           },
         },
@@ -697,7 +747,7 @@ export class OrderService {
     ]);
 
     return {
-      items: vendorOrders,
+      items: vendorOrders.map(withAllowedNextStatuses),
       meta: {
         total,
         page,
@@ -705,6 +755,51 @@ export class OrderService {
         totalPages: Math.max(1, Math.ceil(total / limit)),
       },
     };
+  }
+
+  async getVendorOrderById(vendorId: string, vendorOrderId: string) {
+    const vendorOrder = await prisma.vendorOrder.findUnique({
+      where: { id: vendorOrderId },
+      include: {
+        items: {
+          include: {
+            variant: {
+              select: {
+                id: true,
+                sku: true,
+                size: true,
+                color: true,
+                price: true,
+                product: {
+                  select: { id: true, name: true, images: true },
+                },
+              },
+            },
+          },
+        },
+        order: {
+          select: {
+            id: true,
+            orderNumber: true,
+            shippingAddress: true,
+            notes: true,
+            createdAt: true,
+            updatedAt: true,
+            user: { select: { id: true, name: true, email: true } },
+            payment: {
+              select: { status: true, method: true, paidAt: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!vendorOrder) throw ApiError.notFound('Vendor order not found');
+    if (vendorOrder.vendorId !== vendorId) {
+      throw ApiError.forbidden('You can only view your own vendor orders');
+    }
+
+    return withAllowedNextStatuses(vendorOrder);
   }
 
   async updateVendorOrderStatusWithTracking(
@@ -741,23 +836,19 @@ export class OrderService {
       );
     }
 
-    const updated = await prisma.vendorOrder.update({
-      where: { id: vendorOrderId },
+    const updateResult = await prisma.vendorOrder.updateMany({
+      where: { id: vendorOrderId, status: vendorOrder.status },
       data: {
         status: newStatus as OrderStatus,
         ...(trackingNumber !== undefined && { trackingNumber }),
         ...(trackingCarrier !== undefined && { trackingCarrier }),
       },
-      include: {
-        items: {
-          include: {
-            variant: {
-              select: { sku: true, size: true, color: true, price: true },
-            },
-          },
-        },
-      },
     });
+    if (updateResult.count === 0) {
+      throw ApiError.conflict('Order status changed. Refresh and try again');
+    }
+
+    const updated = await this.getVendorOrderById(vendorId, vendorOrderId);
 
     // Send push notification + email (fire-and-forget — never block the response)
     const notificationType = STATUS_TO_NOTIFICATION_TYPE[newStatus];

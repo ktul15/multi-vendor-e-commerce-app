@@ -177,12 +177,12 @@ router.get('/:id', validateParams(promoIdParamSchema), promoController.getById);
  *               code: { type: string }
  *               discountType: { type: string, enum: [PERCENTAGE, FIXED] }
  *               discountValue: { type: number }
- *               minOrderValue: { type: number }
- *               maxDiscount: { type: number }
- *               usageLimit: { type: integer }
- *               perUserLimit: { type: integer }
+ *               minOrderValue: { type: number, nullable: true }
+ *               maxDiscount: { type: number, nullable: true }
+ *               usageLimit: { type: integer, nullable: true }
+ *               perUserLimit: { type: integer, nullable: true }
  *               isActive: { type: boolean }
- *               expiresAt: { type: string, format: date-time }
+ *               expiresAt: { type: string, format: date-time, nullable: true }
  *     responses:
  *       200:
  *         description: Promo code updated
@@ -205,7 +205,8 @@ router.put(
  * /promo-codes/{id}:
  *   delete:
  *     tags: [Promo Codes]
- *     summary: Delete a promo code (Admin only)
+ *     summary: Archive a promo code (Admin only)
+ *     description: Soft-deactivates the promo by setting isActive=false and deletedAt. Order and usage history are retained; this is not a permanent deletion.
  *     parameters:
  *       - in: path
  *         name: id
@@ -213,7 +214,7 @@ router.put(
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Promo code deleted
+ *         description: Promo code archived and returned with its inactive/deleted state
  *       401:
  *         description: Unauthorized
  *       404:

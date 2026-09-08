@@ -23,7 +23,6 @@ import '../../features/promos/bloc/promo_cubit.dart';
 import '../../features/promos/view/promo_form_page.dart';
 import '../../features/promos/view/promo_list_page.dart';
 import '../../features/users/bloc/admin_user_management_cubit.dart';
-import '../../features/users/models/admin_user_model.dart';
 import '../../features/users/view/user_detail_page.dart';
 import '../../features/users/view/user_management_page.dart';
 import '../../features/products/bloc/product_moderation_cubit.dart';
@@ -180,13 +179,9 @@ GoRouter buildAppRouter(AuthCubit authCubit) {
               GoRoute(
                 name: AppRoutes.userDetailName,
                 path: AppRoutes.userDetail,
-                redirect: (context, state) =>
-                    state.extra is! AdminUserModel ? AppRoutes.users : null,
                 builder: (context, state) => BlocProvider.value(
                   value: sl<AdminUserManagementCubit>(),
-                  child: UserDetailPage(
-                    userId: (state.extra! as AdminUserModel).id,
-                  ),
+                  child: UserDetailPage(userId: state.pathParameters['id']!),
                 ),
               ),
             ],

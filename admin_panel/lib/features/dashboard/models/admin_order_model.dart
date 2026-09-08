@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'dashboard_json_parsers.dart';
 
 class AdminOrderModel extends Equatable {
   final String id;
@@ -27,14 +28,14 @@ class AdminOrderModel extends Equatable {
     // screen is built.
     final firstStatus = vendorOrders.isNotEmpty
         ? ((vendorOrders.first as Map<String, dynamic>)['status'] as String? ??
-            'PENDING')
+              'PENDING')
         : 'PENDING';
     final user = json['user'] as Map<String, dynamic>? ?? {};
 
     return AdminOrderModel(
       id: json['id'] as String,
       orderNumber: json['orderNumber'] as String,
-      total: (json['total'] as num?)?.toDouble() ?? 0.0,
+      total: readDashboardDouble(json['total']),
       createdAt: DateTime.parse(json['createdAt'] as String),
       customerName: user['name'] as String? ?? 'Unknown',
       status: firstStatus,
@@ -42,6 +43,12 @@ class AdminOrderModel extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [id, orderNumber, total, createdAt, customerName, status];
+  List<Object?> get props => [
+    id,
+    orderNumber,
+    total,
+    createdAt,
+    customerName,
+    status,
+  ];
 }

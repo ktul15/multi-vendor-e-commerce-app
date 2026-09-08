@@ -3,6 +3,11 @@ import { authenticate } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
 import { registerSchema, loginSchema, refreshSchema } from './auth.schema';
 import * as authController from './auth.controller';
+import {
+  authDashboardAggregateLimiter,
+  authDashboardClientLimiter,
+  authLimiter,
+} from '../../middleware/rateLimiter';
 
 const router = Router();
 
@@ -14,6 +19,14 @@ const router = Router();
  *     summary: Register a new user
  *     description: Creates a customer or vendor account. `storeName` is required when `role` is `VENDOR`.
  *     security: []
+ *     parameters:
+ *       - in: header
+ *         name: X-Auth-Mode
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [cookie]
+ *         description: Set to `cookie` to return tokens only as HttpOnly cookies.
  *     requestBody:
  *       required: true
  *       content:
@@ -67,21 +80,36 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/ApiError'
  *       409:
- *         description: Email already in use
+ *         description: Email or normalized vendor store name already in use
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ApiError'
  */
-router.post('/register', validate(registerSchema), authController.register);
+router.post(
+  '/register',
+  authDashboardClientLimiter,
+  authDashboardAggregateLimiter,
+  authLimiter,
+  validate(registerSchema),
+  authController.register
+);
 
 /**
  * @openapi
  * /auth/login:
  *   post:
  *     tags: [Auth]
- *     summary: Login and obtain access + refresh tokens
+ *     summary: Login with bearer tokens or secure web cookies
  *     security: []
+ *     parameters:
+ *       - in: header
+ *         name: X-Auth-Mode
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [cookie]
+ *         description: Set to `cookie` for a browser session. Tokens are then returned only as HttpOnly cookies.
  *     requestBody:
  *       required: true
  *       content:
@@ -99,19 +127,20 @@ router.post('/register', validate(registerSchema), authController.register);
  *                 example: secret123
  *     responses:
  *       200:
- *         description: Login successful — returns access token (15 min) and refresh token (7 days)
+ *         description: Login successful. Bearer clients receive tokens in data; cookie clients receive Set-Cookie headers and user data only.
  *         content:
  *           application/json:
  *             example:
  *               success: true
  *               message: Login successful
  *               data:
- *                 accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
- *                 refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
  *                 user:
- *                   userId: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+ *                   id: "d290f1ee-6c54-4b01-90e6-d701748f0851"
  *                   email: "jane@example.com"
  *                   role: CUSTOMER
+ *                 tokens:
+ *                   accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                   refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
  *       400:
  *         description: Validation error
  *         content:
@@ -125,30 +154,43 @@ router.post('/register', validate(registerSchema), authController.register);
  *             schema:
  *               $ref: '#/components/schemas/ApiError'
  */
-router.post('/login', validate(loginSchema), authController.login);
+router.post(
+  '/login',
+  authDashboardClientLimiter,
+  authDashboardAggregateLimiter,
+  authLimiter,
+  validate(loginSchema),
+  authController.login
+);
 
 /**
  * @openapi
  * /auth/refresh:
  *   post:
  *     tags: [Auth]
- *     summary: Refresh access token
- *     description: Exchange a valid refresh token for a new access token. The refresh token is checked against the Redis blacklist.
+ *     summary: Rotate the access and refresh tokens
+ *     description: Cookie clients send the HttpOnly refresh cookie. Bearer clients send refreshToken in JSON. Consumption and encrypted grace-result publication are one atomic operation. Overlapping requests receive the same replacement pair only when they present the same browser CSRF secret or opaque X-Refresh-Rotation-Key idempotency proof.
  *     security: []
+ *     parameters:
+ *       - in: header
+ *         name: X-Refresh-Rotation-Key
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Opaque client-session proof that binds bounded idempotent replay. Browser cookie clients use their CSRF secret automatically.
  *     requestBody:
- *       required: true
+ *       required: false
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required: [refreshToken]
  *             properties:
  *               refreshToken:
  *                 type: string
  *                 example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
  *     responses:
  *       200:
- *         description: New access token issued
+ *         description: Rotated token pair. Bearer clients receive tokens in data; cookie clients receive updated Set-Cookie headers and null data.
  *         content:
  *           application/json:
  *             example:
@@ -156,6 +198,7 @@ router.post('/login', validate(loginSchema), authController.login);
  *               message: Token refreshed
  *               data:
  *                 accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                 refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
  *       400:
  *         description: Missing or invalid refresh token
  *         content:
@@ -176,8 +219,8 @@ router.post('/refresh', validate(refreshSchema), authController.refresh);
  * /auth/logout:
  *   post:
  *     tags: [Auth]
- *     summary: Logout and blacklist refresh token
- *     description: Pass the refresh token in the request body. It is added to the Redis blacklist for its remaining TTL so it cannot be reused.
+ *     summary: Logout, revoke the refresh token, and clear web cookies
+ *     description: Cookie clients send the HttpOnly refresh cookie. Bearer clients may pass refreshToken in JSON. Both auth cookies are always cleared.
  *     security: []
  *     requestBody:
  *       content:
@@ -206,7 +249,7 @@ router.post('/logout', authController.logout);
  *   get:
  *     tags: [Auth]
  *     summary: Get current user profile
- *     description: Returns the profile of the authenticated user. Requires a valid Bearer access token.
+ *     description: Returns the profile of the authenticated user. Accepts a Bearer access token or the HttpOnly access cookie.
  *     responses:
  *       200:
  *         description: User profile
