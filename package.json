@@ -28,7 +28,7 @@
     "@playwright/test": "1.62.1",
     "@types/node": "24.13.3",
     "eslint": "9.39.5",
-    "eslint-config-next": "16.3.1",
+    "eslint-config-next": "16.3.3",
     "openapi-typescript": "7.13.0",
     "pnpm": "11.18.0",
     "prettier": "3.8.1",

@@ -42,7 +42,7 @@ COPY package*.json ./
 
 # Install production dependencies only. Schema deployment is performed by the
 # separately authorized migration job, not by application containers.
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --omit=optional
 
 # Copy compiled output and Prisma artifacts from builder
 COPY --from=builder /app/dist ./dist

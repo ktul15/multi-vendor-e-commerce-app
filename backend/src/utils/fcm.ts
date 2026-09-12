@@ -1,4 +1,5 @@
-import admin from 'firebase-admin';
+import { applicationDefault, getApps, initializeApp } from 'firebase-admin/app';
+import { getMessaging } from 'firebase-admin/messaging';
 import { prisma } from '../config/prisma';
 import { env } from '../config/env';
 import { logger } from './logger';
@@ -15,8 +16,8 @@ export function initializeFirebase(): void {
     );
     return;
   }
-  admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
+  initializeApp({
+    credential: applicationDefault(),
   });
   logger.info('Firebase Admin SDK initialized');
 }
@@ -32,10 +33,10 @@ async function sendPushNotification(
   data?: Record<string, string>
 ): Promise<boolean> {
   // If Firebase wasn't initialised (no credentials), skip silently.
-  if (admin.apps.length === 0) return false;
+  if (getApps().length === 0) return false;
 
   try {
-    await admin.messaging().send({
+    await getMessaging().send({
       token: fcmToken,
       notification: { title, body },
       data: data ?? {},
