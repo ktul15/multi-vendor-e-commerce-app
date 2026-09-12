@@ -17,6 +17,8 @@ The admin panel keeps business rules and UI-state coverage below Playwright so f
 | Orders and finance totals, tables, filters, formatting, and partial/empty/error states | `admin-orders.test.tsx`, `admin-finance.test.tsx`, `dashboard-overview.test.tsx`                  |
 | Same-origin browser API behavior isolated with MSW                                     | `api-behavior-msw.test.tsx`                                                                       |
 
+The seeded Playwright suite adds cross-layer evidence. `admin-workflows.spec.ts` covers role denial and high-risk mutations against the real backend, `admin-accessibility.spec.ts` covers critical WCAG and keyboard behavior, and `admin-parity-layout.spec.ts` checks every primary route plus representative details, editors, and empty states at 1440x900 and 768x1024.
+
 ## Network isolation
 
 `test/msw.ts` owns the shared MSW server, and the suite fails on any unhandled request. Component tests covering browser API behavior register per-test handlers with `server.use(...)`, inspect the outgoing request, and return explicit success or failure responses. Route-handler tests may replace `fetch` directly because their subject is the BFF-to-backend transport rather than browser behavior.
