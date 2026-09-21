@@ -1,134 +1,100 @@
-# Repository Guidelines
+# AGENTS.md
 
-## Project Structure & Module Organization
+## Repository
 
-This repository contains four applications:
+Monorepo applications:
 
-- `backend/`: Express 5 + TypeScript REST API with Prisma, PostgreSQL, Redis, Stripe, Firebase, and Zod.
-- `storefront/`: Flutter customer shopping app.
-- `vendor_dashboard/`: Flutter vendor management app.
+- `backend/`: Express 5 + TypeScript, Prisma/PostgreSQL, Redis, Stripe, Firebase, and Zod.
+- `storefront/`: Flutter customer app.
+- `vendor_dashboard/`: Flutter vendor app.
 - `admin_panel/`: Flutter admin app.
+- `apps/vendor-dashboard/`: Next.js vendor dashboard.
+- `apps/admin-panel/`: Next.js admin panel.
 
-Backend features live under `backend/src/modules/<feature>/` with `<feature>.routes.ts`, `<feature>.controller.ts`, `<feature>.service.ts`, and `<feature>.validation.ts`. Prisma files are in `backend/prisma/`. Flutter source lives in each app's `lib/`, tests in `test/`, and declared assets in `assets/`.
+Backend features use `backend/src/modules/<feature>/` with routes, controller, service, and validation files. Keep controllers thin, business logic in services, and request validation in Zod.
 
-## Build, Test, and Development Commands
+Flutter apps use BLoC/Cubit. Source belongs in `lib/`, tests in `test/`, and filenames use `snake_case.dart`.
 
-Run backend commands from `backend/`:
+## Verification
 
-- `npm run dev`: start the API with hot reload.
-- `npm run build`: compile TypeScript to `dist/`.
-- `npm test`: run Jest tests.
-- `npm run test:coverage`: run Jest with coverage.
-- `npm run lint` / `npm run format:check`: check ESLint and Prettier.
-- `npm run db:migrate`, `npm run db:seed`, `npm run prisma:generate`: manage Prisma state.
+Run commands from the relevant application directory.
 
-Run Flutter commands from the relevant app directory:
-
-- `flutter pub get`: install Dart dependencies.
-- `flutter run --dart-define=API_BASE_URL=http://localhost:5000/api/v1`: run against the local backend.
-- `flutter test`: run unit and widget tests.
-- `flutter analyze`: run Dart static analysis.
-- `dart format .`: format Dart files.
-
-## Coding Style & Naming Conventions
-
-Backend code uses TypeScript, ESLint, and Prettier. Keep controllers thin, put business logic in services, and validate request shapes with Zod in `*.validation.ts`. Use names that match existing modules, such as `product.service.ts`.
-
-Flutter code uses `flutter_lints` and BLoC/Cubit patterns. Prefer `snake_case.dart` filenames, `PascalCase` classes, and feature folders such as `features/cart/bloc/` or `features/auth/view/`.
-
-## Testing Guidelines
-
-Backend tests use Jest, Supertest, and `ts-jest`. Place integration tests in `backend/__tests__/integration/`, unit tests in `backend/__tests__/unit/`, or module tests under `backend/src/__tests__/`. Use `*.test.ts`.
-
-Flutter tests use `flutter_test`, with `bloc_test` and `mocktail` where needed. Keep tests under each app's `test/` tree and name files `*_test.dart`.
-
-## Commit & Pull Request Guidelines
-
-Git history uses conventional commit style, for example `feat(storefront): add app icon` and `fix(server): detect DB/Redis down at startup`. Keep commits scoped and imperative.
-
-Pull requests should include a clear summary, linked issue when applicable, test results, and screenshots or screen recordings for UI changes. Note any required environment, migration, or seed-data changes.
-
-### Required Git Flow for Every Issue
-
-The branch hierarchy is `feature/*` → `dev` → `main`.
-
-1. Always create a new feature branch from `dev`, never from `main`.
-2. Use the branch name `feature/<issue-number>-<short-description>`, for example `feature/21-product-filters`.
-3. Never commit directly to `dev` or `main`.
-4. Use Conventional Commits: `feat(scope): description`, `fix(scope): description`, `docs(scope): description`, and so on.
-5. Include `Closes #<issue-number>` in the commit body so GitHub closes the issue when the commit reaches the default branch.
-6. When implementation and verification are complete, merge the feature branch into `dev` using a non-fast-forward merge.
-7. Push `dev`, then close the GitHub issue with a short comment naming the feature branch and `dev` as the merge target.
-8. Update `main` only by merging `dev`; never commit to `main` directly.
-
-Starting an issue:
+Backend:
 
 ```bash
-git checkout dev
-git pull origin dev
-git checkout -b feature/<issue-number>-<short-description>
+npm run format:check
+npm run lint
+npm run build
+npm test
 ```
 
-Finishing an issue:
+Flutter:
 
 ```bash
-git checkout dev
-git merge --no-ff feature/<issue-number>-<short-description>
-git push origin dev
-gh issue close <issue-number> --comment "Resolved in feature/<issue-number>-<short-description>, merged into dev."
+dart format .
+flutter analyze
+flutter test
 ```
 
-Do not merge, push, or close an issue until its acceptance criteria are satisfied and its required tests pass.
+Run the smallest relevant checks during development and all affected checks before completion.
 
-### Required GitHub Project Workflow
+## Safety and Scope
 
-Every issue must be tracked in GitHub Project #2 (`multi-vendor-e-commerce-app`). If an issue is not yet present, add it before changing its status.
+- Do not commit secrets or `.env` files.
+- Preserve unrelated user changes.
+- Keep unrelated files out of reviews, staging, commits, and merges.
+- Do not merge, push, or close an issue until its acceptance criteria and required tests pass.
 
-- When starting an issue, move its project card to **In Progress**.
-- After merging into `dev` and closing the issue, move its project card to **Done**.
+## Required Issue Workflow
 
-Project reference values:
+Branch hierarchy: `feature/*` → `dev` → `main`.
 
-- Owner: `ktul15`
-- Project number: `2`
-- Project node ID: `PVT_kwHOAcao0M4BQZKp`
-- Status field ID: `PVTSSF_lAHOAcao0M4BQZKpzg-hsng`
-- `In Progress`: `47fc9ee4`
-- `Done`: `98236657`
-- `Ready`: `61e4505c`
-- `Backlog`: `f75ad846`
+For every issue:
 
-Locate and update an item with:
+1. Start from updated `dev`.
+2. Create `feature/<issue-number>-<short-description>`.
+3. Add the issue to GitHub Project #2 if absent and move it to **In Progress** using the project-status script below.
+4. Implement and verify the acceptance criteria.
+5. Complete the pre-commit review below.
+6. Commit using Conventional Commits and include `Closes #<issue-number>` in the body.
+7. Merge into `dev` with `--no-ff`, then push `dev`.
+8. Close the issue and move its project card to **Done** using the project-status script below.
+9. Update `main` only by merging `dev`.
 
-```bash
-gh project item-list 2 --owner ktul15 --format json
-gh project item-edit --project-id PVT_kwHOAcao0M4BQZKp \
-  --id <item-id> \
-  --field-id PVTSSF_lAHOAcao0M4BQZKpzg-hsng \
-  --single-select-option-id <status-option-id>
-```
+Never commit directly to `dev` or `main`.
 
-### Mandatory Review Before Committing
+### Pre-commit Review
 
 Before every issue commit:
 
-1. Run the `senior-code-reviewer` agent against every changed file intended for the issue commit.
-2. List every issue and suggestion it reports, with a short description of each.
-3. Ask the user which findings to fix before proceeding.
-4. Do not commit until the user has answered and the selected findings have been addressed.
+1. Stage only issue-related files.
+2. Run `senior-code-reviewer` once against `git diff --cached`.
+3. The reviewer must report only actionable findings, ordered by severity, with a short description and `file:line`. It must omit praise and general summaries.
+4. If findings exist, list them once and ask the user which to fix.
+5. If there are no findings, state that briefly and continue.
+6. Rerun the review only if the staged diff changes afterward.
 
-Keep unrelated user changes out of the review, staging area, commit, and merge.
+Never review, stage, commit, or merge unrelated user changes.
 
-### Mandatory Completion Summary
+## GitHub Project Status
 
-After merging the feature into `dev`, pushing `dev`, closing the GitHub issue, and moving its project card to **Done**, provide a written summary containing:
+For issue work:
 
-- **Why**: the business or product reason for the work.
-- **What**: the implemented behavior, endpoints, and important decisions.
-- **How**: the technical approach and non-obvious design choices.
-- **Modified files**: every created or changed file, with a one-line explanation.
-- **Verification**: commands/tests run and their results.
+- Before implementation, run `scripts/set-issue-project-status.sh <issue> in-progress`.
+- After merging and closing the issue, run `scripts/set-issue-project-status.sh <issue> done`.
 
-## Security & Configuration Tips
+Obtain the appropriate approval before external GitHub writes. Keep branch creation, merging, pushing, issue closing, and project updates as explicit steps; do not combine them into an unreviewed script.
 
-Do not commit secrets. Start from `backend/.env.example` and keep local values in `backend/.env`. Backend development expects PostgreSQL, Redis, and values such as `DATABASE_URL`, `TEST_DATABASE_URL`, `JWT_ACCESS_SECRET`, and `JWT_REFRESH_SECRET`.
+### Completion Summary
+
+After merging into `dev`, pushing, closing the issue, and moving its project card to Done, provide a summary of at most 300 words containing:
+
+- Why
+- What
+- How
+- Modified files, grouping related files where appropriate
+- Verification commands and results
+
+Do not repeat branch, commit, issue, or test information across sections.
+
+If listing every file is important, keep the list but make each explanation one short sentence.
