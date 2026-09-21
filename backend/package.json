@@ -19,6 +19,7 @@
     "db:seed": "npm run db:e2e:seed",
     "db:e2e:seed": "tsx prisma/seed_admin_qa.ts seed",
     "db:e2e:cleanup": "tsx prisma/seed_admin_qa.ts cleanup",
+    "db:staging:bootstrap-admin": "node dist/scripts/bootstrap-staging-admin.js",
     "cache:e2e:cleanup": "tsx prisma/cleanup_web_e2e_redis.ts",
     "db:studio": "npx prisma studio",
     "prisma:generate": "npx prisma generate",
