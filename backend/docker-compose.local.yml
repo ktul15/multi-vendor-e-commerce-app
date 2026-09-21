@@ -1,0 +1,5 @@
+# Apply checked-in migrations to the disposable local Compose database.
+# Combine with docker-compose.yml; do not use this override for staging or production.
+services:
+  migrate:
+    entrypoint: ['npx', 'prisma', 'migrate', 'deploy']
