@@ -146,5 +146,16 @@ Record detection time, environment, release and deployment IDs, affected origins
   `659d4cff70bd0255cb1e2d6301e7604b8edee737`; the canonical `/api/health`
   endpoint returned `200`, `environment=production`, and `status=healthy`
   immediately after cutover.
+- GitHub-hosted deployment smoke verification initially could not start because
+  a GitHub billing restriction locked Actions execution. After the restriction
+  cleared, both environments passed on `2026-09-21`: [staging run
+  35565688888](https://github.com/ktul15/multi-vendor-e-commerce-app/actions/runs/35565688888)
+  verified release `2316daf65dc799fd43eba5bfd832c95f6b4216aa`, and
+  [production run
+  35565687413](https://github.com/ktul15/multi-vendor-e-commerce-app/actions/runs/35565687413)
+  verified release `4c2d3119100c6cc59d8a5c2ea82cb8b6a1799e4a`.
 
-Issue #121 remains open until both environment rows have real provider deployment links, the smoke workflow passes, alerts are active, rollback is rehearsed, and the recorded origins match backend CORS and Stripe return/refresh configuration.
+Issue #121 is complete. Both environments have recorded provider deployments,
+hosted smoke verification passes, alerts are active, rollback was rehearsed,
+and the configured origins passed backend identity, readiness, credentialed
+CORS, and dashboard release checks.
