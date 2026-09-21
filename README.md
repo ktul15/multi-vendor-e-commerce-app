@@ -127,8 +127,8 @@ npm run dev            # hot reload with ts-node-dev
 npm test               # all tests (requires TEST_DATABASE_URL)
 npm run test:coverage  # with coverage report
 
-# Docker
-docker-compose up      # spins up api + postgres + redis
+# Local Docker stack (PostgreSQL, Redis, migrations, and API)
+docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 ```
 
 Production containers never apply schema changes during startup. Use the protected, audited [database migration rollout](docs/operations/database-migration-rollout.md) for staging and production changes.
