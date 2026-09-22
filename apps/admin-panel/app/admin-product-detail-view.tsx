@@ -1,5 +1,5 @@
 import { Badge, Card, CardContent, CardHeader, CardTitle, EmptyState, ErrorState } from "@repo/ui";
-import Link from "next/link";
+import { AdminNoPrefetchLink as Link } from "./admin-no-prefetch-link";
 import type { ReactNode } from "react";
 import type { AdminProductDetail } from "../src/lib/product-data";
 import { actionsForProduct } from "../src/lib/product-moderation";

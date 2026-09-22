@@ -11,7 +11,7 @@ import {
   Input,
   Select,
 } from "@repo/ui";
-import Link from "next/link";
+import { AdminNoPrefetchLink as Link } from "./admin-no-prefetch-link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { AdminPromo, AdminPromos } from "../src/lib/promo-data";

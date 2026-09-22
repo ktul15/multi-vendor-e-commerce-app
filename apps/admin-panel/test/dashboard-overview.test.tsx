@@ -7,7 +7,11 @@ import type { AdminDashboardData } from "../src/lib/dashboard-data";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("next/link", () => ({
-  default: ({ children, ...props }: ComponentProps<"a">) => <a {...props}>{children}</a>,
+  default: ({ children, prefetch, ...props }: ComponentProps<"a"> & { prefetch?: boolean }) => (
+    <a data-prefetch={String(prefetch)} {...props}>
+      {children}
+    </a>
+  ),
 }));
 
 const range = {
@@ -87,6 +91,9 @@ describe("admin dashboard overview", () => {
     expect(within(table).getByText("ORD-1001")).toBeVisible();
     expect(within(table).getByText("Asha Market")).toBeVisible();
     expect(screen.getByRole("link", { name: "30 days" })).toHaveAttribute("aria-current", "page");
+    for (const link of screen.getAllByRole("link")) {
+      expect(link).toHaveAttribute("data-prefetch", "false");
+    }
   });
 
   it("renders empty states for successful responses without activity", () => {

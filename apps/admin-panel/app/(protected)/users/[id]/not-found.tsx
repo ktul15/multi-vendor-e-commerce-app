@@ -1,5 +1,5 @@
 import { EmptyState } from "@repo/ui";
-import Link from "next/link";
+import { AdminNoPrefetchLink as Link } from "../../../admin-no-prefetch-link";
 
 export default function UserNotFound() {
   return (

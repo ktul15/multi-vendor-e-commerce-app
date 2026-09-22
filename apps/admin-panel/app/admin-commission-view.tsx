@@ -1,5 +1,5 @@
 import { Badge, Card, CardContent, CardHeader, CardTitle, ErrorState } from "@repo/ui";
-import Link from "next/link";
+import { AdminNoPrefetchLink as Link } from "./admin-no-prefetch-link";
 import type { CommissionSetting } from "../src/lib/commission-data";
 import { CommissionRateAction } from "./commission-rate-action";
 

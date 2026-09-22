@@ -8,7 +8,7 @@ import {
   ErrorState,
   Select,
 } from "@repo/ui";
-import Link from "next/link";
+import { AdminNoPrefetchLink as Link } from "./admin-no-prefetch-link";
 import type { AdminFinanceData, AdminFinanceReport } from "../src/lib/finance-data";
 import { financeHref, financeRanges } from "../src/lib/finance-state";
 import type { FinanceState } from "../src/lib/finance-state";

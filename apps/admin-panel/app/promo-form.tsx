@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, Card, CardContent, ErrorState, Input, Select } from "@repo/ui";
-import Link from "next/link";
+import { AdminNoPrefetchLink as Link } from "./admin-no-prefetch-link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { FormEventHandler } from "react";

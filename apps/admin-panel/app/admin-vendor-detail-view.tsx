@@ -1,5 +1,5 @@
 import { Badge, Card, CardContent, CardHeader, CardTitle, ErrorState } from "@repo/ui";
-import Link from "next/link";
+import { AdminNoPrefetchLink as Link } from "./admin-no-prefetch-link";
 import type { ReactNode } from "react";
 import type { CommissionSetting } from "../src/lib/commission-data";
 import type { AdminVendorDetail } from "../src/lib/vendor-data";

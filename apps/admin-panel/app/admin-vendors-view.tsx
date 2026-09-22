@@ -1,5 +1,5 @@
 import { Badge, Button, Card, CardContent, EmptyState, ErrorState, Input, Select } from "@repo/ui";
-import Link from "next/link";
+import { AdminNoPrefetchLink as Link } from "./admin-no-prefetch-link";
 import type { AdminVendor, AdminVendors } from "../src/lib/vendor-data";
 import { actionsForVendor } from "../src/lib/vendor-lifecycle";
 import { vendorListHref, vendorStatuses } from "../src/lib/vendor-list-state";

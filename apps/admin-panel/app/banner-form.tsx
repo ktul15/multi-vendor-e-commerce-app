@@ -2,7 +2,7 @@
 
 import { Button, Card, CardContent, ErrorState, Input } from "@repo/ui";
 import Image from "next/image";
-import Link from "next/link";
+import { AdminNoPrefetchLink as Link } from "./admin-no-prefetch-link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
