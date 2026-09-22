@@ -1,26 +1,36 @@
 # Internal Dashboard Migration Acceptance Report
 
-Status: **No-go - staging deployment and manual sign-off pending**
+Status: **No-go - staging admin rate-limit defect and manual sign-off pending**
 
 Issue: #123
 
-Acceptance date: 2026-09-12
+Acceptance date: 2026-09-22
 
-Candidate source: `feature/123-dashboard-acceptance-testing`, based on `dev` commit `a3a60c3096cc3e6bd2e95eebd2676ff3cdf17ccc`
+Candidate source: `feature/123-dashboard-acceptance-testing` at `939054740a4ae7adef94aec69aa588206c03bd11`
 
 ## Decision
 
-The final local candidate passes dashboard, backend, seeded browser automation, accessibility, performance, build, API-contract, source-map, and production dependency checks. Acceptance is not complete because the canonical staging dashboards still serve commit `3a8499fbea14dcea809f4f238f307b1914b78624`, while the staging backend serves `a3a60c3096cc3e6bd2e95eebd2676ff3cdf17ccc`. Vercel's `git-dev` previews serve `a3a60c3`, but those preview origins correctly fail the backend's exact CORS allowlist. The patched candidate must be committed and deployed as one immutable release on the canonical staging origins before staging smoke and manual exploratory sign-off can occur.
+The local automated gates pass, and the canonical staging backend, admin dashboard, and vendor dashboard now report the same candidate SHA. Controlled customer, administrator, and vendor accounts were created successfully, and deployed-browser checks passed for vendor registration plus approved, rejected, and suspended access gates. Acceptance remains a no-go because ordinary admin navigation exhausted the per-session global limit: Redis recorded 113 requests against the 100-request/15-minute limit, backend profile checks returned HTTP 429, and `/vendors` rendered the dashboard error boundary. The remaining manual checklist and cross-functional sign-offs must wait for that defect to be resolved and the corrected candidate to be redeployed.
 
 ## Acceptance criteria
 
-| Criterion                                                                  | Status         | Evidence or remaining action                                                                                                                                                                                           |
-| -------------------------------------------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Vendor and admin parity checklists complete                                | Pass           | Admin and vendor technical go recommendations were approved by @ktul15 on 2026-09-12; neither checklist has a blocked row.                                                                                             |
-| Seeded E2E and manual exploratory testing pass                             | Pending manual | Guarded E2E passes 16 vendor and 14 admin tests with isolated PostgreSQL/Redis reset and cleanup. In-app browser discovery returned no available browser session, so manual testing was not claimed.                   |
-| Authentication, uploads, Stripe redirects, and critical mutations verified | Pass locally   | Unit/component/backend suites and seeded Playwright cover role denial, session/logout, upload security, Stripe status/onboarding redirect, products, orders, moderation, commissions, categories, promos, and banners. |
-| Performance, accessibility, and security blockers closed                   | Pass locally   | Automated WCAG suites pass; bundle budgets pass; dashboard production audit is clean; the backend Node 24.15 production image reports zero vulnerabilities.                                                            |
-| Signed release candidate recorded                                          | Pending        | Record the committed SHA, matching staging release IDs, approvers, and timestamp after deployment and manual acceptance.                                                                                               |
+| Criterion                                                                  | Status       | Evidence or remaining action                                                                                                                                                                                           |
+| -------------------------------------------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vendor and admin parity checklists complete                                | Pass         | Admin and vendor technical go recommendations were approved by @ktul15 on 2026-09-12; neither checklist has a blocked row.                                                                                             |
+| Seeded E2E and manual exploratory testing pass                             | Blocked      | Guarded E2E passes 16 vendor and 14 admin tests. Staging browser smoke exposed the admin per-session 429 failure, so the full exploratory checklist and sign-off remain pending.                                       |
+| Authentication, uploads, Stripe redirects, and critical mutations verified | Pass locally | Unit/component/backend suites and seeded Playwright cover role denial, session/logout, upload security, Stripe status/onboarding redirect, products, orders, moderation, commissions, categories, promos, and banners. |
+| Performance, accessibility, and security blockers closed                   | Pass locally | Automated WCAG suites pass; bundle budgets pass; dashboard production audit is clean; the backend Node 24.15 production image reports zero vulnerabilities.                                                            |
+| Signed release candidate recorded                                          | Pending      | Candidate `9390547` is deployed consistently; record the corrected SHA and approvers after the rate-limit defect and full manual acceptance are complete.                                                              |
+
+## Staging execution evidence
+
+Executed 2026-09-22 against candidate `939054740a4ae7adef94aec69aa588206c03bd11`:
+
+- Backend deployment `e24457d6-3bcc-4fcf-a12a-c66e7ca1abca`, admin deployment `dpl_BGZktB4TdTxZrKBXZc2wravbcKE9`, and vendor deployment `dpl_45eiZ7TkSaNKRV1QDDXFCh7uDicQ` report the same staging release; backend database and Redis readiness passed.
+- The guarded bootstrap created `admin.staging@example.com`; backend and deployed admin login checks confirmed a verified `ADMIN`. The temporary Railway password and confirmation variables were removed, followed by a clean redeploy.
+- One customer registered through the public API. Three vendors registered through the deployed vendor UI and reached the pending-review gate.
+- Deployed admin UI actions approved, rejected, and approved-then-suspended separate vendors. Vendor UI logins then showed the expected approved dashboard, rejected gate, and suspended gate.
+- Blocker: one admin browser session reached Redis key count 113 for a limit of 100. `/api/v1/auth/profile` returned HTTP 429 and `/vendors` displayed `Something went wrong`. A fresh session completed the remaining isolated action, but that does not clear the normal-navigation defect.
 
 ## Automated evidence
 
@@ -52,6 +62,7 @@ Run against one committed SHA reported by all three `/api/health` endpoints.
 
 ## Remaining sign-off
 
-1. Commit and deploy this candidate to both staging dashboards and the staging backend under one SHA.
-2. Run deployment smoke plus the manual checklist and record defects or Pass results.
-3. Record QA, backend, web engineering, security, operations, product, and migration-owner approvals with timestamp and candidate SHA.
+1. Fix the admin dashboard request amplification or adjust the correctly scoped per-session rate-limit design, then rerun all affected automated checks.
+2. Deploy the corrected candidate to both staging dashboards and the staging backend under one SHA.
+3. Rerun deployment smoke and the complete manual checklist, recording defects or Pass results.
+4. Record QA, backend, web engineering, security, operations, product, and migration-owner approvals with timestamp and candidate SHA.
