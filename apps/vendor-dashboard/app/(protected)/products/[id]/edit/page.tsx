@@ -1,5 +1,5 @@
 import { ErrorState } from "@repo/ui";
-import Link from "next/link";
+import { VendorNoPrefetchLink as Link } from "../../../../vendor-no-prefetch-link";
 import { ProductForm } from "../../../../product-form";
 import { getProductFormData } from "../../../../../src/lib/product-data";
 

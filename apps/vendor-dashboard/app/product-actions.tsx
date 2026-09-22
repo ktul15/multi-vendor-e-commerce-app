@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, Dialog } from "@repo/ui";
-import Link from "next/link";
+import { VendorNoPrefetchLink as Link } from "./vendor-no-prefetch-link";
 import { useRef, useState } from "react";
 import { useVendorDataRefresh } from "./vendor-data-coherence";
 

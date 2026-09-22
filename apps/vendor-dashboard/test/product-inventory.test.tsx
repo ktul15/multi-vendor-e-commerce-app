@@ -8,7 +8,11 @@ import type { VendorInventory } from "../src/lib/product-data";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("next/link", () => ({
-  default: ({ children, ...props }: ComponentProps<"a">) => <a {...props}>{children}</a>,
+  default: ({ children, prefetch, ...props }: ComponentProps<"a"> & { prefetch?: boolean }) => (
+    <a data-prefetch={String(prefetch)} {...props}>
+      {children}
+    </a>
+  ),
 }));
 
 const state = {
@@ -97,6 +101,9 @@ describe("product inventory", () => {
       "href",
       expect.stringContaining("direction=desc"),
     );
+    for (const link of screen.getAllByRole("link")) {
+      expect(link).toHaveAttribute("data-prefetch", "false");
+    }
   });
 
   it("labels the created sort action from its target direction", () => {

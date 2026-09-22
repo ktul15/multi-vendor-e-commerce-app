@@ -1,5 +1,5 @@
 import { Badge, Card, CardContent, CardHeader, CardTitle, EmptyState, ErrorState } from "@repo/ui";
-import Link from "next/link";
+import { VendorNoPrefetchLink as Link } from "./vendor-no-prefetch-link";
 import type { DashboardRangeState, SalesPeriod } from "../src/lib/dashboard-range";
 import { dashboardRanges, salesPeriods } from "../src/lib/dashboard-range";
 import type { VendorSummary } from "../src/lib/dashboard-data";

@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge, Button, Card, CardContent, CardFooter, CardHeader, CardTitle } from "@repo/ui";
-import Link from "next/link";
+import { VendorNoPrefetchLink as Link } from "./vendor-no-prefetch-link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import type { VendorAccessProfile, VendorStatus } from "../src/lib/vendor-access";

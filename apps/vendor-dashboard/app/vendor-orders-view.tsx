@@ -1,5 +1,5 @@
 import { Badge, Card, CardContent, EmptyState, ErrorState, Input, Select, Button } from "@repo/ui";
-import Link from "next/link";
+import { VendorNoPrefetchLink as Link } from "./vendor-no-prefetch-link";
 import type { VendorOrders } from "../src/lib/order-data";
 import { orderListHref, orderStatuses } from "../src/lib/order-list-state";
 import type { OrderListState, OrderStatus } from "../src/lib/order-list-state";

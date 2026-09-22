@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, Card, CardContent, CardHeader, CardTitle, Input } from "@repo/ui";
-import Link from "next/link";
+import { VendorNoPrefetchLink as Link } from "./vendor-no-prefetch-link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { FormEventHandler } from "react";

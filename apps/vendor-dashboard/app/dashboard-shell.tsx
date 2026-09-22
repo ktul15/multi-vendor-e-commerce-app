@@ -2,7 +2,6 @@
 
 import { DashboardShell } from "@repo/ui";
 import type { DashboardAccount, DashboardNavItem } from "@repo/ui";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { ReactNode } from "react";
@@ -10,6 +9,7 @@ import { canRenderVendorRoute } from "../src/lib/vendor-access";
 import type { VendorAccessProfile } from "../src/lib/vendor-access";
 import { ApprovedVendorNotice, VendorStatusGate } from "./vendor-status-gate";
 import { publishVendorDataChange } from "../src/lib/vendor-data-sync";
+import { VendorNoPrefetchLink } from "./vendor-no-prefetch-link";
 
 const operationalNavigation: readonly DashboardNavItem[] = [
   { href: "/", icon: "⌂", label: "Dashboard" },
@@ -88,7 +88,7 @@ export function VendorDashboardShell({
         account={shellAccount}
         brand="Vendor Hub"
         currentPath={currentPath}
-        LinkComponent={Link}
+        LinkComponent={VendorNoPrefetchLink}
         navigation={navigation}
       >
         {profile.status === "APPROVED" ? (

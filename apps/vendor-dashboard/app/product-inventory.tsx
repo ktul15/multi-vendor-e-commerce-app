@@ -1,5 +1,5 @@
 import { Badge, Button, Card, CardContent, EmptyState, ErrorState, Input, Select } from "@repo/ui";
-import Link from "next/link";
+import { VendorNoPrefetchLink as Link } from "./vendor-no-prefetch-link";
 import type { VendorInventory, VendorProduct } from "../src/lib/product-data";
 import { productListHref } from "../src/lib/product-list-state";
 import type { ProductListState, ProductSortField } from "../src/lib/product-list-state";

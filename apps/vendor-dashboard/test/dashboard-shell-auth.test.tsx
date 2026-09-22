@@ -16,7 +16,11 @@ vi.mock("next/navigation", () => ({
   useRouter: () => navigation,
 }));
 vi.mock("next/link", () => ({
-  default: ({ children, ...props }: ComponentProps<"a">) => <a {...props}>{children}</a>,
+  default: ({ children, prefetch, ...props }: ComponentProps<"a"> & { prefetch?: boolean }) => (
+    <a data-prefetch={String(prefetch)} {...props}>
+      {children}
+    </a>
+  ),
 }));
 
 beforeEach(() => {
@@ -111,6 +115,12 @@ describe("vendor dashboard logout", () => {
     expect(screen.getByText("Maple Market has full vendor access.")).toBeVisible();
     expect(screen.getByRole("button", { name: "Delete product" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Products" })).toBeVisible();
+    const routeLinks = screen
+      .getAllByRole("link")
+      .filter((link) => link.getAttribute("href")?.startsWith("/"));
+    for (const link of routeLinks) {
+      expect(link).toHaveAttribute("data-prefetch", "false");
+    }
   });
 
   it("lets pending vendors access store pages and refresh their status", async () => {
