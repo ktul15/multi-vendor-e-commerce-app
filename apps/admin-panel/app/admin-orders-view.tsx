@@ -4,6 +4,7 @@ import type { AdminOrder, AdminOrders } from "../src/lib/order-data";
 import { orderListHref, orderStatuses } from "../src/lib/order-list-state";
 import type { OrderListState } from "../src/lib/order-list-state";
 import { formatDashboardDate, formatInr } from "../src/lib/format";
+import { AdminNoPrefetchLink } from "./admin-no-prefetch-link";
 import { OrderRefreshButton } from "./order-refresh-button";
 
 export function orderStatus(order: AdminOrder): string {
@@ -157,7 +158,9 @@ export function AdminOrdersView({
                       return (
                         <tr key={order.id}>
                           <th scope="row">
-                            <Link href={`/orders/${order.id}`}>{order.orderNumber}</Link>
+                            <AdminNoPrefetchLink href={`/orders/${order.id}`}>
+                              {order.orderNumber}
+                            </AdminNoPrefetchLink>
                           </th>
                           <td>
                             <span className="admin-order-customer">
@@ -185,12 +188,12 @@ export function AdminOrdersView({
                             </time>
                           </td>
                           <td>
-                            <Link
+                            <AdminNoPrefetchLink
                               className="ui-button ui-button--ghost ui-button--sm"
                               href={`/orders/${order.id}`}
                             >
                               View
-                            </Link>
+                            </AdminNoPrefetchLink>
                           </td>
                         </tr>
                       );

@@ -2,10 +2,10 @@
 
 import { DashboardShell } from "@repo/ui";
 import type { DashboardAccount, DashboardNavItem } from "@repo/ui";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { AdminNoPrefetchLink } from "./admin-no-prefetch-link";
 
 const navigation: readonly DashboardNavItem[] = [
   { href: "/", icon: "⌂", label: "Dashboard" },
@@ -72,7 +72,7 @@ export function AdminDashboardShell({
         account={shellAccount}
         brand="Admin Console"
         currentPath={currentPath}
-        LinkComponent={Link}
+        LinkComponent={AdminNoPrefetchLink}
         navigation={navigation}
       >
         {children}

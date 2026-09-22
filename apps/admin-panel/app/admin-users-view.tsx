@@ -4,6 +4,7 @@ import type { AdminUser, AdminUsers } from "../src/lib/user-data";
 import { accountStatuses, userListHref, userRoles } from "../src/lib/user-list-state";
 import type { UserListState } from "../src/lib/user-list-state";
 import { formatDashboardDate } from "../src/lib/format";
+import { AdminNoPrefetchLink } from "./admin-no-prefetch-link";
 import { UserStatusAction } from "./user-status-action";
 
 function roleTone(role: AdminUser["role"]) {
@@ -119,7 +120,9 @@ export function AdminUsersView({
                       <tr key={user.id}>
                         <th scope="row">
                           <span className="admin-user-identity">
-                            <Link href={`/users/${user.id}`}>{user.name}</Link>
+                            <AdminNoPrefetchLink href={`/users/${user.id}`}>
+                              {user.name}
+                            </AdminNoPrefetchLink>
                             <small>{user.email}</small>
                           </span>
                         </th>
@@ -143,12 +146,12 @@ export function AdminUsersView({
                         </td>
                         <td>
                           <div className="admin-user-row-actions">
-                            <Link
+                            <AdminNoPrefetchLink
                               className="ui-button ui-button--ghost ui-button--sm"
                               href={`/users/${user.id}`}
                             >
                               View
-                            </Link>
+                            </AdminNoPrefetchLink>
                             <UserStatusAction user={user} />
                           </div>
                         </td>

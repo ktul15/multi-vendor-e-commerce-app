@@ -5,6 +5,7 @@ import { productListHref, productStatuses } from "../src/lib/product-list-state"
 import type { ProductListState } from "../src/lib/product-list-state";
 import { actionsForProduct } from "../src/lib/product-moderation";
 import { formatDashboardDate, formatInr } from "../src/lib/format";
+import { AdminNoPrefetchLink } from "./admin-no-prefetch-link";
 import { ProductModerationActionButton } from "./product-moderation-action";
 
 function Filters({ state }: Readonly<{ state: ProductListState }>) {
@@ -57,9 +58,12 @@ function Filters({ state }: Readonly<{ state: ProductListState }>) {
 function RowActions({ product }: Readonly<{ product: AdminProduct }>) {
   return (
     <div className="admin-product-row-actions">
-      <Link className="ui-button ui-button--ghost ui-button--sm" href={`/products/${product.id}`}>
+      <AdminNoPrefetchLink
+        className="ui-button ui-button--ghost ui-button--sm"
+        href={`/products/${product.id}`}
+      >
         View
-      </Link>
+      </AdminNoPrefetchLink>
       {actionsForProduct(product).map((action) => (
         <ProductModerationActionButton action={action} key={action} product={product} />
       ))}
@@ -135,7 +139,9 @@ export function AdminProductsView({
                     {products.items.map((product) => (
                       <tr key={product.id}>
                         <th scope="row">
-                          <Link href={`/products/${product.id}`}>{product.name}</Link>
+                          <AdminNoPrefetchLink href={`/products/${product.id}`}>
+                            {product.name}
+                          </AdminNoPrefetchLink>
                         </th>
                         <td>
                           <span className="admin-product-vendor">

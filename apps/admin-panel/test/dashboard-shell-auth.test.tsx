@@ -11,7 +11,11 @@ vi.mock("next/navigation", () => ({
   useRouter: () => navigation,
 }));
 vi.mock("next/link", () => ({
-  default: ({ children, ...props }: ComponentProps<"a">) => <a {...props}>{children}</a>,
+  default: ({ children, prefetch, ...props }: ComponentProps<"a"> & { prefetch?: boolean }) => (
+    <a data-prefetch={String(prefetch)} {...props}>
+      {children}
+    </a>
+  ),
 }));
 
 beforeAll(() => {
@@ -65,10 +69,9 @@ describe("admin dashboard shell", () => {
       Vendors: "/vendors",
     };
     for (const [label, href] of Object.entries(destinations)) {
-      expect(within(navigationRegion).getByRole("link", { name: label })).toHaveAttribute(
-        "href",
-        href,
-      );
+      const link = within(navigationRegion).getByRole("link", { name: label });
+      expect(link).toHaveAttribute("href", href);
+      expect(link).toHaveAttribute("data-prefetch", "false");
     }
     expect(within(navigationRegion).queryByRole("link", { name: "Settings" })).toBeNull();
 

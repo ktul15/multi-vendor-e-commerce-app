@@ -18,6 +18,7 @@ import type { AdminPromo, AdminPromos } from "../src/lib/promo-data";
 import { promoListHref } from "../src/lib/promo-list-state";
 import type { PromoListState } from "../src/lib/promo-list-state";
 import { formatDashboardDate, formatInr } from "../src/lib/format";
+import { AdminNoPrefetchLink } from "./admin-no-prefetch-link";
 
 export type PromoLifecycle = "ACTIVE" | "EXHAUSTED" | "EXPIRED" | "INACTIVE";
 
@@ -273,12 +274,12 @@ export function AdminPromosView({
                           </td>
                           <td>
                             <div className="admin-promo-table__actions">
-                              <Link
+                              <AdminNoPrefetchLink
                                 className="ui-button ui-button--ghost ui-button--sm"
                                 href={`/promos/${promo.id}/edit`}
                               >
                                 Edit
-                              </Link>
+                              </AdminNoPrefetchLink>
                               {promo.isActive ? (
                                 <PromoAction action="deactivate" promo={promo} />
                               ) : null}

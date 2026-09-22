@@ -8,6 +8,7 @@ import { useState } from "react";
 import type { AdminBanner, AdminBanners } from "../src/lib/banner-data";
 import { bannerListHref } from "../src/lib/banner-list-state";
 import type { BannerListState } from "../src/lib/banner-list-state";
+import { AdminNoPrefetchLink } from "./admin-no-prefetch-link";
 
 function token() {
   return document.cookie
@@ -188,12 +189,12 @@ export function AdminBannersView({
                           >
                             Preview
                           </Button>
-                          <Link
+                          <AdminNoPrefetchLink
                             className="ui-button ui-button--secondary ui-button--sm"
                             href={`/banners/${banner.id}/edit`}
                           >
                             Edit
-                          </Link>
+                          </AdminNoPrefetchLink>
                           {banner.isActive ? (
                             <Button
                               disabled={busy === banner.id}

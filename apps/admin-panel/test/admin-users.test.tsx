@@ -10,7 +10,11 @@ import type { AdminUser, AdminUserDetail } from "../src/lib/user-data";
 const navigation = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
 vi.mock("next/link", () => ({
-  default: ({ children, ...props }: ComponentProps<"a">) => <a {...props}>{children}</a>,
+  default: ({ children, prefetch, ...props }: ComponentProps<"a"> & { prefetch?: boolean }) => (
+    <a data-prefetch={String(prefetch)} {...props}>
+      {children}
+    </a>
+  ),
 }));
 
 beforeAll(() => {
@@ -64,6 +68,14 @@ describe("admin user management", () => {
     );
     expect(screen.getByRole("button", { name: "Ban" })).toBeVisible();
     expect(screen.getByText("Protected account")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Asha Buyer" })).toHaveAttribute(
+      "data-prefetch",
+      "false",
+    );
+    expect(screen.getAllByRole("link", { name: "View" })[0]).toHaveAttribute(
+      "data-prefetch",
+      "false",
+    );
     expect(screen.getByRole("link", { name: "Next" })).toHaveAttribute(
       "href",
       expect.stringContaining("page=2"),

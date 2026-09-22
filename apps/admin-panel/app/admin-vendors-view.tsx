@@ -5,6 +5,7 @@ import { actionsForVendor } from "../src/lib/vendor-lifecycle";
 import { vendorListHref, vendorStatuses } from "../src/lib/vendor-list-state";
 import type { VendorListState, VendorStatus } from "../src/lib/vendor-list-state";
 import { formatDashboardDate } from "../src/lib/format";
+import { AdminNoPrefetchLink } from "./admin-no-prefetch-link";
 import { VendorLifecycleAction } from "./vendor-lifecycle-action";
 
 export function vendorStatusTone(status: VendorStatus) {
@@ -51,9 +52,12 @@ function Filters({ state }: Readonly<{ state: VendorListState }>) {
 function RowActions({ vendor }: Readonly<{ vendor: AdminVendor }>) {
   return (
     <div className="admin-vendor-row-actions">
-      <Link className="ui-button ui-button--ghost ui-button--sm" href={`/vendors/${vendor.id}`}>
+      <AdminNoPrefetchLink
+        className="ui-button ui-button--ghost ui-button--sm"
+        href={`/vendors/${vendor.id}`}
+      >
         View
-      </Link>
+      </AdminNoPrefetchLink>
       {actionsForVendor(vendor.status).map((action) => (
         <VendorLifecycleAction action={action} key={action} vendor={vendor} />
       ))}
@@ -125,7 +129,9 @@ export function AdminVendorsView({
                     {vendors.items.map((vendor) => (
                       <tr key={vendor.id}>
                         <th scope="row">
-                          <Link href={`/vendors/${vendor.id}`}>{vendor.storeName}</Link>
+                          <AdminNoPrefetchLink href={`/vendors/${vendor.id}`}>
+                            {vendor.storeName}
+                          </AdminNoPrefetchLink>
                         </th>
                         <td>
                           <span className="admin-vendor-owner">
