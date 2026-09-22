@@ -6,38 +6,39 @@ Issue: #123
 
 Acceptance date: 2026-09-22
 
-Candidate source: `feature/123-dashboard-acceptance-testing` at `cf9e1e2699d92760cdc2e428488a5389429fa119`
+Candidate source: `feature/123-dashboard-acceptance-testing` at `f638ba4b221955f193f331a7bce9b73348834750`
 
 ## Decision
 
-The local automated gates pass, and the canonical staging backend, admin dashboard, and vendor dashboard report the same corrected candidate SHA. Controlled customer, administrator, and vendor accounts were created successfully, and deployed-browser checks passed for vendor registration plus approved, rejected, and suspended access gates. The admin request-amplification blocker is resolved: three complete cycles through all nine protected data-backed routes produced no automatic detail-route requests or error boundary, and an intentional detail navigation still worked. Acceptance remains a no-go until the complete manual checklist and cross-functional sign-offs are recorded.
+The local automated gates pass, and the canonical staging backend, admin dashboard, and vendor dashboard report the same corrected candidate SHA. Controlled customer, administrator, and vendor accounts were created successfully, and deployed-browser checks passed for vendor registration plus approved, rejected, and suspended access gates. Protected-link request amplification is resolved in both dashboards: repeated admin and vendor navigation produced no automatic protected detail/action-route requests or error boundary, while intentional navigations still worked. Acceptance remains a no-go until the complete manual checklist and cross-functional sign-offs are recorded.
 
 ## Acceptance criteria
 
 | Criterion                                                                  | Status       | Evidence or remaining action                                                                                                                                                                                           |
 | -------------------------------------------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Vendor and admin parity checklists complete                                | Pass         | Admin and vendor technical go recommendations were approved by @ktul15 on 2026-09-12; neither checklist has a blocked row.                                                                                             |
-| Seeded E2E and manual exploratory testing pass                             | In progress  | Guarded E2E passes 16 vendor and 14 admin tests. The focused staging navigation regression passes; the complete exploratory checklist and sign-off remain pending.                                                     |
+| Seeded E2E and manual exploratory testing pass                             | In progress  | Guarded E2E passes 16 vendor and 14 admin tests. Focused admin and vendor staging navigation regressions pass; the complete exploratory checklist and sign-off remain pending.                                         |
 | Authentication, uploads, Stripe redirects, and critical mutations verified | Pass locally | Unit/component/backend suites and seeded Playwright cover role denial, session/logout, upload security, Stripe status/onboarding redirect, products, orders, moderation, commissions, categories, promos, and banners. |
 | Performance, accessibility, and security blockers closed                   | Pass locally | Automated WCAG suites pass; bundle budgets pass; dashboard production audit is clean; the backend Node 24.15 production image reports zero vulnerabilities.                                                            |
-| Signed release candidate recorded                                          | Pending      | Corrected candidate `cf9e1e2` is deployed consistently; record approvers after full manual acceptance is complete.                                                                                                     |
+| Signed release candidate recorded                                          | Pending      | Corrected candidate `f638ba4` is deployed consistently; record approvers after full manual acceptance is complete.                                                                                                     |
 
 ## Staging execution evidence
 
-Executed 2026-09-22 against candidate `cf9e1e2699d92760cdc2e428488a5389429fa119`:
+Executed 2026-09-22 against candidate `f638ba4b221955f193f331a7bce9b73348834750`:
 
-- Backend deployment `eb2ce11a-9e32-4696-9b70-eb0011607bbe`, admin deployment `dpl_Sn4Db8SBthuoAzxsxhusRbwPJMPs`, and vendor deployment `dpl_23ZX4513cJoHLrve52ofo59i39zP` report the same staging release; backend database and Redis readiness passed.
+- Backend deployment `4ec2ad49-4bc7-44e0-b67d-bb758cbe100b`, admin deployment `dpl_4LyNW2AhMJhLFcHxXXtHumjXrr2b`, and vendor deployment `dpl_6nYDbTzN427ptJCvALz8qmiGNaeo` report the same staging release; backend database and Redis readiness passed.
 - The guarded bootstrap created `admin.staging@example.com`; backend and deployed admin login checks confirmed a verified `ADMIN`. The temporary Railway password and confirmation variables were removed, followed by a clean redeploy.
 - One customer registered through the public API. Three vendors registered through the deployed vendor UI and reached the pending-review gate.
 - Deployed admin UI actions approved, rejected, and approved-then-suspended separate vendors. Vendor UI logins then showed the expected approved dashboard, rejected gate, and suspended gate.
 - The original navigation run reached Redis key count 113 for a limit of 100 because protected Next.js links prefetched routes that each performed a profile check. The corrected dashboard disables prefetch for every protected link.
 - The corrected candidate passed the focused deployed-browser regression twice. Each run navigated three cycles through overview, categories, users, vendors, products, orders, finance, banners, and promos without an error boundary or automatic detail-route request; an intentional user-detail navigation also passed.
+- The vendor dashboard uses the same protected-link policy. Its deployed-browser regression navigated three cycles through dashboard, products, orders, earnings, and store without an error boundary or automatic protected action-route request; intentional Add Product navigation also passed.
 
 ## Automated evidence
 
 | Gate                                               | Result                                                                                                     |
 | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Workspace format, lint, typecheck, test, API drift | Passed; 31 vendor files/142 tests and 45 admin files/150 tests                                             |
+| Workspace format, lint, typecheck, test, API drift | Passed; 32 vendor files/143 tests and 45 admin files/150 tests                                             |
 | Backend lint, build, and isolated test suite       | Passed; 43 suites/535 tests                                                                                |
 | Seeded Playwright                                  | Passed; vendor 16 and admin 14 applicable tests                                                            |
 | Production dashboard build                         | Passed for vendor and admin on Next.js 16.3.3                                                              |
@@ -63,5 +64,5 @@ Run against one committed SHA reported by all three `/api/health` endpoints.
 
 ## Remaining sign-off
 
-1. Run the complete manual checklist against candidate `cf9e1e2`, recording defects or Pass results.
+1. Run the complete manual checklist against candidate `f638ba4`, recording defects or Pass results.
 2. Record QA, backend, web engineering, security, operations, product, and migration-owner approvals with timestamp and candidate SHA.
